@@ -10,5 +10,4 @@ pub struct ServerboundClientCommand {
 pub enum Action {
     PerformRespawn = 0,
     RequestStats = 1,
-    RequestGameruleValues = 2,
 }

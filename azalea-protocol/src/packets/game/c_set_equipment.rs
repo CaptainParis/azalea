@@ -63,7 +63,7 @@ mod tests {
 
     #[test]
     fn test_read_lifesteal_net_set_equipment() {
-        let contents = [1, 128, 0, 129, 0, 130, 0, 131, 0, 132, 0, 133, 0, 7, 0];
+        let contents = [1, 128, 0, 129, 0, 130, 0, 131, 0, 132, 0, 133, 0, 6, 0];
         let mut buf = Cursor::new(contents.as_slice());
         let packet = ClientboundSetEquipment::azalea_read(&mut buf).unwrap();
         println!("{packet:?}");

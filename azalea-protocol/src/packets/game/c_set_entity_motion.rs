@@ -1,5 +1,5 @@
 use azalea_buf::AzBuf;
-use azalea_core::delta::LpVec3;
+use azalea_core::delta::QuantizedVelocity;
 use azalea_protocol_macros::ClientboundGamePacket;
 use azalea_core::entity_id::MinecraftEntityId;
 
@@ -7,5 +7,5 @@ use azalea_core::entity_id::MinecraftEntityId;
 pub struct ClientboundSetEntityMotion {
     #[var]
     pub id: MinecraftEntityId,
-    pub delta: LpVec3,
+    pub delta: QuantizedVelocity,
 }

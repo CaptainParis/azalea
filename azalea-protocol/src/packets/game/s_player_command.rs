@@ -13,6 +13,8 @@ pub struct ServerboundPlayerCommand {
 
 #[derive(AzBuf, Clone, Copy, Debug, PartialEq)]
 pub enum Action {
+    PressShiftKey,
+    ReleaseShiftKey,
     StopSleeping,
     StartSprinting,
     StopSprinting,

@@ -25,8 +25,6 @@ use uuid::Uuid;
 
 #[derive(AzBuf, ClientboundGamePacket, Clone, Debug, PartialEq)]
 pub struct ClientboundPlayerChat {
-    #[var]
-    pub global_index: u32,
     pub sender: Uuid,
     #[var]
     pub index: u32,

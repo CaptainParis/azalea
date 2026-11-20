@@ -109,23 +109,22 @@ impl AzBuf for RelativeMovements {
         })
     }
     fn azalea_write(&self, buf: &mut impl Write) -> io::Result<()> {
-        let mut set = FixedBitSet::<32>::new();
-        let mut set_bit = |index: usize, value: bool| {
-            if value {
-                set.set(index);
-            }
-        };
-
-        set_bit(0, self.x);
-        set_bit(1, self.y);
-        set_bit(2, self.z);
-        set_bit(3, self.y_rot);
-        set_bit(4, self.x_rot);
-        set_bit(5, self.delta_x);
-        set_bit(6, self.delta_y);
-        set_bit(7, self.delta_z);
-        set_bit(8, self.rotate_delta);
-
+        // a big-endian int, like the read above
+        let flags = [
+            self.x,
+            self.y,
+            self.z,
+            self.y_rot,
+            self.x_rot,
+            self.delta_x,
+            self.delta_y,
+            self.delta_z,
+            self.rotate_delta,
+        ];
+        let set = flags
+            .iter()
+            .enumerate()
+            .fold(0u32, |set, (i, &flag)| set | (u32::from(flag) << i));
         set.azalea_write(buf)
     }
 }

@@ -24,6 +24,5 @@ pub struct ClientboundLogin {
     pub show_death_screen: bool,
     pub do_limited_crafting: bool,
     pub common: CommonPlayerSpawnInfo,
-    pub online_mode: bool,
     pub enforces_secure_chat: bool,
 }

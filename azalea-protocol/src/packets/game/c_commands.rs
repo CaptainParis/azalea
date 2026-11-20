@@ -19,7 +19,6 @@ pub struct BrigadierNodeStub {
     pub children: Vec<u32>,
     pub redirect_node: Option<u32>,
     pub node_type: NodeType,
-    pub is_restricted: bool,
 }
 
 #[derive(Clone, Debug, Eq)]
@@ -110,8 +109,7 @@ pub enum BrigadierParser {
     BlockPredicate,
     ItemStack,
     ItemPredicate,
-    TeamColor,
-    HexColor,
+    Color,
     FormattedText,
     Style,
     Message,
@@ -142,14 +140,12 @@ pub enum BrigadierParser {
     ResourceOrTagKey { registry_key: Identifier },
     Resource { registry_key: Identifier },
     ResourceKey { registry_key: Identifier },
-    ResourceSelector { registry_key: Identifier },
     TemplateMirror,
     TemplateRotation,
     Heightmap,
     LootTable,
     LootPredicate,
     LootModifier,
-    Dialog,
     Uuid,
 }
 
@@ -183,9 +179,9 @@ impl AzBuf for EntityParser {
 impl AzBuf for BrigadierNodeStub {
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
         let flags = FixedBitSet::<8>::azalea_read(buf)?;
-        if flags.index(6) || flags.index(7) {
+        if flags.index(5) || flags.index(6) || flags.index(7) {
             warn!(
-                "The flags from a Brigadier node are over 63. This is a bug, BrigadierParser probably needs updating.",
+                "The flags from a Brigadier node are over 31. This is a bug, BrigadierParser probably needs updating.",
             );
         }
 
@@ -193,7 +189,6 @@ impl AzBuf for BrigadierNodeStub {
         let is_executable = flags.index(2);
         let has_redirect = flags.index(3);
         let has_suggestions_type = flags.index(4);
-        let is_restricted = flags.index(5);
 
         let children = Vec::<u32>::azalea_read_var(buf)?;
         let redirect_node = if has_redirect {
@@ -220,7 +215,6 @@ impl AzBuf for BrigadierNodeStub {
                     parser,
                     suggestions_type,
                 },
-                is_restricted,
             })
         }
         // literal node
@@ -231,7 +225,6 @@ impl AzBuf for BrigadierNodeStub {
                 children,
                 redirect_node,
                 node_type: NodeType::Literal { name },
-                is_restricted,
             })
         } else {
             Ok(BrigadierNodeStub {
@@ -239,7 +232,6 @@ impl AzBuf for BrigadierNodeStub {
                 children,
                 redirect_node,
                 node_type: NodeType::Root,
-                is_restricted,
             })
         }
     }
@@ -337,7 +329,6 @@ mod tests {
             children: vec![1, 2],
             redirect_node: None,
             node_type: NodeType::Root,
-            is_restricted: false,
         };
         let mut buf = Vec::new();
         data.azalea_write(&mut buf).unwrap();
@@ -355,7 +346,6 @@ mod tests {
             node_type: NodeType::Literal {
                 name: "String".to_owned(),
             },
-            is_restricted: false,
         };
         let mut buf = Vec::new();
         data.azalea_write(&mut buf).unwrap();
@@ -375,7 +365,6 @@ mod tests {
                 parser: BrigadierParser::Vec3,
                 suggestions_type: Some(Identifier::new("minecraft:test_suggestion")),
             },
-            is_restricted: false,
         };
         let mut buf = Vec::new();
         data.azalea_write(&mut buf).unwrap();

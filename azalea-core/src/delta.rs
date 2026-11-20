@@ -30,6 +30,46 @@ impl PositionDeltaTrait for PositionDelta8 {
         (self.za as f64) / 4096.0
     }
 }
+/// An entity velocity, sent as three `i16`s in units of 1/8000 of a block per
+/// tick and clamped to ±3.9 on each axis.
+#[derive(AzBuf, Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct QuantizedVelocity {
+    pub xa: i16,
+    pub ya: i16,
+    pub za: i16,
+}
+
+impl QuantizedVelocity {
+    pub fn from_vec3(vec3: Vec3) -> Self {
+        let quantize = |v: f64| (v.clamp(-3.9, 3.9) * 8000.) as i16;
+        Self {
+            xa: quantize(vec3.x),
+            ya: quantize(vec3.y),
+            za: quantize(vec3.z),
+        }
+    }
+
+    pub fn to_vec3(self) -> Vec3 {
+        Vec3::from(self)
+    }
+}
+impl PositionDeltaTrait for QuantizedVelocity {
+    fn x(&self) -> f64 {
+        (self.xa as f64) / 8000.0
+    }
+    fn y(&self) -> f64 {
+        (self.ya as f64) / 8000.0
+    }
+    fn z(&self) -> f64 {
+        (self.za as f64) / 8000.0
+    }
+}
+impl From<Vec3> for QuantizedVelocity {
+    fn from(value: Vec3) -> Self {
+        Self::from_vec3(value)
+    }
+}
+
 impl<T: PositionDeltaTrait> From<T> for Vec3 {
     fn from(value: T) -> Self {
         Vec3::new(value.x(), value.y(), value.z())

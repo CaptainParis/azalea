@@ -18,5 +18,4 @@ pub struct LastSeenMessagesUpdate {
     #[var]
     pub offset: u32,
     pub acknowledged: FixedBitSet<20>,
-    pub checksum: u8,
 }

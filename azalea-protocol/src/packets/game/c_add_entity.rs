@@ -1,5 +1,5 @@
 use azalea_buf::AzBuf;
-use azalea_core::{delta::LpVec3, entity_id::MinecraftEntityId, position::Vec3};
+use azalea_core::{delta::QuantizedVelocity, entity_id::MinecraftEntityId, position::Vec3};
 use azalea_protocol_macros::ClientboundGamePacket;
 use azalea_registry::builtin::EntityKind;
 #[cfg(feature = "bevy_ecs")]
@@ -14,7 +14,6 @@ pub struct ClientboundAddEntity {
     pub uuid: Uuid,
     pub entity_type: EntityKind,
     pub position: Vec3,
-    pub movement: LpVec3,
     pub x_rot: i8,
     pub y_rot: i8,
     pub y_head_rot: i8,
@@ -28,6 +27,7 @@ pub struct ClientboundAddEntity {
     /// for more information about this field.
     #[var]
     pub data: i32,
+    pub movement: QuantizedVelocity,
 }
 
 impl ClientboundAddEntity {

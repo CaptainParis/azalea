@@ -62,7 +62,7 @@ impl AzBuf for GameProfileProperties {
             });
         }
         for _ in 0..properties_len {
-            let key = String::azalea_read_limited(buf, 16)?;
+            let key = String::azalea_read_limited(buf, 64)?;
             let value = ProfilePropertyValue::azalea_read(buf)?;
             properties.insert(key, value);
         }

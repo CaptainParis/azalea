@@ -20,9 +20,9 @@ mod tests {
 
     #[test]
     fn read_set_entity_data() {
-        // from hypixel
+        // from hypixel, with 1.21.4 serializer and particle ids
         #[rustfmt::skip]
-        let contents = [173, 179, 148, 8, 10, 17, 1, 28, 38, 124, 175, 198, 255];
+        let contents = [173, 179, 148, 8, 10, 18, 1, 20, 38, 124, 175, 198, 255];
         let mut buf = Cursor::new(contents.as_slice());
         let _packet = ClientboundSetEntityData::azalea_read(&mut buf).unwrap();
 
