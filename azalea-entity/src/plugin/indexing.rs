@@ -75,6 +75,18 @@ impl EntityIdIndex {
         self.id_by_entity.contains_key(&id)
     }
 
+    /// How many entities the client knows (its own player included).
+    pub fn len(&self) -> usize {
+        self.entity_by_id.len()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.entity_by_id.is_empty()
+    }
+    /// Every (id, entity) the client knows.
+    pub fn iter(&self) -> impl Iterator<Item = (MinecraftEntityId, Entity)> + '_ {
+        self.entity_by_id.iter().map(|(id, e)| (*id, *e))
+    }
+
     pub fn insert(&mut self, id: MinecraftEntityId, entity: Entity) {
         self.entity_by_id.insert(id, entity);
         self.id_by_entity.insert(entity, id);

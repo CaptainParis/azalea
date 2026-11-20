@@ -243,3 +243,47 @@ fn ring_radius_is_ten_at_view_distance_seven() {
         assert_eq!(p.chunks.capacity(), 441);
     });
 }
+
+/// Past the entity cap, the farthest non-player entities are dropped from the
+/// model and counted (`EntityCap`); players are never dropped.
+#[test]
+fn entity_cap_drops_farthest_non_players() {
+    use azalea_client::resources::ResourceBounds;
+    use azalea_core::decode_errors::decode_errors;
+    use azalea_entity::indexing::EntityIdIndex;
+    use azalea_registry::builtin::EntityKind;
+
+    let _lock = init_expecting_errors();
+    let mut s = Simulation::new(ConnectionProtocol::Game);
+    s.with_resource_mut::<ResourceBounds>(|mut b| b.entity_cap = 4);
+    s.receive_packet(default_login_packet());
+    for x in 0..4 {
+        s.receive_packet(make_basic_empty_chunk(ChunkPos::new(x, 0), SECTIONS));
+    }
+    s.tick();
+    let before = decode_errors().entity_cap;
+    // our player (at the origin) + 2 cows: under the cap
+    for (id, x) in [(10, 5.0), (11, 50.0)] {
+        let mut add = make_basic_add_entity(EntityKind::Cow, id, (x, 64., 0.5));
+        add.uuid = uuid::Uuid::from_u128(id as u128);
+        s.receive_packet(add);
+    }
+    s.tick();
+    // a far player and two more cows: 6 known, 2 over
+    let mut far_player = make_basic_add_entity(EntityKind::Player, 12, (60.0, 64., 0.5));
+    far_player.uuid = uuid::Uuid::from_u128(12);
+    s.receive_packet(far_player);
+    for (id, x) in [(13, 40.0), (14, 2.0)] {
+        let mut add = make_basic_add_entity(EntityKind::Cow, id, (x, 64., 0.5));
+        add.uuid = uuid::Uuid::from_u128(id as u128);
+        s.receive_packet(add);
+    }
+    s.tick();
+    s.tick();
+    let mut known: Vec<i32> =
+        s.query_self::<&EntityIdIndex, _>(|i| i.iter().map(|(id, _)| id.0).collect());
+    known.sort();
+    // the player at 60 stays; the cows at 50 and 40 go
+    assert_eq!(known, vec![0, 10, 12, 14]);
+    assert_eq!(decode_errors().entity_cap - before, 2);
+}

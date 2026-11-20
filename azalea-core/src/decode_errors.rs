@@ -137,6 +137,10 @@ pub enum DecodeErrorKind {
     /// chunk cache centre) was refused: the ring can't hold it (WP4 hard cap
     /// per bot).
     ChunkCap,
+    /// A client knew more entities than its cap (WP4, 4096 by default): the
+    /// farthest non-player entities were dropped from its model, as if the
+    /// server had removed them (one count per entity).
+    EntityCap,
 }
 
 impl DecodeErrorKind {
@@ -233,6 +237,7 @@ kinds! {
     TabListStale => tab_list_stale,
     MissingProfile => missing_profile,
     ChunkCap => chunk_cap,
+    EntityCap => entity_cap,
 }
 
 fn counter(kind: DecodeErrorKind) -> &'static AtomicU64 {
