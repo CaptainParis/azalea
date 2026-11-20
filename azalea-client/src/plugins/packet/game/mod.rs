@@ -1581,20 +1581,20 @@ impl GamePacketHandler<'_> {
 
                 physics.vec_delta_codec.set_base(new_position);
 
+                // vanilla 1.21.4 handleEntityPositionSync: the codec base is
+                // always set, the rest only for entities this client doesn't
+                // control
                 let is_client_authoritative = local_entity.is_some();
-                if is_client_authoritative {
-                    debug!("Ignoring entity position sync packet for local player");
-                    return;
-                }
+                if !is_client_authoritative {
+                    physics.set_on_ground(new_on_ground);
 
-                physics.set_on_ground(new_on_ground);
+                    if **position != new_position {
+                        **position = new_position;
+                    }
 
-                if **position != new_position {
-                    **position = new_position;
-                }
-
-                if *look_direction != new_look_direction {
-                    *look_direction = new_look_direction;
+                    if *look_direction != new_look_direction {
+                        *look_direction = new_look_direction;
+                    }
                 }
             },
         );
