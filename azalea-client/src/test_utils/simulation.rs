@@ -112,6 +112,40 @@ impl Simulation {
             raw_conn.injected_clientbound_packets.push(buf);
         });
     }
+    /// Inject raw packet bytes (id and body), for example a corrupted packet.
+    pub fn receive_raw_packet(&mut self, raw: impl Into<Box<[u8]>>) {
+        let raw = raw.into();
+        self.with_component_mut::<RawConnection>(|raw_conn| {
+            raw_conn.injected_clientbound_packets.push(raw);
+        });
+    }
+    /// Every message of type `M` written from now on, collected by an
+    /// `Update` system that runs last.
+    pub fn record_messages<M: Message + Clone>(&mut self) -> Arc<Mutex<Vec<M>>> {
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let l = log.clone();
+        self.app.add_systems(
+            bevy_app::PostUpdate,
+            move |mut reader: MessageReader<M>| {
+                l.lock().extend(reader.read().cloned());
+            },
+        );
+        log
+    }
+    /// The reason of every `DisconnectEvent` from now on (`None` for one
+    /// without a reason).
+    pub fn record_disconnects(&mut self) -> Arc<Mutex<Vec<Option<String>>>> {
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let l = log.clone();
+        self.app.add_systems(
+            bevy_app::Last,
+            move |mut reader: MessageReader<DisconnectEvent>| {
+                l.lock()
+                    .extend(reader.read().map(|d| d.reason.as_ref().map(|r| r.to_string())));
+            },
+        );
+        log
+    }
     pub fn write_message(&mut self, message: impl Message) {
         self.app.world_mut().write_message(message);
     }
@@ -321,6 +355,15 @@ fn create_simulation_app() -> App {
 fn tick_app(app: &mut App) {
     app.update();
     app.world_mut().run_schedule(GameTick);
+}
+
+/// A packet's bytes (id and body) cut after `keep` body bytes, so the body
+/// can't be decoded.
+pub fn truncated_packet<P: ProtocolPacket + Debug>(packet: impl Packet<P>, keep: usize) -> Box<[u8]> {
+    let raw = azalea_protocol::write::serialize_packet(&packet.into_variant()).unwrap();
+    let id_len = raw.iter().position(|b| b & 0x80 == 0).unwrap() + 1;
+    let end = (id_len + keep).min(raw.len() - 1);
+    raw[..end].into()
 }
 
 pub fn default_login_packet() -> ClientboundLogin {
