@@ -368,6 +368,7 @@ fn int_array_to_uuid(ints: &[i32]) -> Option<String> {
         | (u128::from(*c as u32) << 32)
         | u128::from(*d as u32);
     let h = format!("{n:032x}");
+    // network-safe: h is exactly 32 hex digits
     Some(format!(
         "{}-{}-{}-{}-{}",
         &h[0..8],

@@ -25,6 +25,7 @@ pub enum FormattedText {
 }
 
 pub static DEFAULT_STYLE: LazyLock<Style> = LazyLock::new(|| Style {
+    // network-safe: a constant (white is a color)
     color: Some(ChatFormatting::White.try_into().unwrap()),
     ..Style::default()
 });
@@ -375,7 +376,9 @@ impl<'de> Deserialize<'de> for FormattedText {
                     FormattedText::parse_separator(&json).map_err(de::Error::custom)?;
 
                 let _interpret = match json.get("interpret") {
-                    Some(v) => v.as_bool().ok_or(Some(false)).unwrap(),
+                    // not a bool: false (this unwrapped an Err, a panic on
+                    // a JSON component from the server)
+                    Some(v) => v.as_bool().unwrap_or(false),
                     None => false,
                 };
                 if let Some(_block) = json.get("block") {}
@@ -408,19 +411,17 @@ impl<'de> Deserialize<'de> for FormattedText {
                 format!("Don't know how to turn {json} into a FormattedText").as_str(),
             ));
         }
-        let json_array = json.as_array().unwrap();
-        if json_array.is_empty() {
-            return Ok(FormattedText::default());
-        }
+        let Some(json_array) = json.as_array() else {
+            return Err(de::Error::custom("Expected an array"));
+        };
         // the first item in the array is the one that we're gonna return, the
         // others are siblings
-        let mut component =
-            FormattedText::deserialize(&json_array[0]).map_err(de::Error::custom)?;
-        for i in 1..json_array.len() {
-            component.append(
-                FormattedText::deserialize(json_array.get(i).unwrap())
-                    .map_err(de::Error::custom)?,
-            );
+        let Some((first, rest)) = json_array.split_first() else {
+            return Ok(FormattedText::default());
+        };
+        let mut component = FormattedText::deserialize(first).map_err(de::Error::custom)?;
+        for item in rest {
+            component.append(FormattedText::deserialize(item).map_err(de::Error::custom)?);
         }
         Ok(component)
     }
@@ -504,20 +505,21 @@ pub(crate) fn collect_nbt_list(tags: Vec<simdnbt::owned::NbtTag>) -> simdnbt::ow
             tags.into_iter().map(wrap_if_needed).collect(),
         ));
     }
+    // every tag has first's type (`homogeneous` above), so the expects hold
     match first {
         NbtTag::Byte(_) => NbtTag::ByteArray(
             tags.into_iter()
-                .map(|t| t.into_byte().expect("homogeneous") as u8)
+                .map(|t| t.into_byte().expect("homogeneous") as u8) // network-safe: homogeneous
                 .collect(),
         ),
         NbtTag::Int(_) => NbtTag::IntArray(
             tags.into_iter()
-                .map(|t| t.into_int().expect("homogeneous"))
+                .map(|t| t.into_int().expect("homogeneous")) // network-safe: homogeneous
                 .collect(),
         ),
         NbtTag::Long(_) => NbtTag::LongArray(
             tags.into_iter()
-                .map(|t| t.into_long().expect("homogeneous"))
+                .map(|t| t.into_long().expect("homogeneous")) // network-safe: homogeneous
                 .collect(),
         ),
         _ => NbtTag::List(NbtList::from(tags)),
@@ -899,6 +901,17 @@ mod tests {
                 ]
             ))
         );
+    }
+
+    #[test]
+    fn json_nbt_component_with_a_non_bool_interpret_is_an_error() {
+        // this unwrapped an Err (a panic)
+        let j = serde_json::json!({"nbt": "a", "interpret": 5});
+        assert!(FormattedText::deserialize(&j).is_err());
+        let j = serde_json::json!(["a", {"text": "b"}]);
+        assert_eq!(FormattedText::deserialize(&j).unwrap().to_string(), "ab");
+        let j = serde_json::json!([]);
+        assert_eq!(FormattedText::deserialize(&j).unwrap(), FormattedText::default());
     }
 
     #[test]

@@ -89,6 +89,8 @@ static LEGACY_FORMAT_TO_COLOR: LazyLock<HashMap<&'static ChatFormatting, TextCol
             legacy_format_to_color.insert(
                 formatter,
                 TextColor {
+                    // network-safe: a static table; every formatter that
+                    // isn't a format or reset has a color
                     value: formatter.color().unwrap(),
                     name: Some(formatter.name().to_owned()),
                 },
@@ -99,6 +101,7 @@ static LEGACY_FORMAT_TO_COLOR: LazyLock<HashMap<&'static ChatFormatting, TextCol
 static NAMED_COLORS: LazyLock<HashMap<String, TextColor>> = LazyLock::new(|| {
     let mut named_colors = HashMap::new();
     for color in LEGACY_FORMAT_TO_COLOR.values() {
+        // network-safe: every color in the static table above has a name
         named_colors.insert(color.name.clone().unwrap(), color.clone());
     }
     named_colors
@@ -506,8 +509,7 @@ impl Style {
             }
         };
 
-        if color_changed {
-            let after_color = after.color.as_ref().unwrap();
+        if color_changed && let Some(after_color) = &after.color {
             ansi_codes.push_str(&Ansi::rgb(after_color.value));
         }
 
