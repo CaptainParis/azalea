@@ -265,6 +265,8 @@ impl<T: FromNbtTag> FromNbtTag for Option<T> {
 }
 impl<T: ToNbtTag> ToNbtTag for Option<T> {
     fn to_nbt_tag(self) -> owned::NbtTag {
+        // network-safe: writing only, never on read data; the derive writes Option fields with
+        // to_optional_nbt_tag
         panic!("Called to_nbt_tag on Option<T>. Use to_optional_nbt_tag instead.")
     }
     fn to_optional_nbt_tag(self) -> Option<owned::NbtTag> {

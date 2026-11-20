@@ -140,8 +140,12 @@ impl<'a: 'tape, 'tape> NbtCompound<'a, 'tape> {
         debug_assert_eq!(el.kind(), TapeTagKind::Compound);
 
         let max_tape_offset = el.approx_len_and_offset().1 as usize;
-        let tape_slice =
-            unsafe { std::slice::from_raw_parts(self.element.add(1), max_tape_offset) };
+        // azalea-hunt: the offset counts from the compound element to the element after its
+        // end, so the compound holds offset - 1 elements; a slice of `offset` went one past the
+        // tape (past the allocation when the tape was full)
+        let tape_slice = unsafe {
+            std::slice::from_raw_parts(self.element.add(1), max_tape_offset.saturating_sub(1))
+        };
 
         NbtCompoundIter {
             current_tape_offset: 0,
@@ -220,6 +224,8 @@ impl<'a: 'tape, 'tape> Iterator for NbtCompoundIter<'a, 'tape> {
             return None;
         }
 
+        // network-safe: current_tape_offset + 1 < max_tape_offset (checked above) and the slice
+        // holds max_tape_offset - 1 elements
         let name_length_ptr = self.tape[self.current_tape_offset].u64() as *const UnalignedU16;
         let name_length = u16::from(unsafe { *name_length_ptr });
         #[cfg(target_endian = "little")]
@@ -483,24 +489,31 @@ pub(crate) fn write_tag(tag: NbtTag, data: &mut FastVec<u8>) {
     let el = tag.element();
     match el.kind() {
         TapeTagKind::Byte => unsafe {
+            // network-safe: the tape kind matched in this arm is Byte, so byte() is Some
             data.push_unchecked(tag.byte().unwrap() as u8);
         },
         TapeTagKind::Short => unsafe {
+            // network-safe: the tape kind matched in this arm is Short, so short() is Some
             data.extend_from_slice_unchecked(&tag.short().unwrap().to_be_bytes());
         },
         TapeTagKind::Int => unsafe {
+            // network-safe: the tape kind matched in this arm is Int, so int() is Some
             data.extend_from_slice_unchecked(&tag.int().unwrap().to_be_bytes());
         },
         TapeTagKind::Long => {
+            // network-safe: the tape kind matched in this arm is Long, so long() is Some
             data.extend_from_slice(&tag.long().unwrap().to_be_bytes());
         }
         TapeTagKind::Float => unsafe {
+            // network-safe: the tape kind matched in this arm is Float, so float() is Some
             data.extend_from_slice_unchecked(&tag.float().unwrap().to_be_bytes());
         },
         TapeTagKind::Double => {
+            // network-safe: the tape kind matched in this arm is Double, so double() is Some
             data.extend_from_slice(&tag.double().unwrap().to_be_bytes());
         }
         TapeTagKind::ByteArray => {
+            // network-safe: the tape kind matched in this arm is ByteArray, so byte_array() is Some
             let byte_array = tag.byte_array().unwrap();
             unsafe {
                 data.extend_from_slice_unchecked(&(byte_array.len() as u32).to_be_bytes());
@@ -508,16 +521,20 @@ pub(crate) fn write_tag(tag: NbtTag, data: &mut FastVec<u8>) {
             data.extend_from_slice(byte_array);
         }
         TapeTagKind::String => {
+            // network-safe: the tape kind matched in this arm is String, so string() is Some
             let string = tag.string().unwrap();
             write_string(data, string);
         }
         kind if kind.is_list() => {
+            // network-safe: the arm's guard is kind.is_list(), so list() is Some
             tag.list().unwrap().write_fastvec(data);
         }
         TapeTagKind::Compound => {
+            // network-safe: the tape kind matched in this arm is Compound, so compound() is Some
             tag.compound().unwrap().write_fastvec(data);
         }
         TapeTagKind::IntArray => {
+            // network-safe: u32_prefixed_list_to_rawlist_unchecked always returns Some
             let int_array =
                 unsafe { list::u32_prefixed_list_to_rawlist_unchecked::<i32>(el.ptr()).unwrap() };
             unsafe {
@@ -526,6 +543,7 @@ pub(crate) fn write_tag(tag: NbtTag, data: &mut FastVec<u8>) {
             data.extend_from_slice(int_array.as_big_endian());
         }
         TapeTagKind::LongArray => {
+            // network-safe: u32_prefixed_list_to_rawlist_unchecked always returns Some
             let long_array =
                 unsafe { list::u32_prefixed_list_to_rawlist_unchecked::<i64>(el.ptr()).unwrap() };
             unsafe {
@@ -533,6 +551,7 @@ pub(crate) fn write_tag(tag: NbtTag, data: &mut FastVec<u8>) {
             }
             data.extend_from_slice(long_array.as_big_endian());
         }
+        // network-safe: every TapeTagKind is matched above (the list kinds by the is_list() guard)
         kind => unreachable!("Invalid tag kind {kind:?}"),
     }
 }

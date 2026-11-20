@@ -132,6 +132,8 @@ impl Nbt {
     pub fn unwrap(self) -> BaseNbt {
         match self {
             Nbt::Some(nbt) => nbt,
+            // network-safe: Option-style unwrap that the caller asks for; each call is a
+            // `.unwrap()` site in the calling crate and audited there
             Nbt::None => panic!("called `OptionalNbt::unwrap()` on a `None` value"),
         }
     }

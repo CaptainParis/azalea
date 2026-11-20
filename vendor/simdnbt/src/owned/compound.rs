@@ -71,6 +71,8 @@ impl NbtCompound {
                 }
             };
 
+            // network-safe: tags_buffer_len < 8 = tags_buffer.len(): it goes back to 0 when it
+            // reaches 8 just below
             tags_buffer[tags_buffer_len] = MaybeUninit::new((tag_name, tag));
             tags_buffer_len += 1;
             if tags_buffer_len == tags_buffer.len() {
@@ -148,8 +150,10 @@ impl NbtCompound {
         let name = Mutf8Str::from_str(name);
         let name = name.as_ref();
         for i in 0..self.values.len() {
+            // network-safe: i < self.values.len() by the loop
             if self.values[i].0.as_str() == name {
                 let mut value = NbtTag::Byte(0);
+                // network-safe: i < self.values.len() by the loop
                 mem::swap(&mut self.values[i].1, &mut value);
                 return Some(value);
             }
@@ -288,7 +292,9 @@ impl NbtCompound {
         let name = Mutf8Str::from_str(name);
         let name = name.as_ref();
         for i in 0..self.values.len() {
+            // network-safe: i < self.values.len() by the loop
             if self.values[i].0.as_str() == name {
+                // network-safe: i < self.values.len() by the loop
                 return Some(self.values.remove(i).1);
             }
         }

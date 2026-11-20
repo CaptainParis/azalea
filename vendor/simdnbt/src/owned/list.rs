@@ -171,6 +171,7 @@ impl NbtList {
                 }
             }
             NbtList::Compound(_) => {
+                // network-safe: a Compound list returned in the fast path above
                 unreachable!("fast path for compound should have been taken")
             }
             NbtList::IntArray(int_arrays) => {

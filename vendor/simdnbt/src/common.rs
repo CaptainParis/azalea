@@ -77,6 +77,7 @@ pub fn slice_i8_into_u8(s: &[i8]) -> &[u8] {
 
 #[inline(always)]
 pub fn write_with_u32_length(data: &mut FastVec<u8>, width: usize, value: &[u8]) {
+    // network-safe: width is the literal 1, 2, 4 or 8 at every caller
     let length = value.len() / width;
     data.reserve(4 + value.len());
     unsafe {

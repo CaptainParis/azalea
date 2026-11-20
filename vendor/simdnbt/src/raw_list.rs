@@ -18,7 +18,8 @@ impl<'a, T> RawList<'a, T> {
     }
 
     pub fn len(&self) -> usize {
-        self.data.len() / mem::size_of::<T>()
+        // a zero-sized T (RawList::new is public) has no items rather than dividing by zero
+        self.data.len().checked_div(mem::size_of::<T>()).unwrap_or(0)
     }
 
     pub fn is_empty(&self) -> bool {

@@ -22,6 +22,8 @@ impl<T: private::Sealed> SwappableNumber for T {}
 #[inline]
 fn swap_endianness_16bit(bytes: &mut [u8], num: usize) {
     for i in 0..num / 32 {
+        // network-safe: i < num / 32, so (i + 1) * 64 <= num * 2 <= bytes.len() (num = bytes.len()
+        // / width at the only caller)
         let simd: u8x64 = Simd::from_slice(bytes[i * 32 * 2..(i + 1) * 32 * 2].as_ref());
         #[rustfmt::skip]
         let simd = simd_swizzle!(simd, [
@@ -58,11 +60,14 @@ fn swap_endianness_16bit(bytes: &mut [u8], num: usize) {
             61, 60,
             63, 62,
         ]);
+        // network-safe: the range is 64 bytes like the array, in bounds as above
         bytes[i * 32 * 2..(i + 1) * 32 * 2].copy_from_slice(simd.as_array());
     }
 
     let mut i = num / 32 * 32;
     if i + 16 <= num {
+        // network-safe: i + 16 <= num, so i * 2 + 32 <= num * 2 <= bytes.len() (num = bytes.len() /
+        // width at the only caller)
         let simd: u8x32 = Simd::from_slice(bytes[i * 2..i * 2 + 32].as_ref());
         #[rustfmt::skip]
         let simd = simd_swizzle!(simd, [
@@ -83,10 +88,13 @@ fn swap_endianness_16bit(bytes: &mut [u8], num: usize) {
             29, 28,
             31, 30,
         ]);
+        // network-safe: the range is 32 bytes like the array, in bounds as above
         bytes[i * 2..i * 2 + 32].copy_from_slice(simd.as_array());
         i += 16;
     }
     if i + 8 <= num {
+        // network-safe: i + 8 <= num, so i * 2 + 16 <= num * 2 <= bytes.len() (num = bytes.len() /
+        // width at the only caller)
         let simd: u8x16 = Simd::from_slice(bytes[i * 2..i * 2 + 16].as_ref());
         #[rustfmt::skip]
         let simd = simd_swizzle!(simd, [
@@ -99,10 +107,13 @@ fn swap_endianness_16bit(bytes: &mut [u8], num: usize) {
             13, 12,
             15, 14,
         ]);
+        // network-safe: the range is 16 bytes like the array, in bounds as above
         bytes[i * 2..i * 2 + 16].copy_from_slice(simd.as_array());
         i += 8;
     }
     if i + 4 <= num {
+        // network-safe: i + 4 <= num, so i * 2 + 8 <= num * 2 <= bytes.len() (num = bytes.len() /
+        // width at the only caller)
         let simd: u8x8 = Simd::from_slice(bytes[i * 2..i * 2 + 8].as_ref());
         #[rustfmt::skip]
         let simd = simd_swizzle!(simd, [
@@ -111,25 +122,32 @@ fn swap_endianness_16bit(bytes: &mut [u8], num: usize) {
             5, 4,
             7, 6,
         ]);
+        // network-safe: the range is 8 bytes like the array, in bounds as above
         bytes[i * 2..i * 2 + 8].copy_from_slice(simd.as_array());
         i += 4;
     }
     if i + 2 <= num {
+        // network-safe: i + 2 <= num, so i * 2 + 4 <= num * 2 <= bytes.len() (num = bytes.len() /
+        // width at the only caller)
         let simd: u8x4 = Simd::from_slice(bytes[i * 2..i * 2 + 4].as_ref());
         #[rustfmt::skip]
         let simd = simd_swizzle!(simd, [
             1, 0,
             3, 2,
         ]);
+        // network-safe: the range is 4 bytes like the array, in bounds as above
         bytes[i * 2..i * 2 + 4].copy_from_slice(simd.as_array());
         i += 2;
     }
     if i < num {
+        // network-safe: i < num, so i * 2 + 2 <= num * 2 <= bytes.len() (num = bytes.len() / width
+        // at the only caller)
         let simd: u8x2 = Simd::from_slice(bytes[i * 2..i * 2 + 2].as_ref());
         #[rustfmt::skip]
         let simd = simd_swizzle!(simd, [
             1, 0,
         ]);
+        // network-safe: the range is 2 bytes like the array, in bounds as above
         bytes[i * 2..i * 2 + 2].copy_from_slice(simd.as_array());
     }
 }
@@ -137,6 +155,8 @@ fn swap_endianness_16bit(bytes: &mut [u8], num: usize) {
 #[inline]
 fn swap_endianness_32bit(bytes: &mut [u8], num: usize) {
     for i in 0..num / 16 {
+        // network-safe: i < num / 16, so (i + 1) * 64 <= num * 4 <= bytes.len() (num = bytes.len()
+        // / width at the only caller)
         let simd: u8x64 = Simd::from_slice(bytes[i * 16 * 4..(i + 1) * 16 * 4].as_ref());
         #[rustfmt::skip]
         let simd = simd_swizzle!(simd, [
@@ -157,11 +177,14 @@ fn swap_endianness_32bit(bytes: &mut [u8], num: usize) {
             59, 58, 57, 56,
             63, 62, 61, 60,
         ]);
+        // network-safe: the range is 64 bytes like the array, in bounds as above
         bytes[i * 16 * 4..(i + 1) * 16 * 4].copy_from_slice(simd.as_array());
     }
 
     let mut i = num / 16 * 16;
     if i + 8 <= num {
+        // network-safe: i + 8 <= num, so i * 4 + 32 <= num * 4 <= bytes.len() (num = bytes.len() /
+        // width at the only caller)
         let simd: u8x32 = Simd::from_slice(bytes[i * 4..i * 4 + 32].as_ref());
         #[rustfmt::skip]
         let simd = simd_swizzle!(simd, [
@@ -174,10 +197,13 @@ fn swap_endianness_32bit(bytes: &mut [u8], num: usize) {
             27, 26, 25, 24,
             31, 30, 29, 28,
         ]);
+        // network-safe: the range is 32 bytes like the array, in bounds as above
         bytes[i * 4..i * 4 + 32].copy_from_slice(simd.as_array());
         i += 8;
     }
     if i + 4 <= num {
+        // network-safe: i + 4 <= num, so i * 4 + 16 <= num * 4 <= bytes.len() (num = bytes.len() /
+        // width at the only caller)
         let simd: u8x16 = Simd::from_slice(bytes[i * 4..i * 4 + 16].as_ref());
         #[rustfmt::skip]
         let simd = simd_swizzle!(simd, [
@@ -186,25 +212,32 @@ fn swap_endianness_32bit(bytes: &mut [u8], num: usize) {
             11, 10, 9, 8,
             15, 14, 13, 12,
         ]);
+        // network-safe: the range is 16 bytes like the array, in bounds as above
         bytes[i * 4..i * 4 + 16].copy_from_slice(simd.as_array());
         i += 4;
     }
     if i + 2 <= num {
+        // network-safe: i + 2 <= num, so i * 4 + 8 <= num * 4 <= bytes.len() (num = bytes.len() /
+        // width at the only caller)
         let simd: u8x8 = Simd::from_slice(bytes[i * 4..i * 4 + 8].as_ref());
         #[rustfmt::skip]
         let simd = simd_swizzle!(simd, [
             3, 2, 1, 0,
             7, 6, 5, 4,
         ]);
+        // network-safe: the range is 8 bytes like the array, in bounds as above
         bytes[i * 4..i * 4 + 8].copy_from_slice(simd.as_array());
         i += 2;
     }
     if i < num {
+        // network-safe: i < num, so i * 4 + 4 <= num * 4 <= bytes.len() (num = bytes.len() / width
+        // at the only caller)
         let simd: u8x4 = Simd::from_slice(bytes[i * 4..i * 4 + 4].as_ref());
         #[rustfmt::skip]
         let simd = simd_swizzle!(simd, [
             3, 2, 1, 0,
         ]);
+        // network-safe: the range is 4 bytes like the array, in bounds as above
         bytes[i * 4..i * 4 + 4].copy_from_slice(simd.as_array());
     }
 }
@@ -212,6 +245,8 @@ fn swap_endianness_32bit(bytes: &mut [u8], num: usize) {
 #[inline]
 fn swap_endianness_64bit(bytes: &mut [u8], num: usize) {
     for i in 0..num / 8 {
+        // network-safe: i < num / 8, so i * 64 + 64 <= num * 8 <= bytes.len() (num = bytes.len() /
+        // width at the only caller)
         let simd: u8x64 = Simd::from_slice(bytes[i * 64..i * 64 + 64].as_ref());
         #[rustfmt::skip]
         let simd = simd_swizzle!(simd, [
@@ -224,11 +259,14 @@ fn swap_endianness_64bit(bytes: &mut [u8], num: usize) {
             55, 54, 53, 52, 51, 50, 49, 48,
             63, 62, 61, 60, 59, 58, 57, 56,
         ]);
+        // network-safe: the range is 64 bytes like the array, in bounds as above
         bytes[i * 64..i * 64 + 64].copy_from_slice(simd.as_array());
     }
 
     let mut i = num / 8 * 8;
     if i + 4 <= num {
+        // network-safe: i + 4 <= num, so i * 8 + 32 <= num * 8 <= bytes.len() (num = bytes.len() /
+        // width at the only caller)
         let simd: u8x32 = Simd::from_slice(bytes[i * 8..i * 8 + 32].as_ref());
         #[rustfmt::skip]
         let simd = simd_swizzle!(simd, [
@@ -237,25 +275,32 @@ fn swap_endianness_64bit(bytes: &mut [u8], num: usize) {
             23, 22, 21, 20, 19, 18, 17, 16,
             31, 30, 29, 28, 27, 26, 25, 24,
         ]);
+        // network-safe: the range is 32 bytes like the array, in bounds as above
         bytes[i * 8..i * 8 + 32].copy_from_slice(simd.as_array());
         i += 4;
     }
     if i + 2 <= num {
+        // network-safe: i + 2 <= num, so i * 8 + 16 <= num * 8 <= bytes.len() (num = bytes.len() /
+        // width at the only caller)
         let simd: u8x16 = Simd::from_slice(bytes[i * 8..i * 8 + 16].as_ref());
         #[rustfmt::skip]
         let simd = simd_swizzle!(simd, [
             7, 6, 5, 4, 3, 2, 1, 0,
             15, 14, 13, 12, 11, 10, 9, 8,
         ]);
+        // network-safe: the range is 16 bytes like the array, in bounds as above
         bytes[i * 8..i * 8 + 16].copy_from_slice(simd.as_array());
         i += 2;
     }
     if i < num {
+        // network-safe: i < num, so i * 8 + 8 <= num * 8 <= bytes.len() (num = bytes.len() / width
+        // at the only caller)
         let simd: u8x8 = Simd::from_slice(bytes[i * 8..i * 8 + 8].as_ref());
         #[rustfmt::skip]
         let simd = simd_swizzle!(simd, [
             7, 6, 5, 4, 3, 2, 1, 0,
         ]);
+        // network-safe: the range is 8 bytes like the array, in bounds as above
         bytes[i * 8..i * 8 + 8].copy_from_slice(simd.as_array());
     }
 }
@@ -264,6 +309,7 @@ fn swap_endianness_64bit(bytes: &mut [u8], num: usize) {
 /// in-place depending on the width of the given type.
 fn swap_endianness_from_type<T: SwappableNumber>(items: &mut [u8]) {
     let item_width = mem::size_of::<T>();
+    // network-safe: item_width is size_of::<T>() of a SwappableNumber (2, 4 or 8), never 0
     let length = items.len() / item_width;
 
     if cfg!(target_endian = "little") {
@@ -271,6 +317,7 @@ fn swap_endianness_from_type<T: SwappableNumber>(items: &mut [u8]) {
             2 => swap_endianness_16bit(items, length),
             4 => swap_endianness_32bit(items, length),
             8 => swap_endianness_64bit(items, length),
+            // network-safe: SwappableNumber is sealed to 16, 32 and 64-bit types
             _ => panic!("unsupported size of type"),
         }
     }
@@ -288,9 +335,12 @@ pub fn swap_endianness_as_u8<T: SwappableNumber>(data: &[u8]) -> Vec<u8> {
 #[inline]
 pub fn swap_endianness<T: SwappableNumber>(data: &[u8]) -> Vec<T> {
     let width_of_t = mem::size_of::<T>();
+    // network-safe: width_of_t is size_of::<T>() of a SwappableNumber (2, 4 or 8), never 0
     let length_of_vec_t = data.len() / width_of_t;
 
     // the data must be a multiple of the item width, otherwise it's UB
+    // network-safe: the readers only pass whole items: count * size_of::<T>() bytes
+    // (read_with_u32_length, u32_prefixed_list_to_rawlist_unchecked)
     assert_eq!(data.len() % width_of_t, 0);
 
     // have the vec be of T initially so it's aligned

@@ -27,6 +27,7 @@ fn is_plain_ascii(slice: &[u8]) -> bool {
     let (chunks_32_exact, mut remainder) = slice.as_chunks::<32>();
     if remainder.len() > 16 {
         let chunk;
+        // network-safe: remainder.len() > 16 checked above
         (chunk, remainder) = remainder.split_first_chunk::<16>().unwrap();
         let mask = u8x16::splat(0b10000000);
         let zero = u8x16::splat(0);
@@ -38,6 +39,7 @@ fn is_plain_ascii(slice: &[u8]) -> bool {
     }
     if remainder.len() > 8 {
         let chunk;
+        // network-safe: remainder.len() > 8 checked above
         (chunk, remainder) = remainder.split_first_chunk::<8>().unwrap();
         let mask = u8x8::splat(0b10000000);
         let zero = u8x8::splat(0);
@@ -49,6 +51,7 @@ fn is_plain_ascii(slice: &[u8]) -> bool {
     }
     if remainder.len() > 4 {
         let chunk;
+        // network-safe: remainder.len() > 4 checked above
         (chunk, remainder) = remainder.split_first_chunk::<4>().unwrap();
         let mask = u8x4::splat(0b10000000);
         let zero = u8x4::splat(0);

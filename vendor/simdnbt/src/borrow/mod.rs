@@ -310,6 +310,8 @@ impl<'a> Nbt<'a> {
     pub fn unwrap(self) -> BaseNbt<'a> {
         match self {
             Nbt::Some(nbt) => nbt,
+            // network-safe: Option-style unwrap that the caller asks for; each call is a
+            // `.unwrap()` site in the calling crate and audited there
             Nbt::None => panic!("called `OptionalNbt::unwrap()` on a `None` value"),
         }
     }
@@ -378,6 +380,8 @@ impl<'a: 'tape, 'tape> NbtTag<'a, 'tape> {
             TapeTagKind::IntArray => INT_ARRAY_ID,
             TapeTagKind::LongArray => LONG_ARRAY_ID,
             t if t.is_list() => LIST_ID,
+            // network-safe: every TapeTagKind is matched above (the list kinds by the is_list()
+            // guard)
             _ => unreachable!(),
         }
     }
@@ -473,22 +477,38 @@ impl<'a: 'tape, 'tape> NbtTag<'a, 'tape> {
         let el = self.element();
 
         match el.kind() {
+            // network-safe: the tape kind matched in this arm is Byte, so byte() is Some
             TapeTagKind::Byte => crate::owned::NbtTag::Byte(self.byte().unwrap()),
+            // network-safe: the tape kind matched in this arm is Short, so short() is Some
             TapeTagKind::Short => crate::owned::NbtTag::Short(self.short().unwrap()),
+            // network-safe: the tape kind matched in this arm is Int, so int() is Some
             TapeTagKind::Int => crate::owned::NbtTag::Int(self.int().unwrap()),
+            // network-safe: the tape kind matched in this arm is Long, so long() is Some
             TapeTagKind::Long => crate::owned::NbtTag::Long(self.long().unwrap()),
+            // network-safe: the tape kind matched in this arm is Float, so float() is Some
             TapeTagKind::Float => crate::owned::NbtTag::Float(self.float().unwrap()),
+            // network-safe: the tape kind matched in this arm is Double, so double() is Some
             TapeTagKind::Double => crate::owned::NbtTag::Double(self.double().unwrap()),
             TapeTagKind::ByteArray => {
+                // network-safe: the tape kind matched in this arm is ByteArray, so byte_array() is
+                // Some
                 crate::owned::NbtTag::ByteArray(self.byte_array().unwrap().to_vec())
             }
+            // network-safe: the tape kind matched in this arm is String, so string() is Some
             TapeTagKind::String => crate::owned::NbtTag::String(self.string().unwrap().to_owned()),
             TapeTagKind::Compound => {
+                // network-safe: the tape kind matched in this arm is Compound, so compound() is
+                // Some
                 crate::owned::NbtTag::Compound(self.compound().unwrap().to_owned())
             }
+            // network-safe: the arm's guard is kind.is_list(), so list() is Some
             kind if kind.is_list() => crate::owned::NbtTag::List(self.list().unwrap().to_owned()),
+            // network-safe: the tape kind matched in this arm is IntArray, so int_array() is Some
             TapeTagKind::IntArray => crate::owned::NbtTag::IntArray(self.int_array().unwrap()),
+            // network-safe: the tape kind matched in this arm is LongArray, so long_array() is Some
             TapeTagKind::LongArray => crate::owned::NbtTag::LongArray(self.long_array().unwrap()),
+            // network-safe: every TapeTagKind is matched above (the list kinds by the is_list()
+            // guard)
             _ => unreachable!(),
         }
     }
@@ -511,18 +531,41 @@ impl PartialEq for NbtTag<'_, '_> {
             return false;
         }
         match self_el.kind() {
+            // network-safe: self and other are Byte (kinds checked equal above), so byte() is Some
             TapeTagKind::Byte => self.byte().unwrap() == other.byte().unwrap(),
+            // network-safe: self and other are Short (kinds checked equal above), so short() is
+            // Some
             TapeTagKind::Short => self.short().unwrap() == other.short().unwrap(),
+            // network-safe: self and other are Int (kinds checked equal above), so int() is Some
             TapeTagKind::Int => self.int().unwrap() == other.int().unwrap(),
+            // network-safe: self and other are Long (kinds checked equal above), so long() is Some
             TapeTagKind::Long => self.long().unwrap() == other.long().unwrap(),
+            // network-safe: self and other are Float (kinds checked equal above), so float() is
+            // Some
             TapeTagKind::Float => self.float().unwrap() == other.float().unwrap(),
+            // network-safe: self and other are Double (kinds checked equal above), so double() is
+            // Some
             TapeTagKind::Double => self.double().unwrap() == other.double().unwrap(),
+            // network-safe: self and other are ByteArray (kinds checked equal above), so
+            // byte_array() is Some
             TapeTagKind::ByteArray => self.byte_array().unwrap() == other.byte_array().unwrap(),
+            // network-safe: self and other are String (kinds checked equal above), so string() is
+            // Some
             TapeTagKind::String => self.string().unwrap() == other.string().unwrap(),
+            // network-safe: self and other are Compound (kinds checked equal above), so compound()
+            // is Some
             TapeTagKind::Compound => self.compound().unwrap() == other.compound().unwrap(),
+            // network-safe: self and other are IntArray (kinds checked equal above), so int_array()
+            // is Some
             TapeTagKind::IntArray => self.int_array().unwrap() == other.int_array().unwrap(),
+            // network-safe: self and other are LongArray (kinds checked equal above), so
+            // long_array() is Some
             TapeTagKind::LongArray => self.long_array().unwrap() == other.long_array().unwrap(),
+            // network-safe: the guard is t.is_list() and the kinds are equal, so list() is Some for
+            // both
             t if t.is_list() => self.list().unwrap() == other.list().unwrap(),
+            // network-safe: every TapeTagKind is matched above (the list kinds by the is_list()
+            // guard)
             _ => unreachable!(),
         }
     }

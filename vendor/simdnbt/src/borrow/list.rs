@@ -175,12 +175,15 @@ impl<'a, 'tape> NbtList<'a, 'tape> {
                 data.extend_from_slice(&0u32.to_be_bytes());
             }
             TapeTagKind::ByteList => {
+                // network-safe: the tape kind matched in this arm is ByteList, so bytes() is Some
                 write_with_u32_length(data, 1, slice_i8_into_u8(self.bytes().unwrap()));
             }
             TapeTagKind::ShortList => {
                 write_with_u32_length(
                     data,
                     2,
+                    // network-safe: the tape kind matched in this arm is ShortList, so the rawlist
+                    // is Some
                     u32_prefixed_list_to_rawlist::<i16>(TapeTagKind::ShortList, self.element)
                         .unwrap()
                         .as_big_endian(),
@@ -190,6 +193,8 @@ impl<'a, 'tape> NbtList<'a, 'tape> {
                 write_with_u32_length(
                     data,
                     4,
+                    // network-safe: the tape kind matched in this arm is IntList, so the rawlist is
+                    // Some
                     u32_prefixed_list_to_rawlist::<i32>(TapeTagKind::IntList, self.element)
                         .unwrap()
                         .as_big_endian(),
@@ -199,6 +204,8 @@ impl<'a, 'tape> NbtList<'a, 'tape> {
                 write_with_u32_length(
                     data,
                     8,
+                    // network-safe: the tape kind matched in this arm is LongList, so the rawlist
+                    // is Some
                     u32_prefixed_list_to_rawlist::<i64>(TapeTagKind::LongList, self.element)
                         .unwrap()
                         .as_big_endian(),
@@ -208,6 +215,8 @@ impl<'a, 'tape> NbtList<'a, 'tape> {
                 write_with_u32_length(
                     data,
                     4,
+                    // network-safe: the tape kind matched in this arm is FloatList, so the rawlist
+                    // is Some
                     u32_prefixed_list_to_rawlist::<f32>(TapeTagKind::FloatList, self.element)
                         .unwrap()
                         .as_big_endian(),
@@ -217,30 +226,39 @@ impl<'a, 'tape> NbtList<'a, 'tape> {
                 write_with_u32_length(
                     data,
                     8,
+                    // network-safe: the tape kind matched in this arm is DoubleList, so the rawlist
+                    // is Some
                     u32_prefixed_list_to_rawlist::<f64>(TapeTagKind::DoubleList, self.element)
                         .unwrap()
                         .as_big_endian(),
                 );
             }
             TapeTagKind::ByteArrayList => {
+                // network-safe: the tape kind matched in this arm is ByteArrayList, so
+                // byte_arrays() is Some
                 let byte_arrays = self.byte_arrays().unwrap();
                 for array in byte_arrays.iter() {
                     write_with_u32_length(data, 1, array);
                 }
             }
             TapeTagKind::StringList => {
+                // network-safe: the tape kind matched in this arm is StringList, so strings() is
+                // Some
                 let strings = self.strings().unwrap();
                 for string in strings.iter() {
                     write_string(data, string);
                 }
             }
             TapeTagKind::ListList => {
+                // network-safe: the tape kind matched in this arm is ListList, so lists() is Some
                 let lists = self.lists().unwrap();
                 for list in lists {
                     list.write_fastvec(data);
                 }
             }
             TapeTagKind::CompoundList => {
+                // network-safe: the tape kind matched in this arm is CompoundList, so compounds()
+                // is Some
                 let compounds = self.compounds().unwrap();
                 write_u32(data, compounds.clone().len() as u32);
                 for compound in compounds {
@@ -248,17 +266,24 @@ impl<'a, 'tape> NbtList<'a, 'tape> {
                 }
             }
             TapeTagKind::IntArrayList => {
+                // network-safe: the tape kind matched in this arm is IntArrayList, so int_arrays()
+                // is Some
                 let int_arrays = self.int_arrays().unwrap();
                 for array in int_arrays.iter() {
                     write_with_u32_length(data, 4, array.as_big_endian());
                 }
             }
             TapeTagKind::LongArrayList => {
+                // network-safe: the tape kind matched in this arm is LongArrayList, so
+                // long_arrays() is Some
                 let long_arrays = self.long_arrays().unwrap();
                 for array in long_arrays.iter() {
                     write_with_u32_length(data, 8, array.as_big_endian());
                 }
             }
+            // network-safe: NbtList is only built for tape elements whose kind is_list()
+            // (NbtTag::list checks it, a list of lists holds only lists), and every list kind is
+            // matched above
             _ => unreachable!(),
         }
     }
@@ -285,6 +310,9 @@ impl<'a, 'tape> NbtList<'a, 'tape> {
             TapeTagKind::CompoundList => COMPOUND_ID,
             TapeTagKind::IntArrayList => INT_ARRAY_ID,
             TapeTagKind::LongArrayList => LONG_ARRAY_ID,
+            // network-safe: NbtList is only built for tape elements whose kind is_list()
+            // (NbtTag::list checks it, a list of lists holds only lists), and every list kind is
+            // matched above
             _ => unreachable!(),
         }
     }
@@ -330,6 +358,8 @@ impl<'a, 'tape> NbtList<'a, 'tape> {
             return None;
         }
         let index_to_extra_tapes = el.u32() as usize;
+        // network-safe: the parser stored the extra tape's length as this index and pushed the
+        // length element there right away, so it is in bounds
         let length_ref = &self.extra_tapes.elements[index_to_extra_tapes];
         let length = unsafe { length_ref.length as usize };
         let slice = unsafe {
@@ -350,6 +380,8 @@ impl<'a, 'tape> NbtList<'a, 'tape> {
             return None;
         }
         let index_to_extra_tapes = el.u32() as usize;
+        // network-safe: the parser stored the extra tape's length as this index and pushed the
+        // length element there right away, so it is in bounds
         let length_ref = &self.extra_tapes.elements[index_to_extra_tapes];
         let length = unsafe { length_ref.length as usize };
         let slice = unsafe {
@@ -395,8 +427,11 @@ impl<'a, 'tape> NbtList<'a, 'tape> {
         let (approx_length, max_tape_offset) = el.approx_len_and_offset();
         let max_tape_offset = max_tape_offset as usize;
 
-        let tape_slice =
-            unsafe { std::slice::from_raw_parts(self.element.add(1), max_tape_offset) };
+        // azalea-hunt: offset - 1 elements, as in NbtCompound::iter (a slice of `offset` went one
+        // past the tape)
+        let tape_slice = unsafe {
+            std::slice::from_raw_parts(self.element.add(1), max_tape_offset.saturating_sub(1))
+        };
 
         Some(NbtCompoundList {
             iter: NbtCompoundListIter {
@@ -414,6 +449,8 @@ impl<'a, 'tape> NbtList<'a, 'tape> {
             return None;
         }
         let index_to_extra_tapes = el.u32() as usize;
+        // network-safe: the parser stored the extra tape's length as this index and pushed the
+        // length element there right away, so it is in bounds
         let length_ref = &self.extra_tapes.elements[index_to_extra_tapes];
         let length = unsafe { length_ref.length as usize };
         let slice = unsafe {
@@ -434,6 +471,8 @@ impl<'a, 'tape> NbtList<'a, 'tape> {
             return None;
         }
         let index_to_extra_tapes = el.u32() as usize;
+        // network-safe: the parser stored the extra tape's length as this index and pushed the
+        // length element there right away, so it is in bounds
         let length_ref = &self.extra_tapes.elements[index_to_extra_tapes];
         let length = unsafe { length_ref.length as usize };
         let slice = unsafe {
@@ -454,14 +493,23 @@ impl<'a, 'tape> NbtList<'a, 'tape> {
 
         match el.kind() {
             TapeTagKind::EmptyList => crate::owned::NbtList::Empty,
+            // network-safe: the tape kind matched in this arm is ByteList, so bytes() is Some
             TapeTagKind::ByteList => crate::owned::NbtList::Byte(self.bytes().unwrap().to_vec()),
+            // network-safe: the tape kind matched in this arm is ShortList, so shorts() is Some
             TapeTagKind::ShortList => crate::owned::NbtList::Short(self.shorts().unwrap().to_vec()),
+            // network-safe: the tape kind matched in this arm is IntList, so ints() is Some
             TapeTagKind::IntList => crate::owned::NbtList::Int(self.ints().unwrap().to_vec()),
+            // network-safe: the tape kind matched in this arm is LongList, so longs() is Some
             TapeTagKind::LongList => crate::owned::NbtList::Long(self.longs().unwrap().to_vec()),
+            // network-safe: the tape kind matched in this arm is FloatList, so floats() is Some
             TapeTagKind::FloatList => crate::owned::NbtList::Float(self.floats().unwrap().to_vec()),
             TapeTagKind::DoubleList => {
+                // network-safe: the tape kind matched in this arm is DoubleList, so doubles() is
+                // Some
                 crate::owned::NbtList::Double(self.doubles().unwrap().to_vec())
             }
+            // network-safe: the tape kind matched in this arm is ByteArrayList, so byte_arrays() is
+            // Some
             TapeTagKind::ByteArrayList => crate::owned::NbtList::ByteArray(
                 self.byte_arrays()
                     .unwrap()
@@ -469,6 +517,7 @@ impl<'a, 'tape> NbtList<'a, 'tape> {
                     .map(|array| array.to_vec())
                     .collect(),
             ),
+            // network-safe: the tape kind matched in this arm is StringList, so strings() is Some
             TapeTagKind::StringList => crate::owned::NbtList::String(
                 self.strings()
                     .unwrap()
@@ -476,6 +525,7 @@ impl<'a, 'tape> NbtList<'a, 'tape> {
                     .map(|&string| string.to_owned())
                     .collect(),
             ),
+            // network-safe: the tape kind matched in this arm is ListList, so lists() is Some
             TapeTagKind::ListList => crate::owned::NbtList::List(
                 self.lists()
                     .unwrap()
@@ -483,6 +533,8 @@ impl<'a, 'tape> NbtList<'a, 'tape> {
                     .map(|list| list.to_owned())
                     .collect(),
             ),
+            // network-safe: the tape kind matched in this arm is CompoundList, so compounds() is
+            // Some
             TapeTagKind::CompoundList => crate::owned::NbtList::Compound(
                 self.compounds()
                     .unwrap()
@@ -490,6 +542,8 @@ impl<'a, 'tape> NbtList<'a, 'tape> {
                     .map(|compound| compound.to_owned())
                     .collect(),
             ),
+            // network-safe: the tape kind matched in this arm is IntArrayList, so int_arrays() is
+            // Some
             TapeTagKind::IntArrayList => crate::owned::NbtList::IntArray(
                 self.int_arrays()
                     .unwrap()
@@ -497,6 +551,8 @@ impl<'a, 'tape> NbtList<'a, 'tape> {
                     .map(|array| array.to_vec())
                     .collect::<Vec<_>>(),
             ),
+            // network-safe: the tape kind matched in this arm is LongArrayList, so long_arrays() is
+            // Some
             TapeTagKind::LongArrayList => crate::owned::NbtList::LongArray(
                 self.long_arrays()
                     .unwrap()
@@ -504,6 +560,9 @@ impl<'a, 'tape> NbtList<'a, 'tape> {
                     .map(|array| array.to_vec())
                     .collect::<Vec<_>>(),
             ),
+            // network-safe: NbtList is only built for tape elements whose kind is_list()
+            // (NbtTag::list checks it, a list of lists holds only lists), and every list kind is
+            // matched above
             _ => unreachable!("this is an NbtList, no other kinds should be possible"),
         }
     }
@@ -518,22 +577,49 @@ impl PartialEq for NbtList<'_, '_> {
         }
         match self_el.kind() {
             TapeTagKind::EmptyList => true,
+            // network-safe: self and other are ByteList (kinds checked equal above), so bytes() is
+            // Some
             TapeTagKind::ByteList => self.bytes().unwrap() == other.bytes().unwrap(),
+            // network-safe: self and other are ShortList (kinds checked equal above), so shorts()
+            // is Some
             TapeTagKind::ShortList => self.shorts().unwrap() == other.shorts().unwrap(),
+            // network-safe: self and other are IntList (kinds checked equal above), so ints() is
+            // Some
             TapeTagKind::IntList => self.ints().unwrap() == other.ints().unwrap(),
+            // network-safe: self and other are LongList (kinds checked equal above), so longs() is
+            // Some
             TapeTagKind::LongList => self.longs().unwrap() == other.longs().unwrap(),
+            // network-safe: self and other are FloatList (kinds checked equal above), so floats()
+            // is Some
             TapeTagKind::FloatList => self.floats().unwrap() == other.floats().unwrap(),
+            // network-safe: self and other are DoubleList (kinds checked equal above), so doubles()
+            // is Some
             TapeTagKind::DoubleList => self.doubles().unwrap() == other.doubles().unwrap(),
             TapeTagKind::ByteArrayList => {
+                // network-safe: self and other are ByteArrayList (kinds checked equal above), so
+                // byte_arrays() is Some
                 self.byte_arrays().unwrap() == other.byte_arrays().unwrap()
             }
+            // network-safe: self and other are StringList (kinds checked equal above), so strings()
+            // is Some
             TapeTagKind::StringList => self.strings().unwrap() == other.strings().unwrap(),
+            // network-safe: self and other are ListList (kinds checked equal above), so lists() is
+            // Some
             TapeTagKind::ListList => self.lists().unwrap() == other.lists().unwrap(),
+            // network-safe: self and other are CompoundList (kinds checked equal above), so
+            // compounds() is Some
             TapeTagKind::CompoundList => self.compounds().unwrap() == other.compounds().unwrap(),
+            // network-safe: self and other are IntArrayList (kinds checked equal above), so
+            // int_arrays() is Some
             TapeTagKind::IntArrayList => self.int_arrays().unwrap() == other.int_arrays().unwrap(),
             TapeTagKind::LongArrayList => {
+                // network-safe: self and other are LongArrayList (kinds checked equal above), so
+                // long_arrays() is Some
                 self.long_arrays().unwrap() == other.long_arrays().unwrap()
             }
+            // network-safe: NbtList is only built for tape elements whose kind is_list()
+            // (NbtTag::list checks it, a list of lists holds only lists), and every list kind is
+            // matched above
             _ => unreachable!("this is an NbtList, no other kinds should be possible"),
         }
     }

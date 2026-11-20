@@ -153,8 +153,12 @@ pub struct ReaderFromCursor<'a: 'cursor, 'cursor> {
 impl<'a, 'cursor> ReaderFromCursor<'a, 'cursor> {
     pub fn new(cursor: &'cursor mut Cursor<&'a [u8]>) -> Self {
         let data = cursor.get_ref();
+        // azalea-hunt: a Cursor's position may be set past the end; read that as no data (an
+        // EOF error) instead of panicking. Drop then sets the position to the end
+        let start = (cursor.position() as usize).min(data.len());
         Self {
-            reader: Reader::new(data[cursor.position() as usize..].as_ref()),
+            // network-safe: start <= data.len() by the min above
+            reader: Reader::new(data[start..].as_ref()),
             original_cursor: cursor,
         }
     }

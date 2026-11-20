@@ -31,6 +31,8 @@ impl<T, A: Allocator> FastVec<T, A> {
                 element_size,
             ))
         };
+        // network-safe: allocation failure only (Vec aborts there); sizes from network NBT are
+        // capped by the 2 MiB quota of check_network_nbt
         let ptr = NonNull::new(ptr as *mut T).expect("allocation failed");
         let end = unsafe { ptr.add(capacity) };
         Self {
@@ -76,11 +78,13 @@ impl<T, A: Allocator> FastVec<T, A> {
                 Layout::from_size_align_unchecked(new_cap_bytes, element_size),
             )
         };
+        // network-safe: allocation failure only (Vec aborts there); sizes from network NBT are
+        // capped by the 2 MiB quota of check_network_nbt
         let new_ptr = new_ptr.expect("allocation failed");
 
         self.ptr = new_ptr.cast();
         // update cur in case the ptr changed
-        self.cur = NonNull::new(self.ptr.as_ptr() as *mut T).unwrap();
+        self.cur = self.ptr.cast::<T>();
         self.cur = unsafe { self.cur.add(old_cap) };
         // and end has to be updated anyways since we're updating the capacity
         self.end = unsafe { self.cur.add(extending_by) };
@@ -103,11 +107,13 @@ impl<T, A: Allocator> FastVec<T, A> {
                 Layout::from_size_align_unchecked(new_cap_bytes, element_size),
             )
         };
+        // network-safe: allocation failure only (Vec aborts there); sizes from network NBT are
+        // capped by the 2 MiB quota of check_network_nbt
         let new_ptr = new_ptr.expect("allocation failed");
 
         self.ptr = new_ptr.cast();
         // update cur in case the ptr changed
-        let base = NonNull::new(self.ptr.as_ptr() as *mut T).unwrap();
+        let base = self.ptr.cast::<T>();
         self.cur = unsafe { base.add(len) };
         // and end has to be updated anyways since we're updating the capacity
         self.end = unsafe { base.add(new_cap) };
@@ -182,6 +188,8 @@ impl<T, A: Allocator> FastVec<T, A> {
             return Self::with_capacity_in(0, alloc);
         }
 
+        // network-safe: capacity > 0 (checked above), and a Vec with capacity has a non-null
+        // pointer
         let ptr = NonNull::new(ptr).expect("null pointer");
         let cur = unsafe { ptr.add(len) };
         let end = unsafe { ptr.add(capacity) };
@@ -220,6 +228,8 @@ impl<T> Default for FastVec<T> {
                 element_size,
             ))
         };
+        // network-safe: allocation failure only (Vec aborts there); sizes from network NBT are
+        // capped by the 2 MiB quota of check_network_nbt
         let ptr = NonNull::new(ptr as *mut T).expect("allocation failed");
         let end = unsafe { ptr.add(DEFAULT_CAPACITY) };
         Self {
@@ -235,6 +245,8 @@ impl<T, A: Allocator> Drop for FastVec<T, A> {
         unsafe {
             self.alloc.deallocate(
                 self.ptr.cast(),
+                // network-safe: this layout was allocated before (grow, with_capacity_in), so it is
+                // valid
                 Layout::array::<T>(self.capacity()).unwrap(),
             )
         };
