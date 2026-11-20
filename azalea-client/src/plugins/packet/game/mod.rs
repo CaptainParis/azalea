@@ -1859,6 +1859,15 @@ impl GamePacketHandler<'_> {
                     self.player,
                     ServerboundConfigurationAcknowledged,
                 ));
+                // the next server (a proxy switch) gets a new chat session
+                // after its play Login, as vanilla's handleLogin
+                commands
+                    .entity(self.player)
+                    .remove::<crate::secure_chat::SecureChatState>();
+                #[cfg(feature = "online-mode")]
+                commands
+                    .entity(self.player)
+                    .remove::<crate::chat_signing::ChatSigningSession>();
 
                 commands
                     .entity(self.player)

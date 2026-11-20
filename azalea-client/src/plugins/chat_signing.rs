@@ -127,6 +127,9 @@ pub fn request_certs_if_needed(
             Without<QueuedCertsToSend>,
             With<InGameState>,
             With<IsAuthenticated>,
+            // the play Login of this connection was handled (vanilla sends the
+            // session from handleLogin; the configuration's end comes earlier)
+            With<crate::secure_chat::SecureChatState>,
         ),
     >,
 ) {
@@ -178,7 +181,10 @@ pub struct QueuedCertsToSend {
 
 pub fn handle_queued_certs_to_send(
     mut commands: Commands,
-    query: Query<(Entity, &QueuedCertsToSend), With<IsAuthenticated>>,
+    query: Query<
+        (Entity, &QueuedCertsToSend),
+        (With<IsAuthenticated>, With<crate::secure_chat::SecureChatState>),
+    >,
 ) {
     for (entity, queued_certs) in &query {
         let certs = &queued_certs.certs;
