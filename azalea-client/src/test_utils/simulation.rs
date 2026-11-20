@@ -59,25 +59,66 @@ pub struct Simulation {
 
 impl Simulation {
     pub fn new(conn_protocol: ConnectionProtocol) -> Self {
-        let mut app = create_simulation_app();
+        let app = create_simulation_app();
+        // unused since we'll trigger ticks ourselves
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        let mut simulation = Self {
+            app,
+            entity: Entity::PLACEHOLDER,
+            rt,
+        };
+        simulation.start_client(conn_protocol);
+        simulation
+    }
 
+    /// Start again with a fresh client in `conn_protocol`, keeping the app
+    /// (its plugins, schedules and cached system states) and the runtime.
+    ///
+    /// Every client and game entity is despawned and the resources that hold
+    /// session state (worlds, the uuid index, the tab list) are reset, so the
+    /// new client starts as one from [`Self::new`] would. For callers that run
+    /// many short simulations in one process (fuzz targets): building the app
+    /// and its runtime costs much more than one short simulation.
+    pub fn reset(&mut self, conn_protocol: ConnectionProtocol) {
+        let world = self.app.world_mut();
+        let mut query = world.query_filtered::<Entity, Or<(
+            With<RawConnection>,
+            With<MinecraftEntityId>,
+            With<azalea_entity::LoadedBy>,
+            With<azalea_entity::LocalEntity>,
+        )>>();
+        let entities: Vec<Entity> = query.iter(world).collect();
+        for e in entities {
+            world.despawn(e);
+        }
+        world.insert_resource(azalea_world::Worlds::default());
+        world.insert_resource(azalea_entity::indexing::EntityUuidIndex::default());
+        world.insert_resource(crate::local_player::TabListResource::default());
+        // let the messages about the old entities go by
+        tick_app(&mut self.app);
+        tick_app(&mut self.app);
+        self.start_client(conn_protocol);
+    }
+
+    fn start_client(&mut self, conn_protocol: ConnectionProtocol) {
+        let app = &mut self.app;
         let mut entity = app.world_mut().spawn_empty();
-        let (player, rt) =
-            create_local_player_bundle(entity.id(), ConnectionProtocol::Configuration);
+        let player = create_local_player_bundle(entity.id(), ConnectionProtocol::Configuration);
         entity.insert((player, ClientInformation::default()));
 
         let entity = entity.id();
 
-        tick_app(&mut app);
+        tick_app(app);
 
         // start in the config state
         app.world_mut().entity_mut(entity).insert((
             InConfigState,
             GameProfileComponent(GameProfile::new(Uuid::from_u128(1234), "azalea".to_owned())),
         ));
-        tick_app(&mut app);
+        tick_app(app);
 
-        let mut simulation = Self { app, entity, rt };
+        self.entity = entity;
+        let simulation = self;
 
         #[allow(clippy::single_match)]
         match conn_protocol {
@@ -102,8 +143,6 @@ impl Simulation {
             }
             _ => unimplemented!("unsupported ConnectionProtocol {conn_protocol:?}"),
         }
-
-        simulation
     }
 
     pub fn receive_packet<P: ProtocolPacket + Debug>(&mut self, packet: impl Packet<P>) {
@@ -124,12 +163,10 @@ impl Simulation {
     pub fn record_messages<M: Message + Clone>(&mut self) -> Arc<Mutex<Vec<M>>> {
         let log = Arc::new(Mutex::new(Vec::new()));
         let l = log.clone();
-        self.app.add_systems(
-            bevy_app::PostUpdate,
-            move |mut reader: MessageReader<M>| {
+        self.app
+            .add_systems(bevy_app::PostUpdate, move |mut reader: MessageReader<M>| {
                 l.lock().extend(reader.read().cloned());
-            },
-        );
+            });
         log
     }
     /// The reason of every `DisconnectEvent` from now on (`None` for one
@@ -140,8 +177,11 @@ impl Simulation {
         self.app.add_systems(
             bevy_app::Last,
             move |mut reader: MessageReader<DisconnectEvent>| {
-                l.lock()
-                    .extend(reader.read().map(|d| d.reason.as_ref().map(|r| r.to_string())));
+                l.lock().extend(
+                    reader
+                        .read()
+                        .map(|d| d.reason.as_ref().map(|r| r.to_string())),
+                );
             },
         );
         log
@@ -311,27 +351,20 @@ impl SentPackets {
     }
 }
 
-#[allow(clippy::type_complexity)]
 fn create_local_player_bundle(
     entity: Entity,
     connection_protocol: ConnectionProtocol,
-) -> (LocalPlayerBundle, tokio::runtime::Runtime) {
-    // unused since we'll trigger ticks ourselves
-
-    let rt = tokio::runtime::Runtime::new().unwrap();
-
+) -> LocalPlayerBundle {
     let raw_connection = RawConnection::new_networkless(connection_protocol);
 
     let world = World::default();
     let world_holder = WorldHolder::new(entity, Arc::new(RwLock::new(world)));
 
-    let local_player_bundle = LocalPlayerBundle {
+    LocalPlayerBundle {
         raw_connection,
         world_holder,
         metadata: PlayerMetadataBundle::default(),
-    };
-
-    (local_player_bundle, rt)
+    }
 }
 
 fn create_simulation_app() -> App {
@@ -359,7 +392,10 @@ fn tick_app(app: &mut App) {
 
 /// A packet's bytes (id and body) cut after `keep` body bytes, so the body
 /// can't be decoded.
-pub fn truncated_packet<P: ProtocolPacket + Debug>(packet: impl Packet<P>, keep: usize) -> Box<[u8]> {
+pub fn truncated_packet<P: ProtocolPacket + Debug>(
+    packet: impl Packet<P>,
+    keep: usize,
+) -> Box<[u8]> {
     let raw = azalea_protocol::write::serialize_packet(&packet.into_variant()).unwrap();
     let id_len = raw.iter().position(|b| b & 0x80 == 0).unwrap() + 1;
     let end = (id_len + keep).min(raw.len() - 1);

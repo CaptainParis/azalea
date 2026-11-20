@@ -35,6 +35,7 @@ mod reply_to_ping_with_pong;
 mod send_in_wrong_state;
 mod set_cursor_and_player_inventory;
 mod set_health_before_login;
+mod simulation_reset;
 mod teleport_movement;
 mod teleport_without_physics;
 mod ticks_alive;
