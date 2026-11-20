@@ -207,7 +207,7 @@ def update_default_variants(version_id: str):
 
 #![allow(clippy::all)]
 
-use std::collections::HashMap;
+use indexmap::IndexMap;
 
 use azalea_chat::translatable_component::TranslatableComponent;
 use azalea_core::attribute_modifier_operation::AttributeModifierOperation;
@@ -334,7 +334,8 @@ use crate::{
                 return "None"
             inner_type = target_rust_type.split("<", 1)[1].rsplit(">", 1)[0]
             return f"Some({python_to_rust_value(python_value, inner_type)})"
-        elif target_rust_type.startswith("HashMap<"):
+        elif target_rust_type.startswith(("HashMap<", "IndexMap<")):
+            map_type = target_rust_type.split("<", 1)[0]
             hashmap_key, hashmap_value = (
                 target_rust_type.split("<", 1)[1].rsplit(">", 1)[0].split(",", 1)
             )
@@ -342,7 +343,7 @@ use crate::{
             hashmap_value = hashmap_value.strip()
 
             # HashMap::from_iter([("honey_level".to_owned(), "0".to_owned())])
-            t = "HashMap::from_iter(["
+            t = f"{map_type}::from_iter(["
             for k, v in python_value.items():
                 t += f"({python_to_rust_value(k, hashmap_key)}, {python_to_rust_value(v, hashmap_value)}),"
             t = t.rstrip(",") + "])"

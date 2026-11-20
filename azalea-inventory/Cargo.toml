@@ -13,7 +13,7 @@ azalea-chat = { workspace = true, features = ["azalea-buf"] }
 azalea-core = { workspace = true, features = ["serde"] }
 azalea-inventory-macros.workspace = true
 azalea-registry = { workspace = true, features = ["serde"] }
-indexmap.workspace = true
+indexmap = { workspace = true, features = ["serde"] }
 serde.workspace = true
 simdnbt.workspace = true
 tracing.workspace = true

@@ -3,14 +3,13 @@
 
 #![allow(clippy::all)]
 
-use std::collections::HashMap;
-
 use azalea_chat::translatable_component::TranslatableComponent;
 use azalea_core::attribute_modifier_operation::AttributeModifierOperation;
 use azalea_registry::{
     HolderSet,
     builtin::{Attribute, BlockKind, EntityKind, ItemKind, MobEffect, SoundEvent},
 };
+use indexmap::IndexMap;
 use simdnbt::owned::NbtCompound;
 
 use crate::{
@@ -1529,7 +1528,7 @@ impl DefaultableComponent for Bees {
 impl DefaultableComponent for BlockState {
     fn default_for_item(item: ItemKind) -> Option<Self> {
         let value = match item {
-            ItemKind::Light => HashMap::from_iter([("level".to_owned(), "15".to_owned())]),
+            ItemKind::Light => IndexMap::from_iter([("level".to_owned(), "15".to_owned())]),
             _ => return None,
         };
         Some(BlockState { properties: value })
@@ -2097,7 +2096,7 @@ impl DefaultableComponent for EnchantmentGlintOverride {
 impl DefaultableComponent for Enchantments {
     fn default_for_item(_item: ItemKind) -> Option<Self> {
         Some(Enchantments {
-            levels: HashMap::from_iter([]),
+            levels: IndexMap::from_iter([]),
             ..Enchantments::new()
         })
     }
@@ -3481,7 +3480,7 @@ impl DefaultableComponent for StoredEnchantments {
     fn default_for_item(item: ItemKind) -> Option<Self> {
         let value = match item {
             ItemKind::EnchantedBook => StoredEnchantments {
-                enchantments: HashMap::from_iter([]),
+                enchantments: IndexMap::from_iter([]),
                 ..StoredEnchantments::new()
             },
             _ => return None,

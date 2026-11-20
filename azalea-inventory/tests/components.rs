@@ -61,6 +61,16 @@ fn test_enchantments() {
 }
 
 #[test]
+fn test_enchantments_keep_wire_order() {
+    // vanilla's ItemEnchantments is a hash map, so the server's entry order is
+    // arbitrary; a decoded component must write it back in the same order
+    for wire in [[2, 9, 2, 3, 5, 1], [2, 3, 5, 9, 2, 1]] {
+        let c = Enchantments::azalea_read(&mut Cursor::new(&wire[..])).unwrap();
+        assert_eq!(encode(&c), wire);
+    }
+}
+
+#[test]
 fn test_block_state_value_matcher_either() {
     // ByteBufCodecs.either writes true for the left side (exact)
     let exact = BlockStateValueMatcher::Exact {

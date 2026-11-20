@@ -3,7 +3,6 @@ mod profile;
 use core::f64;
 use std::{
     any::Any,
-    collections::HashMap,
     fmt::{self, Debug, Display},
     io::{self, Cursor, Write},
     mem::ManuallyDrop,
@@ -24,6 +23,7 @@ use azalea_registry::{
     data::{BannerPatternKind, Enchantment, JukeboxSong, TrimMaterial, TrimPattern},
     identifier::Identifier,
 };
+use indexmap::IndexMap;
 pub use profile::*;
 use serde::{Serialize, ser::SerializeMap};
 use simdnbt::owned::{Nbt, NbtCompound, NbtList, NbtTag};
@@ -334,14 +334,14 @@ pub enum Rarity {
 pub struct Enchantments {
     /// Enchantment levels here are 1-indexed, level 0 does not exist.
     #[var]
-    pub levels: HashMap<Enchantment, i32>,
+    pub levels: IndexMap<Enchantment, i32>,
     #[serde(skip_serializing_if = "is_true")]
     pub show_in_tooltip: bool,
 }
 impl Enchantments {
     pub fn new() -> Self {
         Self {
-            levels: HashMap::new(),
+            levels: IndexMap::new(),
             show_in_tooltip: true,
         }
     }
@@ -648,14 +648,14 @@ impl Default for Tool {
 pub struct StoredEnchantments {
     #[var]
     #[serde(rename = "levels")]
-    pub enchantments: HashMap<Enchantment, i32>,
+    pub enchantments: IndexMap<Enchantment, i32>,
     #[serde(skip_serializing_if = "is_true")]
     pub show_in_tooltip: bool,
 }
 impl StoredEnchantments {
     pub fn new() -> Self {
         Self {
-            enchantments: HashMap::new(),
+            enchantments: IndexMap::new(),
             show_in_tooltip: true,
         }
     }
@@ -977,7 +977,7 @@ pub struct Container {
 #[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
 #[serde(transparent)]
 pub struct BlockState {
-    pub properties: HashMap<String, String>,
+    pub properties: IndexMap<String, String>,
 }
 
 #[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
@@ -1358,7 +1358,7 @@ pub struct DirectTrimMaterial {
     pub ingredient: ItemKind,
     /// A map of equipment asset ids to asset names.
     #[serde(skip_serializing_if = "is_default")]
-    pub override_armor_assets: HashMap<Identifier, String>,
+    pub override_armor_assets: IndexMap<Identifier, String>,
     pub description: FormattedText,
 }
 
