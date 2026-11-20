@@ -27,6 +27,15 @@ pub const MAX_INITIAL_COLLECTION_BYTES: usize = 1 << 20;
 /// element type that really reads at least one byte.
 pub const ELEMENT_BUDGET: u64 = 8_388_608;
 
+/// Ours: how many bytes of collection elements one packet may hold in memory
+/// (elements × `size_of` of the element type, counted when a collection's
+/// length is read, before anything is allocated). The minimum-wire-size check
+/// alone isn't enough: an empty item stack is one byte on the wire and dozens
+/// in memory, so an 8 MiB packet of them would be hundreds of MiB. No vanilla
+/// packet comes near this (the largest real ones, chunks and registries, hold
+/// a few MiB).
+pub const PACKET_MEMORY_BUDGET: u64 = 64 << 20;
+
 /// Ours: how deep a type that contains itself on the wire (item stacks in
 /// containers, slot displays in slot displays) may nest. The same value as
 /// the network NBT depth.
@@ -56,6 +65,9 @@ pub enum LimitKind {
     NbtSize,
     /// A self-containing type nested deeper than [`MAX_NESTING_DEPTH`].
     NestingDepth,
+    /// Collections in one packet that would hold more than
+    /// [`PACKET_MEMORY_BUDGET`] bytes in memory.
+    PacketMemory,
 }
 
 impl fmt::Display for LimitKind {
@@ -67,6 +79,7 @@ impl fmt::Display for LimitKind {
             LimitKind::NbtDepth => "NBT depth",
             LimitKind::NbtSize => "NBT size",
             LimitKind::NestingDepth => "nesting depth",
+            LimitKind::PacketMemory => "packet memory",
         };
         f.write_str(s)
     }
@@ -75,6 +88,7 @@ impl fmt::Display for LimitKind {
 thread_local! {
     static LIMIT_HIT: Cell<Option<LimitKind>> = const { Cell::new(None) };
     static ELEMENTS_LEFT: Cell<Option<u64>> = const { Cell::new(None) };
+    static MEMORY_LEFT: Cell<Option<u64>> = const { Cell::new(None) };
     static NESTING: Cell<u32> = const { Cell::new(0) };
 }
 
@@ -91,17 +105,40 @@ pub fn take_limit_hit() -> Option<LimitKind> {
     LIMIT_HIT.with(|c| c.take())
 }
 
-/// Run `f` (the decoding of one packet) with a fresh
-/// [`ELEMENT_BUDGET`]. Outside of this, zero-size elements aren't budgeted.
+/// Run `f` (the decoding of one packet) with a fresh [`ELEMENT_BUDGET`] and
+/// [`PACKET_MEMORY_BUDGET`]. Outside of this, neither is budgeted.
 pub fn with_element_budget<R>(f: impl FnOnce() -> R) -> R {
-    struct Restore(Option<u64>);
+    struct Restore(Option<u64>, Option<u64>);
     impl Drop for Restore {
         fn drop(&mut self) {
             ELEMENTS_LEFT.with(|c| c.set(self.0));
+            MEMORY_LEFT.with(|c| c.set(self.1));
         }
     }
-    let _restore = Restore(ELEMENTS_LEFT.with(|c| c.replace(Some(ELEMENT_BUDGET))));
+    let _restore = Restore(
+        ELEMENTS_LEFT.with(|c| c.replace(Some(ELEMENT_BUDGET))),
+        MEMORY_LEFT.with(|c| c.replace(Some(PACKET_MEMORY_BUDGET))),
+    );
     f()
+}
+
+/// Take the memory of `length` elements of `T` (`length × size_of::<T>()`)
+/// from the current packet's [`PACKET_MEMORY_BUDGET`]. Call it once a
+/// collection's length is known, before reading or allocating its elements.
+pub fn charge_memory<T>(length: usize) -> Result<(), BufReadError> {
+    let bytes = (length as u64).saturating_mul(mem::size_of::<T>() as u64);
+    MEMORY_LEFT.with(|c| match c.get() {
+        None => Ok(()),
+        Some(left) if bytes <= left => {
+            c.set(Some(left - bytes));
+            Ok(())
+        }
+        Some(_) => Err(limit_error(
+            LimitKind::PacketMemory,
+            bytes,
+            PACKET_MEMORY_BUDGET,
+        )),
+    })
 }
 
 /// Take `n` elements from the current packet's element budget.

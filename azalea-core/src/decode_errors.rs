@@ -75,6 +75,9 @@ pub enum DecodeErrorKind {
     /// nested deeper than 512
     /// ([`azalea_buf::limits::LimitKind::NestingDepth`]).
     NestingDepth,
+    /// Collections in one packet that would hold more than 64 MiB in memory
+    /// ([`azalea_buf::limits::LimitKind::PacketMemory`]).
+    PacketMemory,
     /// A dimension type from registry data outside vanilla's bounds (height,
     /// min_y, logical height); the entry is rejected before any chunk
     /// storage is sized from it.
@@ -155,6 +158,7 @@ impl From<azalea_buf::limits::LimitKind> for DecodeErrorKind {
             LimitKind::NbtDepth => DecodeErrorKind::NbtDepth,
             LimitKind::NbtSize => DecodeErrorKind::NbtSize,
             LimitKind::NestingDepth => DecodeErrorKind::NestingDepth,
+            LimitKind::PacketMemory => DecodeErrorKind::PacketMemory,
         }
     }
 }
@@ -209,6 +213,7 @@ kinds! {
     NbtDepth => nbt_depth,
     NbtSize => nbt_size,
     NestingDepth => nesting_depth,
+    PacketMemory => packet_memory,
     DimensionType => dimension_type,
     Panic => panic,
     ProcessPanic => process_panic,

@@ -18,11 +18,15 @@ pub struct Tags {
 
 impl AzBuf for TagMap {
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
-        let length = u32::azalea_read_var(buf)? as usize;
+        // an identifier and a count are at least 2 bytes
+        let length = azalea_buf::limits::read_collection_len(buf, 2)?;
+        azalea_buf::limits::charge_memory::<(Identifier, Vec<Tags>)>(length)?;
         let mut data = IndexMap::new();
         for _ in 0..length {
             let tag_type = Identifier::azalea_read(buf)?;
-            let tags_count = i32::azalea_read_var(buf)? as usize;
+            // a name and an element count are at least 2 bytes
+            let tags_count = azalea_buf::limits::read_collection_len(buf, 2)?;
+            azalea_buf::limits::charge_memory::<Tags>(tags_count)?;
             let mut tags_vec = Vec::new();
             for _ in 0..tags_count {
                 let tags = Tags::azalea_read(buf)?;

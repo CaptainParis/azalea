@@ -36,6 +36,7 @@ macro_rules! impl_for_map_type {
             fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
                 let min = K::MIN_ENCODED_SIZE + V::MIN_ENCODED_SIZE;
                 let length = limits::read_collection_len(buf, min)?;
+                limits::charge_memory::<(K, V)>(length)?;
                 let mut contents =
                     Self::with_capacity(limits::initial_capacity::<(K, V)>(buf, length, min));
                 for _ in 0..length {
@@ -59,6 +60,7 @@ macro_rules! impl_for_map_type {
                 // a VarInt is at least one byte
                 let min = K::MIN_ENCODED_SIZE + 1;
                 let length = limits::read_collection_len(buf, min)?;
+                limits::charge_memory::<(K, V)>(length)?;
                 let mut contents =
                     Self::with_capacity(limits::initial_capacity::<(K, V)>(buf, length, min));
                 for _ in 0..length {
@@ -86,6 +88,7 @@ impl_for_map_type!(IndexMap);
 /// [`limits::initial_capacity`] allows.
 fn read_elements<T: AzBuf>(buf: &mut Cursor<&[u8]>, length: usize) -> Result<Vec<T>, BufReadError> {
     let min = T::MIN_ENCODED_SIZE;
+    limits::charge_memory::<T>(length)?;
     let mut contents = Vec::with_capacity(limits::initial_capacity::<T>(buf, length, min));
     for _ in 0..length {
         limits::charge_element_if_zero_size(min)?;
@@ -115,6 +118,7 @@ macro_rules! impl_for_list_type {
             fn azalea_read_var(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
                 // a VarInt is at least one byte
                 let length = limits::read_collection_len(buf, 1)?;
+                limits::charge_memory::<T>(length)?;
                 let mut contents =
                     Vec::with_capacity(limits::initial_capacity::<T>(buf, length, 1));
                 for _ in 0..length {

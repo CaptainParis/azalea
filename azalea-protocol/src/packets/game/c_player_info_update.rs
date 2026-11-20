@@ -71,7 +71,9 @@ impl AzBuf for ClientboundPlayerInfoUpdate {
         let actions = ActionEnumSet::azalea_read(buf)?;
         let mut entries = Vec::new();
 
-        let entry_count = u32::azalea_read_var(buf)?;
+        // every entry starts with its 16-byte uuid
+        let entry_count = azalea_buf::limits::read_collection_len(buf, 16)?;
+        azalea_buf::limits::charge_memory::<PlayerInfoEntry>(entry_count)?;
         for _ in 0..entry_count {
             let profile_id = Uuid::azalea_read(buf)?;
             let mut entry = PlayerInfoEntry::default();
