@@ -188,9 +188,11 @@ fn is_trapdoor_usable_as_ladder(
     // and the ladder must be facing the same direction as the trapdoor
     let ladder_facing = block_below
         .property::<properties::FacingCardinal>()
+        // network-safe: every block state of this kind has the property
         .expect("ladder block must have facing property");
     let trapdoor_facing = block_state
         .property::<properties::FacingCardinal>()
+        // network-safe: every block state of this kind has the property
         .expect("trapdoor block must have facing property");
     if ladder_facing != trapdoor_facing {
         return false;

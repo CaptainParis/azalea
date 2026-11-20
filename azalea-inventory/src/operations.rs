@@ -281,6 +281,7 @@ impl Menu {
 
         let slot_location = self
             .location_for_slot(slot_index)
+            // network-safe: the slot index was checked two lines above
             .expect("we just checked to make sure the slot is Some above, so this shouldn't be able to error");
         // Chest-like menus (ChestMenu, DispenserMenu, HopperMenu,
         // ShulkerBoxMenu in 1.21.4) move contents into the player inventory
@@ -611,6 +612,7 @@ impl Menu {
         if !self.may_pickup(target_slot_index) {
             return false;
         }
+        // network-safe: callers (try_remove) checked the slot exists
         let item = self.slot(target_slot_index).unwrap();
         // the default here probably doesn't matter since we should only be
         // calling this if we already checked that the slot isn't empty
@@ -648,6 +650,7 @@ impl Menu {
         target_slot_indexes: RangeInclusive<usize>,
         reverse: bool,
     ) -> bool {
+        // network-safe: callers (quick_move_stack) checked the slot exists
         let mut item = self.slot(item_slot_index).unwrap().clone();
         let order: Vec<usize> = if reverse {
             target_slot_indexes.rev().collect()
@@ -669,12 +672,13 @@ impl Menu {
                 }
                 // Slot.getMaxStackSize(stack)
                 let limit = self.max_stack_size(target).min(dst.kind.max_stack_size());
-                let total = dst.count + src.count;
+                // counts come from the server (any positive i32)
+                let total = dst.count.saturating_add(src.count);
                 let new_count = if total <= limit {
                     src.count = 0;
                     total
                 } else if dst.count < limit {
-                    src.count -= limit - dst.count;
+                    src.count = src.count.saturating_sub(limit - dst.count);
                     limit
                 } else {
                     continue;
@@ -692,6 +696,7 @@ impl Menu {
                 if self.slot(target).is_some_and(|s| s.is_empty()) && self.may_place(target, src) {
                     let limit = self.max_stack_size(target).min(src.kind.max_stack_size());
                     let placed = src.split(i32::min(src.count, limit) as u32);
+                    // network-safe: target was checked to exist in the if
                     *self.slot_mut(target).unwrap() = placed.into();
                     moved = true;
                     break;
@@ -700,6 +705,7 @@ impl Menu {
             item.update_empty();
         }
 
+        // network-safe: read from this index at the top
         *self.slot_mut(item_slot_index).unwrap() = item;
         moved
     }

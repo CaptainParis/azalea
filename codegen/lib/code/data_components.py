@@ -643,6 +643,9 @@ use crate::{
 
             code.append(f"impl DefaultableComponent for {component_struct_name} {{")
             code.append("    fn default_for_item(item: ItemKind) -> Option<Self> {")
+            code.append(
+                "        // network-safe: one value per ItemKind variant, and item is a valid variant"
+            )
             code.append(f"        let value = {static_values_name}[item as usize];")
             if none_value_is_used:
                 code.append(f"        if value == {none_value} {{")

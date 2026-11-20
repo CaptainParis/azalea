@@ -98,6 +98,7 @@ pub enum EntityDataValue {
     Quaternion(Quaternion),
 }
 
+// network-safe: evaluated at compile time
 const _: () = assert!(size_of::<EntityDataValue>() == 24);
 
 #[derive(Clone, Debug, PartialEq, Default)]

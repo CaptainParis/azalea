@@ -50,8 +50,8 @@ pub struct Inventory {
     /// a new container update.
     pub state_id: u32,
     /// The state id of the player's inventory menu (container 0), which vanilla
-    /// keeps separately from the open container's. It becomes [`Self::state_id`]
-    /// again when the container is closed.
+    /// keeps separately from the open container's. It becomes
+    /// [`Self::state_id`] again when the container is closed.
     pub inventory_menu_state_id: u32,
 
     pub quick_craft_status: QuickCraftStatusKind,
@@ -69,9 +69,10 @@ pub struct Inventory {
 }
 
 impl Inventory {
-    /// Sets slot `i` of the player's inventory menu (container 0). While another
-    /// container is open, its player slots show the same items (vanilla shares
-    /// the `Slot` objects between the two menus), so they're updated too.
+    /// Sets slot `i` of the player's inventory menu (container 0). While
+    /// another container is open, its player slots show the same items (vanilla
+    /// shares the `Slot` objects between the two menus), so they're updated
+    /// too.
     pub fn set_inventory_menu_slot(&mut self, i: usize, item: ItemStack) {
         if let Some(menu) = &mut self.container_menu
             && (9..=44).contains(&i)
@@ -189,6 +190,7 @@ impl Inventory {
                     if self.quick_craft_slots.len() == 1 {
                         // if we only clicked one slot, then turn this
                         // QuickCraftClick into a PickupClick
+                        // network-safe: len() == 1 checked above
                         let slot = *self.quick_craft_slots.iter().next().unwrap();
                         self.reset_quick_craft();
                         self.simulate_click(
@@ -229,7 +231,12 @@ impl Inventory {
                                 return self.reset_quick_craft();
                             };
 
-                            slot = self.menu().slot(next_slot as usize).unwrap();
+                            // the menu can have changed since the slot was
+                            // added (the server opened another one)
+                            let Some(next) = self.menu().slot(next_slot as usize) else {
+                                return self.reset_quick_craft();
+                            };
+                            slot = next;
                             slot_index = next_slot;
                             item_stack = &self.carried;
 
@@ -248,6 +255,8 @@ impl Inventory {
 
                         // get the ItemStackData for the slot
                         let ItemStack::Present(slot) = slot else {
+                            // network-safe: the loop above only breaks on a
+                            // present slot
                             unreachable!("the loop above requires the slot to be present to break")
                         };
 
@@ -271,13 +280,17 @@ impl Inventory {
                             new_carried.count = max_stack_size;
                         }
 
-                        carried_count -= new_carried.count - slot_item_count;
+                        // counts come from the server (any positive i32)
+                        carried_count = carried_count
+                            .saturating_sub(new_carried.count.saturating_sub(slot_item_count));
                         // we have to inline self.menu_mut() here to avoid the
                         // borrow checker complaining
                         let menu = match &mut self.container_menu {
                             Some(menu) => menu,
                             _ => &mut self.inventory_menu,
                         };
+                        // network-safe: the slot was read from this menu at
+                        // this index in the loop above
                         *menu.slot_mut(slot_index as usize).unwrap() =
                             ItemStack::Present(new_carried);
                     }
@@ -361,6 +374,7 @@ impl Inventory {
                                 {
                                     // swap slot_item and carried
                                     self.carried = slot_item.clone();
+                                    // network-safe: slot was checked at the top
                                     let slot_item = self.menu_mut().slot_mut(slot).unwrap();
                                     *slot_item = carried.into();
                                 }
@@ -371,7 +385,10 @@ impl Inventory {
                                     carried.kind.max_stack_size() - carried.count,
                                 )
                             {
-                                self.carried.as_present_mut().unwrap().count += removed.count();
+                                // network-safe: carried is present (the
+                                // if let above); counts saturate
+                                let carried = self.carried.as_present_mut().unwrap();
+                                carried.count = carried.count.saturating_add(removed.count());
                                 // slot.onTake(player, removed);
                             }
                         } else {
@@ -399,7 +416,11 @@ impl Inventory {
                 let slot = slot as usize;
                 loop {
                     let new_slot_item = self.menu_mut().quick_move_stack(slot);
-                    let slot_item = self.menu().slot(slot).unwrap();
+                    // a slot the menu doesn't have (the server can open a
+                    // different menu than the bot expects)
+                    let Some(slot_item) = self.menu().slot(slot) else {
+                        break;
+                    };
                     if new_slot_item.is_empty() || slot_item.kind() != new_slot_item.kind() {
                         break;
                     }
@@ -422,24 +443,31 @@ impl Inventory {
                 if target_slot.is_empty() {
                     if self.menu().may_pickup(source_slot_index) {
                         let source_slot = source_slot.clone();
+                        // network-safe: both slots were checked at the top
                         let target_slot = self.menu_mut().slot_mut(target_slot_index).unwrap();
                         *target_slot = source_slot;
                     }
                 } else if source_slot.is_empty() {
                     let target_item = target_slot
                         .as_present()
+                        // network-safe: both empty returned above
                         .expect("target slot was already checked to not be empty");
                     if self.menu().may_place(source_slot_index, target_item) {
                         // get the target_item but mutable
                         let source_max_stack_size = self.menu().max_stack_size(source_slot_index);
 
+                        // network-safe: (these three) both slots were checked
+                        // at the top, and max_stack_size is 64
                         let target_slot = self.menu_mut().slot_mut(target_slot_index).unwrap();
+                        // network-safe: max_stack_size is 64
                         let new_source_slot =
                             target_slot.split(source_max_stack_size.try_into().unwrap());
+                        // network-safe: checked at the top
                         *self.menu_mut().slot_mut(source_slot_index).unwrap() = new_source_slot;
                     }
                 } else if self.menu().may_pickup(source_slot_index) {
                     let ItemStack::Present(target_item) = target_slot else {
+                        // network-safe: not empty, so present
                         unreachable!("target slot is not empty but is not present");
                     };
                     if self.menu().may_place(source_slot_index, target_item) {
@@ -448,9 +476,12 @@ impl Inventory {
                             // if there's more than the max stack size in the
                             // target slot
 
+                            // network-safe: checked at the top
                             let target_slot = self.menu_mut().slot_mut(target_slot_index).unwrap();
+                            // network-safe: max_stack_size is 64
                             let new_source_slot =
                                 target_slot.split(source_max_stack.try_into().unwrap());
+                            // network-safe: checked at the top
                             *self.menu_mut().slot_mut(source_slot_index).unwrap() = new_source_slot;
                             // if !self.inventory_menu.add(new_source_slot) {
                             //     player.drop(new_source_slot, true);
@@ -460,9 +491,11 @@ impl Inventory {
                             let new_target_slot = source_slot.clone();
                             let new_source_slot = target_slot.clone();
 
+                            // network-safe: checked at the top
                             let target_slot = self.menu_mut().slot_mut(target_slot_index).unwrap();
                             *target_slot = new_target_slot;
 
+                            // network-safe: checked at the top
                             let source_slot = self.menu_mut().slot_mut(source_slot_index).unwrap();
                             *source_slot = new_source_slot;
                         }
@@ -513,7 +546,9 @@ impl Inventory {
             }) => {
                 let source_slot_index = *source_slot_index as usize;
 
-                let source_slot = self.menu().slot(source_slot_index).unwrap();
+                let Some(source_slot) = self.menu().slot(source_slot_index) else {
+                    return;
+                };
                 let target_slot = self.carried.clone();
 
                 if target_slot.is_empty()
@@ -523,6 +558,7 @@ impl Inventory {
                 }
 
                 let ItemStack::Present(target_slot_item) = &target_slot else {
+                    // network-safe: not empty, so present
                     unreachable!("target slot is not empty but is not present");
                 };
 
@@ -535,6 +571,7 @@ impl Inventory {
 
                     for i in iterator {
                         if target_slot_item.count < target_slot_item.kind.max_stack_size() {
+                            // network-safe: i < menu len
                             let checking_slot = self.menu().slot(i).unwrap();
                             if let ItemStack::Present(checking_item) = checking_slot
                                 && can_item_quick_replace(checking_slot, &target_slot, true)
@@ -544,6 +581,7 @@ impl Inventory {
                             {
                                 // get the checking_slot and checking_item again
                                 // but mutable
+                                // network-safe: i < menu len
                                 let checking_slot = self.menu_mut().slot_mut(i).unwrap();
 
                                 let taken_item = checking_slot.split(checking_slot.count() as u32);
@@ -551,9 +589,12 @@ impl Inventory {
                                 // now extend the carried item
                                 let target_slot = &mut self.carried;
                                 let ItemStack::Present(target_slot_item) = target_slot else {
+                                    // network-safe: carried was present above
+                                    // and only grows here
                                     unreachable!("target slot is not empty but is not present");
                                 };
-                                target_slot_item.count += taken_item.count();
+                                target_slot_item.count =
+                                    target_slot_item.count.saturating_add(taken_item.count());
                             }
                         }
                     }
@@ -572,6 +613,8 @@ impl Inventory {
     /// their main hand.
     pub fn held_item(&self) -> &ItemStack {
         self.get_equipment(EquipmentSlot::Mainhand)
+            // network-safe: selected_hotbar_slot is at most 8 (set_held_slot
+            // checks it) and every menu has 9 hotbar slots
             .expect("The main hand item should always be present")
     }
 
@@ -606,8 +649,8 @@ impl Inventory {
         } else if let ItemStack::Present(slot_item) = slot_item
             && slot_item.is_same_item_and_components(&src_item)
         {
-            src_item.count -= take_count as i32;
-            slot_item.count += take_count as i32;
+            src_item.count = src_item.count.saturating_sub(take_count as i32);
+            slot_item.count = slot_item.count.saturating_add(take_count as i32);
         }
 
         src_item.into()
@@ -626,11 +669,12 @@ impl Inventory {
         if count <= 0 {
             return None;
         }
-        // 1.21.4 Slot.tryRemove -> Slot.remove -> Container.removeItem splits the
-        // stack in the slot, so the slot keeps what's left (a partial pickup,
-        // like a right click on a stack, takes half and leaves half).
+        // 1.21.4 Slot.tryRemove -> Slot.remove -> Container.removeItem splits
+        // the stack in the slot, so the slot keeps what's left (a partial
+        // pickup, like a right click on a stack, takes half and leaves half).
         let removed = slot_item.split(count as u32);
         slot_item.update_empty();
+        // network-safe: read from this index above
         *self.menu_mut().slot_mut(slot).unwrap() = slot_item;
 
         Some(removed)
@@ -648,10 +692,10 @@ impl Inventory {
                 menu.slot(main_hand_slot_idx)?
             }
             EquipmentSlot::Offhand => &player.offhand,
-            EquipmentSlot::Feet => &player.armor[3],
-            EquipmentSlot::Legs => &player.armor[2],
-            EquipmentSlot::Chest => &player.armor[1],
-            EquipmentSlot::Head => &player.armor[0],
+            EquipmentSlot::Feet => &player.armor[3], // network-safe: fixed array
+            EquipmentSlot::Legs => &player.armor[2], // network-safe: fixed array
+            EquipmentSlot::Chest => &player.armor[1], // network-safe: fixed array
+            EquipmentSlot::Head => &player.armor[0], // network-safe: fixed array
             EquipmentSlot::Body => {
                 // TODO: when riding entities is implemented, mount/horse
                 // inventories should be implemented too. note that horse
@@ -701,7 +745,7 @@ fn get_quick_craft_slot_count(
         QuickCraftKind::Right => 1,
         QuickCraftKind::Middle => item.kind.max_stack_size(),
     };
-    item.count += slot_item_count;
+    item.count = item.count.saturating_add(slot_item_count);
 }
 
 impl Default for Inventory {

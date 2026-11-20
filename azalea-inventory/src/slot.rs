@@ -181,10 +181,11 @@ impl ItemStackData {
 
     /// Remove `count` items from this slot, returning the removed items.
     pub fn split(&mut self, count: u32) -> ItemStackData {
-        let returning_count = i32::min(count as i32, self.count);
+        // counts come from the server (any positive i32), so no overflow
+        let returning_count = i32::min(i32::try_from(count).unwrap_or(i32::MAX), self.count);
         let mut returning = self.clone();
         returning.count = returning_count;
-        self.count -= returning_count;
+        self.count = self.count.saturating_sub(returning_count);
         returning
     }
 

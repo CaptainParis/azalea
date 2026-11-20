@@ -49,6 +49,8 @@ impl Menu {
     /// Will panic if the menu isn't `Menu::Player`.
     pub fn as_player(&self) -> &Player {
         self.try_as_player()
+            // network-safe: only called on Inventory::inventory_menu, which is
+            // always Menu::Player
             .expect("Called `Menu::as_player` on a menu that wasn't `Player`.")
     }
     /// Get the [`Player`] from this [`Menu`], or returns `None` if the menu
@@ -69,6 +71,8 @@ impl Menu {
     /// Will panic if the menu isn't `Menu::Player`.
     pub fn as_player_mut(&mut self) -> &mut Player {
         self.try_as_player_mut()
+            // network-safe: only called on Inventory::inventory_menu, which is
+            // always Menu::Player
             .expect("Called `Menu::as_player_mut` on a menu that wasn't `Player`.")
     }
     /// Same as [`Menu::try_as_player`], but returns a mutable reference to the
