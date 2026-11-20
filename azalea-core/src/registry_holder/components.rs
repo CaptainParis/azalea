@@ -106,6 +106,53 @@ define_effect_components!(
     TridentSpinAttackStrength: TridentSpinAttackStrength,
 );
 
+/// An [`EffectComponentUnion`] with its kind, which drops (and clones) the
+/// value as that kind. The union alone never drops its value (its fields are
+/// `ManuallyDrop`): every parsed enchantment effect leaked when its registry
+/// was dropped, a few KB per session (azalea-hunt WP4 reconnect test).
+pub struct EffectComponent {
+    kind: EnchantmentEffectComponentKind,
+    value: EffectComponentUnion,
+}
+
+impl EffectComponent {
+    pub fn from_effect_nbt_tag_as(
+        kind: EnchantmentEffectComponentKind,
+        tag: EffectNbtTag,
+    ) -> Result<Self, DeserializeError> {
+        Ok(Self {
+            kind,
+            value: EffectComponentUnion::from_effect_nbt_tag_as(kind, tag)?,
+        })
+    }
+
+    pub fn kind(&self) -> EnchantmentEffectComponentKind {
+        self.kind
+    }
+
+    pub fn as_resolved(&self) -> &dyn ResolvedEffectComponent {
+        // SAFETY: the value was made as `kind`
+        unsafe { self.value.as_kind(self.kind) }
+    }
+}
+
+impl Drop for EffectComponent {
+    fn drop(&mut self) {
+        // SAFETY: the value was made as `kind` and is dropped once, here
+        unsafe { self.value.drop_as(self.kind) }
+    }
+}
+
+impl Clone for EffectComponent {
+    fn clone(&self) -> Self {
+        Self {
+            kind: self.kind,
+            // SAFETY: the value was made as `kind`
+            value: unsafe { self.value.clone_as(self.kind) },
+        }
+    }
+}
+
 /// A trait that's implemented on all effect components so we can access them
 /// from [`EnchantmentData::get`](super::enchantment::EnchantmentData::get).
 pub trait EffectComponentTrait: Any {
