@@ -208,3 +208,32 @@ fn resizing_past_the_hashmap_palette_uses_global_bits() {
         );
     }
 }
+
+// fuzz finding (paletted_container, WP2 gate): a global biome palette read
+// with a small registry has fewer storage bits than the global range starts
+// at (3 biomes: 2 bits). Written as is, the bits byte reads back as a linear
+// palette, so our own encoding didn't decode. Every container we read must
+// write back to bytes that read the same.
+#[test]
+fn global_palette_with_few_storage_bits_round_trips() {
+    use azalea_registry::data::Biome;
+    for (registry_size, sent_bits) in [(3, 61u8), (2, 199), (4, 4), (1, 16)] {
+        let input = [sent_bits, 0];
+        let read = |data: &[u8]| {
+            PalettedContainer::<Biome>::read_with_registry_size(
+                &mut Cursor::new(data),
+                Some(registry_size),
+            )
+        };
+        let c = read(&input).unwrap();
+        assert_eq!(PaletteKind::from(&c.palette), PaletteKind::Global);
+        let mut bytes1 = Vec::new();
+        c.write(&mut bytes1).unwrap();
+        let again = read(&bytes1)
+            .unwrap_or_else(|e| panic!("{registry_size} {sent_bits}: {e} {bytes1:?}"));
+        assert_eq!(PaletteKind::from(&again.palette), PaletteKind::Global);
+        let mut bytes2 = Vec::new();
+        again.write(&mut bytes2).unwrap();
+        assert_eq!(bytes1, bytes2, "{registry_size} {sent_bits}");
+    }
+}
