@@ -311,15 +311,26 @@ pub fn for_entities_in_chunks_colliding_with(
     // A box from a huge server-set position or velocity can span billions of
     // chunks; then go through the chunks that have entities instead (as
     // vanilla's section storage does), so the cost is bounded either way.
+    // Only for boxes over LARGE_BOX_CHUNKS (ordinary boxes, a few chunks,
+    // take the walk below as before), and in the walk's order (x, then z):
+    // the order is visible to callers (pick_entity keeps the first of
+    // equally close entities, the last of those containing the eye), so it
+    // must not depend on the box size or on the map's iteration order.
+    const LARGE_BOX_CHUNKS: i64 = 1024;
     let area = (max_chunk.x as i64 - min_chunk.x as i64 + 1).max(0)
         * (max_chunk.z as i64 - min_chunk.z as i64 + 1).max(0);
-    if area > world.entities_by_chunk.len() as i64 {
-        for (&chunk_pos, entities) in &world.entities_by_chunk {
-            if (min_chunk.x..=max_chunk.x).contains(&chunk_pos.x)
-                && (min_chunk.z..=max_chunk.z).contains(&chunk_pos.z)
-            {
-                consumer(chunk_pos, entities);
-            }
+    if area > LARGE_BOX_CHUNKS && area > world.entities_by_chunk.len() as i64 {
+        let mut in_box = world
+            .entities_by_chunk
+            .iter()
+            .filter(|(chunk_pos, _)| {
+                (min_chunk.x..=max_chunk.x).contains(&chunk_pos.x)
+                    && (min_chunk.z..=max_chunk.z).contains(&chunk_pos.z)
+            })
+            .collect::<Vec<_>>();
+        in_box.sort_unstable_by_key(|(chunk_pos, _)| (chunk_pos.x, chunk_pos.z));
+        for (&chunk_pos, entities) in in_box {
+            consumer(chunk_pos, entities);
         }
         return;
     }
@@ -385,5 +396,42 @@ mod tests {
             max: Vec3::new(1e300, 1e300, 1e300),
         };
         let _ = BlockCollisionsState::new(&world, &aabb, EntityCollisionContext::of(None));
+    }
+
+    // the order the chunks are given in is the same for any box size and
+    // doesn't come from the map's iteration order
+    #[test]
+    fn entity_lookup_order_is_the_walk_order_for_any_box() {
+        let mut world = World::default();
+        let mut chunks = Vec::new();
+        for x in -3_i32..=3 {
+            for z in -3..=3 {
+                if (x * 7 + z * 3).rem_euclid(4) == 0 {
+                    chunks.push(ChunkPos::new(x, z));
+                }
+            }
+        }
+        for (i, &c) in chunks.iter().enumerate() {
+            world.entities_by_chunk.insert(
+                c,
+                HashSet::from([Entity::from_raw_u32(i as u32 + 1).unwrap()]),
+            );
+        }
+        let walk_order = {
+            let mut c = chunks.clone();
+            c.sort_by_key(|c| (c.x, c.z));
+            c
+        };
+        // small (sparse world: more chunk positions than chunks with
+        // entities), and huge (the map is walked)
+        for half in [50., 1e9] {
+            let aabb = Aabb {
+                min: Vec3::new(-half, 0., -half),
+                max: Vec3::new(half, 10., half),
+            };
+            let mut seen = Vec::new();
+            for_entities_in_chunks_colliding_with(&world, &aabb, |pos, _| seen.push(pos));
+            assert_eq!(seen, walk_order, "half size {half}");
+        }
     }
 }
