@@ -7,9 +7,24 @@ edition = "2024"
 [package.metadata]
 cargo-fuzz = true
 
+[lib]
+name = "azalea_fuzz"
+path = "src/lib.rs"
+
 [dependencies]
 libfuzzer-sys = "0.4"
-azalea-protocol = { path = "..", default-features = false }
+azalea-protocol = { path = ".." }
+azalea-block = { path = "../../azalea-block" }
+azalea-buf = { path = "../../azalea-buf" }
+azalea-chat = { path = "../../azalea-chat", features = ["azalea-buf"] }
+# test_utils (the networkless Simulation) needs `log`
+azalea-client = { path = "../../azalea-client", default-features = false, features = ["log"] }
+azalea-core = { path = "../../azalea-core" }
+azalea-inventory = { path = "../../azalea-inventory" }
+azalea-registry = { path = "../../azalea-registry" }
+azalea-world = { path = "../../azalea-world" }
+serde_json = "1"
+simdnbt = "0.10"
 
 [[bin]]
 name = "clientbound_config"
@@ -41,8 +56,6 @@ path = "fuzz_targets/clientbound_status.rs"
 test = false
 doc = false
 bench = false
-
-
 [[bin]]
 name = "serverbound_config"
 path = "fuzz_targets/serverbound_config.rs"
@@ -70,6 +83,108 @@ bench = false
 [[bin]]
 name = "serverbound_status"
 path = "fuzz_targets/serverbound_status.rs"
+test = false
+doc = false
+bench = false
+[[bin]]
+name = "roundtrip_handshake_clientbound"
+path = "fuzz_targets/roundtrip_handshake_clientbound.rs"
+test = false
+doc = false
+bench = false
+[[bin]]
+name = "roundtrip_handshake_serverbound"
+path = "fuzz_targets/roundtrip_handshake_serverbound.rs"
+test = false
+doc = false
+bench = false
+[[bin]]
+name = "roundtrip_status_clientbound"
+path = "fuzz_targets/roundtrip_status_clientbound.rs"
+test = false
+doc = false
+bench = false
+[[bin]]
+name = "roundtrip_status_serverbound"
+path = "fuzz_targets/roundtrip_status_serverbound.rs"
+test = false
+doc = false
+bench = false
+[[bin]]
+name = "roundtrip_login_clientbound"
+path = "fuzz_targets/roundtrip_login_clientbound.rs"
+test = false
+doc = false
+bench = false
+[[bin]]
+name = "roundtrip_login_serverbound"
+path = "fuzz_targets/roundtrip_login_serverbound.rs"
+test = false
+doc = false
+bench = false
+[[bin]]
+name = "roundtrip_config_clientbound"
+path = "fuzz_targets/roundtrip_config_clientbound.rs"
+test = false
+doc = false
+bench = false
+[[bin]]
+name = "roundtrip_config_serverbound"
+path = "fuzz_targets/roundtrip_config_serverbound.rs"
+test = false
+doc = false
+bench = false
+[[bin]]
+name = "roundtrip_game_clientbound"
+path = "fuzz_targets/roundtrip_game_clientbound.rs"
+test = false
+doc = false
+bench = false
+[[bin]]
+name = "roundtrip_game_serverbound"
+path = "fuzz_targets/roundtrip_game_serverbound.rs"
+test = false
+doc = false
+bench = false
+[[bin]]
+name = "frame"
+path = "fuzz_targets/frame.rs"
+test = false
+doc = false
+bench = false
+[[bin]]
+name = "nbt_network"
+path = "fuzz_targets/nbt_network.rs"
+test = false
+doc = false
+bench = false
+[[bin]]
+name = "chat_component"
+path = "fuzz_targets/chat_component.rs"
+test = false
+doc = false
+bench = false
+[[bin]]
+name = "paletted_container"
+path = "fuzz_targets/paletted_container.rs"
+test = false
+doc = false
+bench = false
+[[bin]]
+name = "chunk_section"
+path = "fuzz_targets/chunk_section.rs"
+test = false
+doc = false
+bench = false
+[[bin]]
+name = "handler_sequence"
+path = "fuzz_targets/handler_sequence.rs"
+test = false
+doc = false
+bench = false
+[[bin]]
+name = "config_to_play"
+path = "fuzz_targets/config_to_play.rs"
 test = false
 doc = false
 bench = false

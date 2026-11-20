@@ -21,3 +21,29 @@ cargo fuzz run clientbound_game -s none -- -rss_limit_mb=4096 -malloc_limit_mb=1
 # also see https://appsec.guide/docs/fuzzing/rust/cargo-fuzz/
 ```
 
+
+## Hunt targets (WP2)
+
+Besides the ten per-state decode targets:
+
+- `roundtrip_<state>_<clientbound|serverbound>`: decode, encode, decode the
+  result, encode again; the two encodings must be the same bytes.
+- `frame`: the frame splitter, decompression and their size limits.
+- `nbt_network`, `chat_component`, `paletted_container`, `chunk_section`.
+- `handler_sequence`: the networkless `Simulation` client in play, fed a list
+  of clientbound packets (`src/input.rs`); `config_to_play`: a fuzzed
+  configuration phase, then seed play packets.
+
+The bodies live in `src/targets.rs`, shared with the seed tests. Seeds are
+checked in by the hunt repository (`fuzz/corpus/<target>/`, split from its
+recordings); pass that directory as a second corpus so new inputs go to the
+first one:
+
+```sh
+cargo fuzz build -a   # debug assertions and overflow checks on
+cargo fuzz run frame /tmp/frame-work ../../fuzz/corpus/frame -- -rss_limit_mb=2048 -timeout=5
+```
+
+The hand-written deep seeds (`src/seeds.rs`, every recursive type at its
+deepest) are tested by `tests/deep_seeds.rs` (1 s cap on a 16 MB thread) and
+written with `cargo run -p azalea-fuzz --example write_seeds -- <corpus dir>`.

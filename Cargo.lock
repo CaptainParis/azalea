@@ -460,8 +460,18 @@ dependencies = [
 name = "azalea-fuzz"
 version = "0.0.0"
 dependencies = [
+ "azalea-block",
+ "azalea-buf",
+ "azalea-chat",
+ "azalea-client",
+ "azalea-core",
+ "azalea-inventory",
  "azalea-protocol",
+ "azalea-registry",
+ "azalea-world",
  "libfuzzer-sys",
+ "serde_json",
+ "simdnbt",
 ]
 
 [[package]]
