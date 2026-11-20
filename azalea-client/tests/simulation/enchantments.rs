@@ -104,6 +104,7 @@ fn test_enchantments() {
         slot: *azalea_inventory::Player::HOTBAR_SLOTS.start() as u16,
         item_stack: ItemStack::from(ItemKind::DiamondPickaxe).with_component(Enchantments {
             levels: [(Enchantment::from_u32(0).unwrap(), 1)].into(),
+            show_in_tooltip: true,
         }),
     });
     s.tick();
