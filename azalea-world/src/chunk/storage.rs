@@ -37,6 +37,23 @@ pub trait ChunkStorageTrait: Send + Sync + Any {
     fn chunks(&self) -> Box<[&ChunkPos]>;
     fn clone_box(&self) -> Box<dyn ChunkStorageTrait>;
 
+    /// How many entries the storage has (for a [`WeakChunkStorage`], dead
+    /// entries not yet pruned included).
+    fn len(&self) -> usize {
+        self.chunks().len()
+    }
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+    /// Forget the entry at `pos` if nothing holds its chunk anymore. Called
+    /// when a client's ring drops or replaces the chunk.
+    fn prune(&mut self, _pos: &ChunkPos) {}
+    /// Forget every entry whose chunk nothing holds anymore; returns how
+    /// many were forgotten.
+    fn sweep(&mut self) -> usize {
+        0
+    }
+
     // these impls are here instead of in the `impl ChunkStorage` so rust is
     // able to inline more and thus optimize them a lot better.
 
@@ -107,6 +124,11 @@ impl Clone for ChunkStorage {
 ///
 /// This is used for shared worlds.
 ///
+/// An entry whose chunk nothing holds anymore is a dead `Weak` (its
+/// allocation and map slot stay): it's pruned when a client's ring drops or
+/// replaces the chunk ([`ChunkStorageTrait::prune`]) and by a periodic
+/// [`ChunkStorageTrait::sweep`] (azalea-client's `ResourcesPlugin`).
+///
 /// This is relatively cheap to clone since it's just an `IntMap` with `Weak`
 /// pointers.
 #[derive(Clone, Debug)]
@@ -167,6 +189,23 @@ impl ChunkStorageTrait for WeakChunkStorage {
 
     fn chunks(&self) -> Box<[&ChunkPos]> {
         self.map.keys().collect::<Vec<_>>().into_boxed_slice()
+    }
+
+    fn len(&self) -> usize {
+        self.map.len()
+    }
+
+    fn prune(&mut self, pos: &ChunkPos) {
+        if self.map.get(pos).is_some_and(|w| w.strong_count() == 0) {
+            // network-safe: HashMap::remove by key, not an index
+            self.map.remove(pos);
+        }
+    }
+
+    fn sweep(&mut self) -> usize {
+        let before = self.map.len();
+        self.map.retain(|_, w| w.strong_count() > 0);
+        before - self.map.len()
     }
 
     fn clone_box(&self) -> Box<dyn ChunkStorageTrait> {

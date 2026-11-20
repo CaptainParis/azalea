@@ -1402,9 +1402,12 @@ fn unload_chunks(ecs: &World, player: Entity, chunks: &[ChunkPos]) {
     let Some(world_holder) = ecs.get::<WorldHolder>(player) else {
         return;
     };
+    let mut world = world_holder.shared.write();
     let mut partial = world_holder.partial.write();
     for pos in chunks {
-        partial.chunks.limited_set(pos, None);
+        partial
+            .chunks
+            .limited_set_and_prune(pos, None, &mut world.chunks);
     }
 }
 
@@ -1426,9 +1429,12 @@ fn unload_pending_unknown_chunks(mut query: Query<(&WorldHolder, &mut UnknownChu
             continue;
         }
         let pending = std::mem::take(&mut unknown.pending);
+        let mut world = world_holder.shared.write();
         let mut partial = world_holder.partial.write();
         for pos in &pending {
-            partial.chunks.limited_set(pos, None);
+            partial
+                .chunks
+                .limited_set_and_prune(pos, None, &mut world.chunks);
         }
     }
 }

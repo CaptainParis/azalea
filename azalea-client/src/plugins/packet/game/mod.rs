@@ -1614,9 +1614,13 @@ impl GamePacketHandler<'_> {
                     return;
                 };
 
+                let mut world = local_player.shared.write();
                 let mut partial_world = local_player.partial.write();
 
-                partial_world.chunks.limited_set(&p.pos, None);
+                // the chunk's entry in the shared storage goes with it
+                partial_world
+                    .chunks
+                    .limited_set_and_prune(&p.pos, None, &mut world.chunks);
                 bad_packet::chunk_known(unknown, &p.pos);
             },
         );

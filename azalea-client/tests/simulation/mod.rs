@@ -32,6 +32,7 @@ mod packet_order_set_carried_item;
 mod receive_spawn_entity_and_start_config_packet;
 mod receive_start_config_packet;
 mod reply_to_ping_with_pong;
+mod resource_bounds;
 mod secure_chat_chain_broken;
 mod secure_chat_uncached_signature;
 mod send_in_wrong_state;

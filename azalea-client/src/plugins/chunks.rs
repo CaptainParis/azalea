@@ -97,7 +97,9 @@ pub fn handle_receive_chunk_event(
 
         if !this_client_has_chunk && let Some(shared_chunk) = shared_chunk {
             trace!("Skipping parsing chunk {pos:?} because we already know about it");
-            partial_world.chunks.limited_set(&pos, Some(shared_chunk));
+            partial_world
+                .chunks
+                .limited_set_and_prune(&pos, Some(shared_chunk), &mut world.chunks);
             continue;
         }
 
@@ -127,7 +129,9 @@ pub fn handle_receive_chunk_event(
             // (treated as unloaded, bad packet policy)
             record_decode_error(DecodeErrorKind::Chunk);
             record_decode_error(DecodeErrorKind::ChunkUnknown);
-            partial_world.chunks.limited_set(&pos, None);
+            partial_world
+                .chunks
+                .limited_set_and_prune(&pos, None, &mut world.chunks);
             match unknown {
                 Some(mut u) => {
                     u.chunks.insert(pos);

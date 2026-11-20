@@ -21,6 +21,7 @@ pub mod mining;
 pub mod movement;
 pub mod packet;
 pub mod pong;
+pub mod resources;
 pub mod respawn;
 pub mod secure_chat;
 pub mod task_pool;
@@ -61,7 +62,8 @@ impl PluginGroup for DefaultPlugins {
             .add(connection::ConnectionPlugin)
             .add(login::LoginPlugin)
             .add(join::JoinPlugin)
-            .add(cookies::CookiesPlugin);
+            .add(cookies::CookiesPlugin)
+            .add(resources::ResourcesPlugin);
         #[cfg(feature = "online-mode")]
         {
             group = group.add(chat_signing::ChatSigningPlugin);
