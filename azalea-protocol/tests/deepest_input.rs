@@ -289,3 +289,41 @@ fn deepest_recipe_on_a_bot_thread() {
         );
     });
 }
+
+/// A command tree as deep as a packet can hold: 200 000 literal nodes, each
+/// the only child of the one before, and one that redirects to itself.
+/// Azalea keeps the nodes flat (it never walks the tree while decoding), so
+/// this is linear.
+#[test]
+fn deep_command_tree_decodes_in_linear_time() {
+    use azalea_protocol::packets::game::c_commands::{
+        BrigadierNodeStub, ClientboundCommands, NodeType,
+    };
+    on_bot_thread(|| {
+        let n = 200_000u32;
+        let mut entries = vec![BrigadierNodeStub {
+            is_executable: false,
+            children: vec![1],
+            redirect_node: None,
+            node_type: NodeType::Root,
+        }];
+        for i in 1..n {
+            entries.push(BrigadierNodeStub {
+                is_executable: true,
+                children: if i + 1 < n { vec![i + 1] } else { vec![] },
+                redirect_node: (i + 1 == n).then_some(i),
+                node_type: NodeType::Literal {
+                    name: "a".to_owned(),
+                },
+            });
+        }
+        let packet = ClientboundCommands {
+            entries,
+            root_index: 0,
+        }
+        .into_variant();
+        let mut bytes = varint(packet.id() as i32);
+        packet.write(&mut bytes).unwrap();
+        exercise(&bytes);
+    });
+}
