@@ -23,6 +23,7 @@ fn test_despawn_entities_when_changing_dimension() {
                 Identifier::new("minecraft:overworld"),
                 Some(NbtCompound::from_values(vec![
                     ("height".into(), NbtTag::Int(384)),
+                    ("logical_height".into(), NbtTag::Int(384)),
                     ("min_y".into(), NbtTag::Int(-64)),
                 ])),
             ),
@@ -30,6 +31,7 @@ fn test_despawn_entities_when_changing_dimension() {
                 Identifier::new("minecraft:nether"),
                 Some(NbtCompound::from_values(vec![
                     ("height".into(), NbtTag::Int(256)),
+                    ("logical_height".into(), NbtTag::Int(256)),
                     ("min_y".into(), NbtTag::Int(0)),
                 ])),
             ),

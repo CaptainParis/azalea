@@ -20,6 +20,7 @@ fn test_enchantments() {
             Identifier::new("minecraft:overworld"),
             Some(NbtCompound::from_values(vec![
                 ("height".into(), NbtTag::Int(384)),
+                ("logical_height".into(), NbtTag::Int(384)),
                 ("min_y".into(), NbtTag::Int(-64)),
             ])),
         )]

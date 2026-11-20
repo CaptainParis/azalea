@@ -41,6 +41,7 @@ fn generic_test_change_dimension_to_nether_and_back(using_respawn: bool) {
                 Identifier::new("azalea:fakedimension"),
                 Some(NbtCompound::from_values(vec![
                     ("height".into(), NbtTag::Int(16)),
+                    ("logical_height".into(), NbtTag::Int(16)),
                     ("min_y".into(), NbtTag::Int(0)),
                 ])),
             ),
@@ -48,6 +49,7 @@ fn generic_test_change_dimension_to_nether_and_back(using_respawn: bool) {
                 Identifier::new("minecraft:overworld"),
                 Some(NbtCompound::from_values(vec![
                     ("height".into(), NbtTag::Int(384)),
+                    ("logical_height".into(), NbtTag::Int(384)),
                     ("min_y".into(), NbtTag::Int(-64)),
                 ])),
             ),
@@ -55,6 +57,7 @@ fn generic_test_change_dimension_to_nether_and_back(using_respawn: bool) {
                 Identifier::new("minecraft:nether"),
                 Some(NbtCompound::from_values(vec![
                     ("height".into(), NbtTag::Int(256)),
+                    ("logical_height".into(), NbtTag::Int(256)),
                     ("min_y".into(), NbtTag::Int(0)),
                 ])),
             ),
