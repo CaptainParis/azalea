@@ -93,12 +93,14 @@ pub fn frame(data: &[u8]) {
 }
 
 /// Network NBT: the limit checker, then simdnbt's owned and borrow readers.
-/// A tag that's read must write back to bytes that read the same.
+/// A tag that's read must write back to bytes that read the same, and both
+/// readers must read the same tag (and the same number of bytes) from it.
 pub fn nbt_network(data: &[u8]) {
     let mut cursor = Cursor::new(data);
     let Ok(tag) = simdnbt::owned::NbtTag::azalea_read(&mut cursor) else {
         return;
     };
+    let owned_end = cursor.position();
     let _ = format!("{tag:?}");
     let mut bytes1 = Vec::new();
     tag.azalea_write(&mut bytes1).unwrap();
@@ -108,13 +110,25 @@ pub fn nbt_network(data: &[u8]) {
     again.azalea_write(&mut bytes2).unwrap();
     assert!(bytes1 == bytes2, "NBT write isn't stable");
 
-    // the borrow reader on the same (checked) input
+    // the borrow reader on the same input (the owned read checked it): it
+    // must read it too, to the same tag (compared as written bytes, so NaN
+    // floats compare equal) and end where the owned reader ended
     let mut cursor = Cursor::new(data);
-    if azalea_buf::nbt::check_network_nbt(&cursor).is_ok()
-        && let Ok(borrowed) = simdnbt::borrow::read_tag(&mut cursor)
-    {
-        let _ = borrowed.as_tag().to_owned();
-    }
+    let borrowed = simdnbt::borrow::read_tag(&mut cursor).unwrap_or_else(|e| {
+        panic!("the owned reader read this NBT, the borrow reader didn't: {e}\n{tag:?}")
+    });
+    assert_eq!(
+        cursor.position(),
+        owned_end,
+        "the borrow reader read a different number of bytes"
+    );
+    let from_borrowed = borrowed.as_tag().to_owned();
+    let mut bytes3 = Vec::new();
+    from_borrowed.azalea_write(&mut bytes3).unwrap();
+    assert!(
+        bytes1 == bytes3,
+        "owned and borrowed reads differ\nowned: {tag:?}\nborrowed: {from_borrowed:?}"
+    );
 }
 
 /// A chat component, as network NBT (or JSON when the input starts like
