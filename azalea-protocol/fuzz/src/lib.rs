@@ -6,4 +6,5 @@
 //! with it (encode, format, convert, hand to the client).
 
 pub mod input;
+pub mod seeds;
 pub mod targets;
