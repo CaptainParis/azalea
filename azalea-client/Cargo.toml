@@ -50,6 +50,10 @@ default = ["log", "packet-event", "online-mode"]
 # enables bevy_log::LogPlugin by default
 log = ["bevy_log"]
 packet-event = []
+# `SecureChatMutation`: a bot's own secure chat fault injection (wrong offset,
+# acks off) for tests that prove the rig catches a broken chat state. Test
+# builds only (dev-dependencies); a normal build has no such component.
+secure-chat-mutation = []
 online-mode = [
     "azalea-auth/online-mode",
     "azalea-protocol/online-mode",

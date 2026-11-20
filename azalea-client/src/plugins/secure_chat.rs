@@ -199,6 +199,11 @@ impl SignatureCache {
 
 /// A bot's own fault injection into its secure chat state (tests prove the
 /// rig catches a broken state: a wrong offset, acknowledgements off).
+///
+/// Only with the `secure-chat-mutation` feature (test builds; never a normal
+/// build). Without it the type has no values, so no client can carry one and
+/// every `Option<&SecureChatMutation>` is `None`.
+#[cfg(feature = "secure-chat-mutation")]
 #[derive(Clone, Component, Debug, Default, PartialEq, Eq)]
 pub struct SecureChatMutation {
     /// Added to every offset the client reports (chat, signed commands, acks).
@@ -206,6 +211,26 @@ pub struct SecureChatMutation {
     /// The client acknowledges nothing: no `ServerboundChatAck`, and chat
     /// updates carry offset 0 and an empty window.
     pub acks_disabled: bool,
+}
+
+/// Without the `secure-chat-mutation` feature: uninhabited (see above).
+#[cfg(not(feature = "secure-chat-mutation"))]
+#[derive(Clone, Component, Debug, PartialEq, Eq)]
+pub enum SecureChatMutation {}
+
+impl SecureChatMutation {
+    fn acks_off(&self) -> bool {
+        #[cfg(feature = "secure-chat-mutation")]
+        return self.acks_disabled;
+        #[cfg(not(feature = "secure-chat-mutation"))]
+        match *self {}
+    }
+    fn delta(&self) -> i32 {
+        #[cfg(feature = "secure-chat-mutation")]
+        return self.offset_delta;
+        #[cfg(not(feature = "secure-chat-mutation"))]
+        match *self {}
+    }
 }
 
 /// Per-connection secure chat state, reset on every play `Login` (as
@@ -228,9 +253,9 @@ impl SecureChatState {
     /// The offset to report, after the mutation.
     pub fn mutate_offset(offset: u32, m: Option<&SecureChatMutation>) -> u32 {
         match m {
-            Some(m) if m.acks_disabled => 0,
+            Some(m) if m.acks_off() => 0,
             Some(m) => {
-                (i64::from(offset) + i64::from(m.offset_delta)).clamp(0, i64::from(u32::MAX)) as u32
+                (i64::from(offset) + i64::from(m.delta())).clamp(0, i64::from(u32::MAX)) as u32
             }
             None => offset,
         }
@@ -238,7 +263,7 @@ impl SecureChatState {
 
     /// The update for an outgoing chat or signed command.
     pub fn next_update(&mut self, m: Option<&SecureChatMutation>) -> LastSeenUpdate {
-        if m.is_some_and(|m| m.acks_disabled) {
+        if m.is_some_and(SecureChatMutation::acks_off) {
             return LastSeenUpdate {
                 last_seen: Vec::new(),
                 update: LastSeenMessagesUpdate::default(),
@@ -251,7 +276,7 @@ impl SecureChatState {
 
     /// The offset of a `ServerboundChatAck` to send now, if any.
     pub fn take_ack(&mut self, m: Option<&SecureChatMutation>) -> Option<u32> {
-        if m.is_some_and(|m| m.acks_disabled) {
+        if m.is_some_and(SecureChatMutation::acks_off) {
             return None;
         }
         let o = self.tracker.get_and_clear_offset();
@@ -595,14 +620,17 @@ mod tests {
         }
         assert!(acks > 0, "acks were exercised");
         // a wrong offset is refused
-        st.tracker.add_pending(sig(200), true);
-        v.add(sig(200));
-        let bad = SecureChatMutation {
-            offset_delta: 1,
-            acks_disabled: false,
-        };
-        let u = st.next_update(Some(&bad));
-        assert!(v.apply(&u).is_none(), "offset + 1 must fail validation");
+        #[cfg(feature = "secure-chat-mutation")]
+        {
+            st.tracker.add_pending(sig(200), true);
+            v.add(sig(200));
+            let bad = SecureChatMutation {
+                offset_delta: 1,
+                acks_disabled: false,
+            };
+            let u = st.next_update(Some(&bad));
+            assert!(v.apply(&u).is_none(), "offset + 1 must fail validation");
+        }
     }
 
     #[test]
