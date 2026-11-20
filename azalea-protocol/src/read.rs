@@ -76,7 +76,9 @@ pub enum FrameSplitterError {
         #[backtrace]
         source: io::Error,
     },
-    #[error("Packet is longer than {max} bytes (is {size})")]
+    /// The frame length prefix is wider than 3 bytes, so the frame would be
+    /// longer than `max` (vanilla: "length wider than 21-bit").
+    #[error("Frame length prefix wider than 21 bits (max {max} bytes, read {size} so far)")]
     BadLength { max: usize, size: usize },
     #[error("Connection reset by peer")]
     ConnectionReset,
@@ -84,38 +86,47 @@ pub enum FrameSplitterError {
     ConnectionClosed,
 }
 
-/// Read a length, then read that amount of bytes from the `Cursor<Vec<u8>>`. If
-/// there's not enough data, `None` is returned.
-fn parse_frame(buffer: &mut Cursor<Vec<u8>>) -> Result<Box<[u8]>, FrameSplitterError> {
-    // copy the buffer first and read from the copy, then once we make sure
-    // the packet is all good we read it fully
-    let mut buffer_copy = Cursor::new(&buffer.get_ref()[buffer.position() as usize..]);
-    // Packet Length
-    let length = match u32::azalea_read_var(&mut buffer_copy) {
-        Ok(length) => length as usize,
-        Err(err) => match err {
-            BufReadError::Io { source } => return Err(FrameSplitterError::Io { source }),
-            _ => return Err(err.into()),
-        },
-    };
+/// The longest frame vanilla can receive: its length prefix is at most 3
+/// VarInt bytes (`Varint21FrameDecoder`).
+pub const MAX_FRAME_LENGTH: usize = (1 << 21) - 1;
 
-    if length > buffer_copy.remaining() {
+/// Read a frame length prefix from the start of `data`, as
+/// `Varint21FrameDecoder.copyVarint`: `Ok(None)` if more bytes are needed,
+/// an error at once if the prefix is wider than 3 bytes. Returns the length
+/// and the size of the prefix.
+fn read_frame_length(data: &[u8]) -> Result<Option<(usize, usize)>, FrameSplitterError> {
+    let mut length = 0usize;
+    for (i, &byte) in data.iter().take(3).enumerate() {
+        length |= ((byte & 0x7f) as usize) << (7 * i);
+        if byte & 0x80 == 0 {
+            return Ok(Some((length, i + 1)));
+        }
+    }
+    if data.len() >= 3 {
         return Err(FrameSplitterError::BadLength {
-            max: buffer_copy.remaining(),
+            max: MAX_FRAME_LENGTH,
             size: length,
         });
     }
+    Ok(None)
+}
 
-    // we read from the copy and we know it's legit, so we can take those bytes
-    // from the real buffer now
-
-    // the length of the varint that says the length of the whole packet
-    let varint_length = buffer.remaining() - buffer_copy.remaining();
-
-    buffer.advance(varint_length);
-    let data =
-        buffer.get_ref()[buffer.position() as usize..buffer.position() as usize + length].to_vec();
-    buffer.advance(length);
+/// Read a length, then read that amount of bytes from the buffer. If
+/// there's not enough data yet, `None` is returned; a length prefix wider
+/// than 3 bytes is an error before anything more is buffered, so a frame is
+/// never longer than [`MAX_FRAME_LENGTH`].
+fn parse_frame(buffer: &mut Cursor<Vec<u8>>) -> Result<Option<Box<[u8]>>, FrameSplitterError> {
+    let start = (buffer.position() as usize).min(buffer.get_ref().len());
+    let available = &buffer.get_ref()[start..];
+    let Some((length, prefix_length)) = read_frame_length(available)? else {
+        return Ok(None);
+    };
+    let Some(data) = available.get(prefix_length..prefix_length + length) else {
+        // the rest of the frame hasn't arrived yet
+        return Ok(None);
+    };
+    let data: Box<[u8]> = data.into();
+    buffer.advance(prefix_length + length);
 
     if buffer.position() == buffer.get_ref().len() as u64 {
         // reset the inner vec once we've reached the end of the buffer so we
@@ -131,23 +142,12 @@ fn parse_frame(buffer: &mut Cursor<Vec<u8>>) -> Result<Box<[u8]>, FrameSplitterE
         buffer.set_position(0);
     }
 
-    Ok(data.into_boxed_slice())
+    Ok(Some(data))
 }
 
 fn frame_splitter(buffer: &mut Cursor<Vec<u8>>) -> Result<Option<Box<[u8]>>, FrameSplitterError> {
     // https://tokio.rs/tokio/tutorial/framing
-    let read_frame = parse_frame(buffer);
-    match read_frame {
-        Ok(frame) => return Ok(Some(frame)),
-        Err(err) => match err {
-            FrameSplitterError::BadLength { .. } | FrameSplitterError::Io { .. } => {
-                // we probably just haven't read enough yet
-            }
-            _ => return Err(err),
-        },
-    }
-
-    Ok(None)
+    parse_frame(buffer)
 }
 
 pub fn deserialize_packet<P: ProtocolPacket + Debug>(
@@ -202,12 +202,32 @@ pub enum DecompressionError {
         "Badly compressed packet - size of {size} is larger than protocol maximum of {maximum}"
     )]
     AboveCompressionThreshold { size: u32, maximum: u32 },
+    #[error(
+        "Badly compressed packet - actual length of uncompressed payload {actual} does not match declared size {declared}"
+    )]
+    SizeMismatch { actual: usize, declared: u32 },
+}
+
+impl DecompressionError {
+    /// The decode error counter kind for this error.
+    pub fn kind(&self) -> DecodeErrorKind {
+        match self {
+            DecompressionError::AboveCompressionThreshold { .. }
+            | DecompressionError::SizeMismatch { .. } => DecodeErrorKind::DecompressedSize,
+            _ => DecodeErrorKind::Frame,
+        }
+    }
 }
 
 /// Get the decompressed bytes from a packet.
 ///
 /// The stream must have already been decrypted before passing it to this
 /// function.
+///
+/// As vanilla's `CompressionDecoder`: the declared size must be at least the
+/// threshold and at most [`MAXIMUM_UNCOMPRESSED_LENGTH`], and the inflated
+/// data must be exactly the declared size. Inflating stops one byte past the
+/// declared size, so a zip bomb never produces more than that.
 pub fn compression_decoder(
     stream: &mut Cursor<&[u8]>,
     compression_threshold: u32,
@@ -216,9 +236,8 @@ pub fn compression_decoder(
     let n = u32::azalea_read_var(stream)?;
     if n == 0 {
         // no data size, no compression
-        let buf = stream.get_ref()[stream.position() as usize..]
-            .to_vec()
-            .into_boxed_slice();
+        let start = (stream.position() as usize).min(stream.get_ref().len());
+        let buf = stream.get_ref()[start..].to_vec().into_boxed_slice();
         stream.set_position(stream.get_ref().len() as u64);
         return Ok(buf);
     }
@@ -238,12 +257,18 @@ pub fn compression_decoder(
         }
     }
 
-    // VALIDATE_DECOMPRESSED should always be true, so the max they can make us
-    // allocate here is 2mb
-    let mut decoded_buf = Vec::with_capacity(n as usize);
+    // preallocate at most 1 MiB; a larger packet grows the buffer as it's
+    // actually inflated
+    let mut decoded_buf = Vec::with_capacity((n as usize).min(1 << 20));
 
-    let mut decoder = ZlibDecoder::new(stream);
-    decoder.read_to_end(&mut decoded_buf)?;
+    let decoder = ZlibDecoder::new(stream);
+    decoder.take(n as u64 + 1).read_to_end(&mut decoded_buf)?;
+    if decoded_buf.len() != n as usize {
+        return Err(DecompressionError::SizeMismatch {
+            actual: decoded_buf.len(),
+            declared: n,
+        });
+    }
 
     Ok(decoded_buf.into_boxed_slice())
 }
@@ -395,7 +420,10 @@ where
     // decode error hook: frame decode failures (bad length prefix or bad
     // compression)
     let Some(mut buf) = frame_splitter(buffer).map_err(|e| {
-        record_decode_error(DecodeErrorKind::Frame);
+        record_decode_error(match e {
+            FrameSplitterError::BadLength { .. } => DecodeErrorKind::FrameLength,
+            _ => DecodeErrorKind::Frame,
+        });
         ReadPacketError::from(e)
     })?
     else {
@@ -406,7 +434,7 @@ where
     if let Some(compression_threshold) = compression_threshold {
         buf = compression_decoder(&mut Cursor::new(&buf[..]), compression_threshold).map_err(
             |e| {
-                record_decode_error(DecodeErrorKind::Frame);
+                record_decode_error(e.kind());
                 ReadPacketError::from(e)
             },
         )?;
@@ -514,5 +542,123 @@ mod tests {
         let res = super::read_raw_packet_from_buffer::<tokio::io::Empty>(&mut buffer, Some(256));
         assert!(res.is_err());
         assert!(decode_errors().frame > before.frame);
+    }
+
+    fn varint(n: u32) -> Vec<u8> {
+        use azalea_buf::AzBufVar;
+        let mut v = Vec::new();
+        n.azalea_write_var(&mut v).unwrap();
+        v
+    }
+
+    fn zlib(data: &[u8]) -> Vec<u8> {
+        use std::io::Read;
+        let mut out = Vec::new();
+        flate2::bufread::ZlibEncoder::new(data, flate2::Compression::best())
+            .read_to_end(&mut out)
+            .unwrap();
+        out
+    }
+
+    #[test]
+    fn frame_length_prefix_is_checked_before_buffering() {
+        use super::{MAX_FRAME_LENGTH, parse_frame};
+
+        // a 3-byte prefix with the continuation bit on its last byte is a
+        // frame error at once, with nothing more buffered
+        let before = decode_errors();
+        let mut buffer = Cursor::new(vec![0x80, 0x80, 0x80]);
+        let res = super::read_raw_packet_from_buffer::<tokio::io::Empty>(&mut buffer, None);
+        assert!(res.is_err());
+        assert!(decode_errors().frame_length > before.frame_length);
+        // two prefix bytes so far: need more
+        assert!(
+            parse_frame(&mut Cursor::new(vec![0x80, 0x80]))
+                .unwrap()
+                .is_none()
+        );
+        // the longest frame (2^21 - 1 bytes, prefix ff ff 7f) is fine once
+        // it's all there, and waits until then
+        let mut data = vec![0xff, 0xff, 0x7f];
+        data.extend(std::iter::repeat_n(7u8, MAX_FRAME_LENGTH - 1));
+        assert!(
+            parse_frame(&mut Cursor::new(data.clone()))
+                .unwrap()
+                .is_none()
+        );
+        data.push(7);
+        let frame = parse_frame(&mut Cursor::new(data)).unwrap().unwrap();
+        assert_eq!(frame.len(), MAX_FRAME_LENGTH);
+    }
+
+    use crate::decode_errors::decode_errors;
+
+    #[test]
+    fn decompressed_size_at_the_limit() {
+        use super::{DecompressionError, MAXIMUM_UNCOMPRESSED_LENGTH, compression_decoder};
+        let max = MAXIMUM_UNCOMPRESSED_LENGTH as usize;
+
+        // exactly the maximum
+        let mut frame = varint(max as u32);
+        frame.extend(zlib(&vec![0; max]));
+        let out = compression_decoder(&mut Cursor::new(&frame[..]), 256).unwrap();
+        assert_eq!(out.len(), max);
+
+        // declaring one byte more is an error before inflating
+        let mut frame = varint(max as u32 + 1);
+        frame.extend(zlib(&vec![0; max + 1]));
+        let e = compression_decoder(&mut Cursor::new(&frame[..]), 256).unwrap_err();
+        assert!(matches!(
+            e,
+            DecompressionError::AboveCompressionThreshold { .. }
+        ));
+
+        // less data than declared
+        let mut frame = varint(1000);
+        frame.extend(zlib(&[1; 999]));
+        let e = compression_decoder(&mut Cursor::new(&frame[..]), 256).unwrap_err();
+        assert!(matches!(
+            e,
+            DecompressionError::SizeMismatch {
+                actual: 999,
+                declared: 1000
+            }
+        ));
+    }
+
+    #[test]
+    fn zip_bomb_is_inflated_only_to_the_declared_size_plus_one() {
+        use super::{DecompressionError, compression_decoder};
+
+        // 64 MiB of zeros in about 64 KiB of zlib, declared as 300 bytes
+        let bomb = zlib(&vec![0; 64 << 20]);
+        assert!(bomb.len() < 128 << 10);
+        let mut frame = varint(300);
+        frame.extend(&bomb);
+        let start = std::time::Instant::now();
+        let e = compression_decoder(&mut Cursor::new(&frame[..]), 256).unwrap_err();
+        // inflating stopped one byte past the declared size
+        assert!(
+            matches!(
+                e,
+                DecompressionError::SizeMismatch {
+                    actual: 301,
+                    declared: 300
+                }
+            ),
+            "{e:?}"
+        );
+        assert!(start.elapsed() < std::time::Duration::from_millis(100));
+
+        // and it's counted as a decompressed size error
+        let before = decode_errors();
+        let mut framed = varint(frame.len() as u32);
+        framed.extend(&frame);
+        let res = super::read_raw_packet_from_buffer::<tokio::io::Empty>(
+            &mut Cursor::new(framed),
+            Some(256),
+        );
+        assert!(res.is_err());
+        assert!(decode_errors().decompressed_size > before.decompressed_size);
     }
 }
