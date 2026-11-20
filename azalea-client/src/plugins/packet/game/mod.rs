@@ -608,6 +608,9 @@ impl GamePacketHandler<'_> {
                                 "Entity {entity_id:?} ({ecs_entity:?}) isn't in the ecs, but the entity is in entity_by_id"
                             );
                         }
+                        // decode error hook: the world's entity index and the
+                        // ecs disagree, so the add is dropped
+                        record_decode_error(DecodeErrorKind::EntityIndex);
                         return;
                     };
                     loaded_by.insert(self.player);
@@ -970,6 +973,8 @@ impl GamePacketHandler<'_> {
                         warn!(
                             "tried to despawn entity {id} but it doesn't have a LoadedBy component",
                         );
+                        // decode error hook: indexed entity without LoadedBy
+                        record_decode_error(DecodeErrorKind::EntityIndex);
                         continue;
                     };
 
@@ -1554,6 +1559,9 @@ impl GamePacketHandler<'_> {
                 let Ok((mut physics, mut position, mut look_direction, local_entity)) =
                     entity_query.get_mut(entity)
                 else {
+                    warn!("Got entity position sync packet for an indexed entity without Physics/Position {}", p.id);
+                    // decode error hook: indexed entity missing components
+                    record_decode_error(DecodeErrorKind::EntityIndex);
                     return;
                 };
 
@@ -1685,6 +1693,8 @@ fn move_entity(
 
     let Ok((mut physics, mut position, mut look_direction)) = entity_query.get_mut(entity) else {
         debug!("Got move entity packet for entity with missing components {entity_id}");
+        // decode error hook: indexed entity missing components
+        record_decode_error(DecodeErrorKind::EntityIndex);
         return;
     };
 

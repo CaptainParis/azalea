@@ -132,39 +132,9 @@ const NOT_DECODE_ERRORS: &[(&str, &str, usize, &str)] = &[
     ),
     (
         "src/plugins/packet/game/mod.rs",
-        "error!(",
-        2,
-        "ECS consistency checks for an entity we already know",
-    ),
-    (
-        "src/plugins/packet/game/mod.rs",
         "let Ok(entity_kind) = entity_kind_query.get(entity) else {",
         1,
         "ECS lookup of an entity that has no kind yet",
-    ),
-    (
-        "src/plugins/packet/game/mod.rs",
-        "let Ok(mut loaded_by) = entity_query.get_mut(entity) else {",
-        1,
-        "ECS lookup of an entity we already know",
-    ),
-    (
-        "src/plugins/packet/game/mod.rs",
-        "warn!(",
-        1,
-        "ECS lookup of an entity we already know",
-    ),
-    (
-        "src/plugins/packet/game/mod.rs",
-        "let Ok((mut physics, mut position, mut look_direction, local_entity)) =",
-        1,
-        "ECS lookup of an entity",
-    ),
-    (
-        "src/plugins/packet/game/mod.rs",
-        "let Ok((mut physics, mut position, mut look_direction)) = entity_query.get_mut(entity) else {",
-        1,
-        "ECS lookup of an entity",
     ),
     (
         "src/plugins/packet/relative_updates.rs",
