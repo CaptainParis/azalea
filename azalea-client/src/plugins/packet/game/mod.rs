@@ -390,6 +390,17 @@ impl GamePacketHandler<'_> {
 
     pub fn set_cursor_item(&mut self, p: &ClientboundSetCursorItem) {
         debug!("Got set cursor item packet {p:?}");
+
+        // 1.21.4 handleSetCursorItem: `player.containerMenu.setCarried(contents)`
+        // (unless the creative inventory screen is open, which we never have)
+        as_system::<Query<&mut Inventory>>(self.ecs, |mut query| {
+            let Ok(mut inventory) = query.get_mut(self.player) else {
+                warn!("Got set cursor item packet but our player doesn't have an Inventory");
+                record_decode_error(DecodeErrorKind::HandlerState);
+                return;
+            };
+            inventory.carried = p.contents.clone();
+        });
     }
 
     pub fn update_tags(&mut self, _p: &ClientboundUpdateTags) {
@@ -1668,7 +1679,28 @@ impl GamePacketHandler<'_> {
             }
         });
     }
-    pub fn set_player_inventory(&mut self, _p: &ClientboundSetPlayerInventory) {}
+    pub fn set_player_inventory(&mut self, p: &ClientboundSetPlayerInventory) {
+        debug!("Got set player inventory packet {p:?}");
+
+        // 1.21.4 handleSetPlayerInventory:
+        // `player.getInventory().setItem(slot, contents)`
+        as_system::<Query<&mut Inventory>>(self.ecs, |mut query| {
+            let Ok(mut inventory) = query.get_mut(self.player) else {
+                warn!("Got set player inventory packet but our player doesn't have an Inventory");
+                record_decode_error(DecodeErrorKind::HandlerState);
+                return;
+            };
+            // vanilla reads the slot as a signed varint; a negative one throws in
+            // `NonNullList.set` and the client disconnects with a packet error.
+            // Indexes past the offhand do nothing there, so they do nothing here.
+            if p.slot > i32::MAX as u32 {
+                warn!("Got set player inventory packet with negative slot {}", p.slot as i32);
+                record_decode_error(DecodeErrorKind::PacketHandler);
+                return;
+            }
+            inventory.set_player_inventory_item(p.slot, p.contents.clone());
+        });
+    }
     pub fn projectile_power(&mut self, _p: &ClientboundProjectilePower) {}
     pub fn custom_report_details(&mut self, _p: &ClientboundCustomReportDetails) {}
     pub fn server_links(&mut self, _p: &ClientboundServerLinks) {}

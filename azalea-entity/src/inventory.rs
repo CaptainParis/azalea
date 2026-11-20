@@ -86,6 +86,25 @@ impl Inventory {
         }
     }
 
+    /// 1.21.4 `Inventory.setItem`: sets slot `i` of the player's inventory
+    /// container, whose indexes are 0..=8 hotbar, 9..=35 the rest of the
+    /// inventory, 36..=39 armor (feet, legs, chest, head) and 40 the offhand.
+    /// Other indexes do nothing, as in vanilla.
+    ///
+    /// This is a different index space from the inventory menu's (see
+    /// [`Self::set_inventory_menu_slot`]); returns the menu slot that was set.
+    pub fn set_player_inventory_item(&mut self, i: u32, item: ItemStack) -> Option<usize> {
+        let menu_slot = match i {
+            0..=8 => 36 + i as usize,
+            9..=35 => i as usize,
+            36..=39 => 8 - (i as usize - 36),
+            40 => 45,
+            _ => return None,
+        };
+        self.set_inventory_menu_slot(menu_slot, item);
+        Some(menu_slot)
+    }
+
     /// Returns a reference to the currently active menu.
     ///
     /// If a container is open then it'll return [`Self::container_menu`],
@@ -805,5 +824,48 @@ mod tests {
         assert_eq!(slots[5], ItemStack::new(ItemKind::Obsidian, 32));
         assert_eq!(slots[62], ItemStack::Empty);
         assert_eq!(slots[0], ItemStack::Empty);
+    }
+
+    // 1.21.4 Inventory.setItem (ClientboundSetPlayerInventory): items 0..36
+    // (hotbar first), armor 36..40 (feet first), offhand 40
+    #[test]
+    fn test_set_player_inventory_item_slots() {
+        let mut inventory = Inventory::default();
+        let cases = [(0, 36), (8, 44), (9, 9), (35, 35), (36, 8), (39, 5), (40, 45)];
+        for (i, (index, menu_slot)) in cases.into_iter().enumerate() {
+            let item = ItemStack::new(ItemKind::Stone, i as i32 + 1);
+            assert_eq!(
+                inventory.set_player_inventory_item(index, item.clone()),
+                Some(menu_slot)
+            );
+            assert_eq!(inventory.inventory_menu.slot(menu_slot), Some(&item));
+        }
+        let player = inventory.inventory_menu.as_player();
+        assert_eq!(player.armor[3], ItemStack::new(ItemKind::Stone, 5), "feet");
+        assert_eq!(player.armor[0], ItemStack::new(ItemKind::Stone, 6), "head");
+        assert_eq!(player.offhand, ItemStack::new(ItemKind::Stone, 7));
+        // past the offhand: nothing, as in vanilla
+        let before = inventory.inventory_menu.slots();
+        assert_eq!(
+            inventory.set_player_inventory_item(41, ItemStack::new(ItemKind::Dirt, 1)),
+            None
+        );
+        assert_eq!(inventory.inventory_menu.slots(), before);
+    }
+
+    // the open container's player slots show the same items
+    #[test]
+    fn test_set_player_inventory_item_with_container_open() {
+        let mut inventory = with_shulker(&[], &[]);
+        inventory.set_player_inventory_item(0, ItemStack::new(ItemKind::Elytra, 1));
+        // shulker: 27 contents, then 27 inventory, then 9 hotbar
+        assert_eq!(
+            inventory.menu().slot(54),
+            Some(&ItemStack::new(ItemKind::Elytra, 1))
+        );
+        assert_eq!(
+            inventory.inventory_menu.slot(36),
+            Some(&ItemStack::new(ItemKind::Elytra, 1))
+        );
     }
 }
