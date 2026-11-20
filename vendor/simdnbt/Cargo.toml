@@ -61,3 +61,7 @@ optional = true
 [dependencies.thiserror]
 version = "2.0.15"
 
+
+[lints.rust]
+# 0.10.0 enables allocator_api, partially stabilized since
+stable_features = "allow"
