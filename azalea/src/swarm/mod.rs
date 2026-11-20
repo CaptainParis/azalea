@@ -19,6 +19,10 @@ use azalea_world::Worlds;
 use bevy_app::{AppExit, PluginGroup, PluginGroupBuilder};
 use bevy_ecs::prelude::*;
 pub use builder::SwarmBuilder;
+
+/// The [`AppExit`] code `start` returns with when the ECS runner panicked (its
+/// task ended without sending an `AppExit`). The app is not resumed.
+pub const ECS_RUNNER_PANICKED: u8 = 101;
 use futures::future::BoxFuture;
 use parking_lot::RwLock;
 use tokio::{sync::mpsc, task};

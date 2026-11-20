@@ -595,9 +595,15 @@ where
                 }
             });
 
-            let app_exit = appexit_rx
-                .await
-                .expect("appexit_tx shouldn't be dropped by the ECS runner before sending");
+            // the ECS runner drops the sender without sending only if it
+            // panicked; the app is never resumed after that
+            let app_exit = match appexit_rx.await {
+                Ok(app_exit) => app_exit,
+                Err(_) => {
+                    error!("the ECS runner ended without an AppExit (it panicked)");
+                    AppExit::from_code(super::ECS_RUNNER_PANICKED)
+                }
+            };
 
             swarm_handler_task.abort();
             client_handler_task.abort();
