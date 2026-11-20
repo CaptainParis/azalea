@@ -19,6 +19,50 @@ use simdnbt::borrow::NbtTag;
 
 use crate::{direction::Direction, math};
 
+/// Component arithmetic of the vector types. Integers wrap, as Java's ints
+/// in vanilla's `BlockPos` and `Vec3i` maths (positions come from the
+/// server, and an overflow panicked in debug and fuzz builds); floats use
+/// the plain operators.
+#[doc(hidden)]
+pub trait VecComponent: Copy {
+    fn add(self, rhs: Self) -> Self;
+    fn sub(self, rhs: Self) -> Self;
+    fn mul(self, rhs: Self) -> Self;
+}
+impl VecComponent for f64 {
+    #[inline]
+    fn add(self, rhs: Self) -> Self {
+        self + rhs
+    }
+    #[inline]
+    fn sub(self, rhs: Self) -> Self {
+        self - rhs
+    }
+    #[inline]
+    fn mul(self, rhs: Self) -> Self {
+        self * rhs
+    }
+}
+macro_rules! wrapping_component {
+    ($($t:ty),*) => {$(
+        impl VecComponent for $t {
+            #[inline]
+            fn add(self, rhs: Self) -> Self {
+                self.wrapping_add(rhs)
+            }
+            #[inline]
+            fn sub(self, rhs: Self) -> Self {
+                self.wrapping_sub(rhs)
+            }
+            #[inline]
+            fn mul(self, rhs: Self) -> Self {
+                self.wrapping_mul(rhs)
+            }
+        }
+    )*};
+}
+wrapping_component!(i32, u8);
+
 macro_rules! vec3_impl {
     ($name:ident, $type:ty) => {
         impl $name {
@@ -38,7 +82,13 @@ macro_rules! vec3_impl {
             /// z^2`.
             #[inline]
             pub fn length_squared(&self) -> $type {
-                self.x * self.x + self.y * self.y + self.z * self.z
+                <$type as VecComponent>::add(
+                    <$type as VecComponent>::add(
+                        <$type as VecComponent>::mul(self.x, self.x),
+                        <$type as VecComponent>::mul(self.y, self.y),
+                    ),
+                    <$type as VecComponent>::mul(self.z, self.z),
+                )
             }
 
             /// Get the squared distance from this position to another position.
@@ -50,7 +100,10 @@ macro_rules! vec3_impl {
 
             #[inline]
             pub fn horizontal_distance_squared(&self) -> $type {
-                self.x * self.x + self.z * self.z
+                <$type as VecComponent>::add(
+                    <$type as VecComponent>::mul(self.x, self.x),
+                    <$type as VecComponent>::mul(self.z, self.z),
+                )
             }
 
             #[inline]
@@ -64,7 +117,7 @@ macro_rules! vec3_impl {
             pub fn down(&self, y: $type) -> Self {
                 Self {
                     x: self.x,
-                    y: self.y - y,
+                    y: <$type as VecComponent>::sub(self.y, y),
                     z: self.z,
                 }
             }
@@ -74,7 +127,7 @@ macro_rules! vec3_impl {
             pub fn up(&self, y: $type) -> Self {
                 Self {
                     x: self.x,
-                    y: self.y + y,
+                    y: <$type as VecComponent>::add(self.y, y),
                     z: self.z,
                 }
             }
@@ -86,7 +139,7 @@ macro_rules! vec3_impl {
                 Self {
                     x: self.x,
                     y: self.y,
-                    z: self.z - z,
+                    z: <$type as VecComponent>::sub(self.z, z),
                 }
             }
             /// Return a new instance of this position with the x coordinate increased
@@ -94,7 +147,7 @@ macro_rules! vec3_impl {
             #[inline]
             pub fn east(&self, x: $type) -> Self {
                 Self {
-                    x: self.x + x,
+                    x: <$type as VecComponent>::add(self.x, x),
                     y: self.y,
                     z: self.z,
                 }
@@ -106,7 +159,7 @@ macro_rules! vec3_impl {
                 Self {
                     x: self.x,
                     y: self.y,
-                    z: self.z + z,
+                    z: <$type as VecComponent>::add(self.z, z),
                 }
             }
             /// Return a new instance of this position with the x coordinate subtracted
@@ -114,7 +167,7 @@ macro_rules! vec3_impl {
             #[inline]
             pub fn west(&self, x: $type) -> Self {
                 Self {
-                    x: self.x - x,
+                    x: <$type as VecComponent>::sub(self.x, x),
                     y: self.y,
                     z: self.z,
                 }
@@ -122,7 +175,13 @@ macro_rules! vec3_impl {
 
             #[inline]
             pub fn dot(&self, other: Self) -> $type {
-                self.x * other.x + self.y * other.y + self.z * other.z
+                <$type as VecComponent>::add(
+                    <$type as VecComponent>::add(
+                        <$type as VecComponent>::mul(self.x, other.x),
+                        <$type as VecComponent>::mul(self.y, other.y),
+                    ),
+                    <$type as VecComponent>::mul(self.z, other.z),
+                )
             }
 
             #[inline]
@@ -178,9 +237,9 @@ macro_rules! vec3_impl {
             #[inline]
             fn add(self, rhs: Self) -> Self::Output {
                 $name {
-                    x: self.x + rhs.x,
-                    y: self.y + rhs.y,
-                    z: self.z + rhs.z,
+                    x: <$type as VecComponent>::add(self.x, rhs.x),
+                    y: <$type as VecComponent>::add(self.y, rhs.y),
+                    z: <$type as VecComponent>::add(self.z, rhs.z),
                 }
             }
         }
@@ -198,9 +257,9 @@ macro_rules! vec3_impl {
             #[inline]
             fn add(self, rhs: $type) -> Self::Output {
                 Self {
-                    x: self.x + rhs,
-                    y: self.y + rhs,
-                    z: self.z + rhs,
+                    x: <$type as VecComponent>::add(self.x, rhs),
+                    y: <$type as VecComponent>::add(self.y, rhs),
+                    z: <$type as VecComponent>::add(self.z, rhs),
                 }
             }
         }
@@ -208,9 +267,9 @@ macro_rules! vec3_impl {
         impl AddAssign for $name {
             #[inline]
             fn add_assign(&mut self, rhs: Self) {
-                self.x += rhs.x;
-                self.y += rhs.y;
-                self.z += rhs.z;
+                self.x = <$type as VecComponent>::add(self.x, rhs.x);
+                self.y = <$type as VecComponent>::add(self.y, rhs.y);
+                self.z = <$type as VecComponent>::add(self.z, rhs.z);
             }
         }
         impl Rem<$type> for $name {
@@ -237,9 +296,9 @@ macro_rules! vec3_impl {
             #[inline]
             fn sub(self, other: Self) -> Self::Output {
                 Self::Output {
-                    x: self.x - other.x,
-                    y: self.y - other.y,
-                    z: self.z - other.z,
+                    x: <$type as VecComponent>::sub(self.x, other.x),
+                    y: <$type as VecComponent>::sub(self.y, other.y),
+                    z: <$type as VecComponent>::sub(self.z, other.z),
                 }
             }
         }
@@ -258,9 +317,9 @@ macro_rules! vec3_impl {
             #[inline]
             fn mul(self, multiplier: $type) -> Self::Output {
                 Self {
-                    x: self.x * multiplier,
-                    y: self.y * multiplier,
-                    z: self.z * multiplier,
+                    x: <$type as VecComponent>::mul(self.x, multiplier),
+                    y: <$type as VecComponent>::mul(self.y, multiplier),
+                    z: <$type as VecComponent>::mul(self.z, multiplier),
                 }
             }
         }
@@ -1120,6 +1179,29 @@ impl FromStr for Vec3 {
 
 #[cfg(test)]
 mod tests {
+
+    // fuzz: handler_sequence (crash): a server-set position at the edge of
+    // i32 overflowed `down(1)` in on_pos; vanilla's int maths wraps
+    #[test]
+    fn block_pos_arithmetic_wraps_as_java() {
+        let edge = BlockPos::new(i32::MAX, i32::MIN, 0);
+        assert_eq!(edge.down(1), BlockPos::new(i32::MAX, i32::MAX, 0));
+        assert_eq!(
+            edge + BlockPos::new(1, 0, 0),
+            BlockPos::new(i32::MIN, i32::MIN, 0)
+        );
+        assert_eq!(
+            edge - BlockPos::new(0, 1, 0),
+            BlockPos::new(i32::MAX, i32::MAX, 0)
+        );
+        let _ = edge.length_squared();
+        // floats unchanged
+        assert_eq!(
+            Vec3::new(1., 2., 3.) - Vec3::new(1., 1., 1.),
+            Vec3::new(0., 1., 2.)
+        );
+    }
+
     use super::*;
 
     #[test]
