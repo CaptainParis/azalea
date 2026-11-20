@@ -193,6 +193,9 @@ pub struct RawConnection {
     pub(crate) network: Option<NetworkConnection>,
     pub state: ConnectionProtocol,
     pub(crate) is_alive: bool,
+    /// Why we closed the connection ourselves, if we did (sent as the
+    /// reason of the `DisconnectEvent`).
+    pub(crate) close_reason: Option<String>,
 
     /// This exists for internal testing purposes and probably shouldn't be used
     /// for normal bots.
@@ -231,12 +234,29 @@ impl RawConnection {
             network: None,
             state,
             is_alive: true,
+            close_reason: None,
             injected_clientbound_packets: Vec::new(),
         }
     }
 
     pub fn is_alive(&self) -> bool {
         self.is_alive
+    }
+
+    /// Why we closed the connection ourselves, if we did.
+    pub fn close_reason(&self) -> Option<&str> {
+        self.close_reason.as_deref()
+    }
+
+    /// Close the connection from our side: the network halves are dropped
+    /// and a `DisconnectEvent` with `reason` follows. Shut down the
+    /// [`ConnectionSocket`] too to end it for the server at once.
+    pub fn close(&mut self, reason: String) {
+        self.network = None;
+        self.is_alive = false;
+        if self.close_reason.is_none() {
+            self.close_reason = Some(reason);
+        }
     }
 
     /// Write a packet to the server without emitting any events.

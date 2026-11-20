@@ -130,14 +130,25 @@ fn update_read_packets_task_running_component(
 
 #[allow(clippy::type_complexity)]
 fn disconnect_on_connection_dead(
-    query: Query<(Entity, &IsConnectionAlive), (Changed<IsConnectionAlive>, With<LocalEntity>)>,
+    query: Query<
+        (Entity, &IsConnectionAlive, Option<&RawConnection>),
+        // in configuration too (first join or a server switch), so a closed
+        // connection always ends with a DisconnectEvent
+        (
+            Changed<IsConnectionAlive>,
+            Or<(With<LocalEntity>, With<crate::InConfigState>)>,
+        ),
+    >,
     mut disconnect_events: MessageWriter<DisconnectEvent>,
 ) {
-    for (entity, &is_connection_alive) in &query {
+    for (entity, &is_connection_alive, conn) in &query {
         if !*is_connection_alive {
             disconnect_events.write(DisconnectEvent {
                 entity,
-                reason: None,
+                // set when we closed it ourselves (bad packet policy)
+                reason: conn
+                    .and_then(|c| c.close_reason())
+                    .map(|r| FormattedText::from(r)),
             });
         }
     }
