@@ -121,17 +121,37 @@ impl PartialChunkStorage {
         heightmaps: &[(HeightmapKind, Box<[u64]>)],
         chunk_storage: &mut ChunkStorage,
     ) -> Result<(), BufReadError> {
+        self.replace_with_packet_data_and_biome_registry_size(
+            pos,
+            data,
+            heightmaps,
+            chunk_storage,
+            None,
+        )
+    }
+
+    /// [`Self::replace_with_packet_data`] with the size of the biome
+    /// registry (see [`Chunk::read_with_dimension`]).
+    pub fn replace_with_packet_data_and_biome_registry_size(
+        &mut self,
+        pos: &ChunkPos,
+        data: &mut Cursor<&[u8]>,
+        heightmaps: &[(HeightmapKind, Box<[u64]>)],
+        chunk_storage: &mut ChunkStorage,
+        biome_registry_size: Option<usize>,
+    ) -> Result<(), BufReadError> {
         debug!("Replacing chunk at {:?}", pos);
         if !self.in_range(pos) {
             warn!("Ignoring chunk since it's not in the view range: {pos:?}");
             return Ok(());
         }
 
-        let chunk = Chunk::read_with_dimension_height(
+        let chunk = Chunk::read_with_dimension(
             data,
             chunk_storage.height(),
             chunk_storage.min_y(),
             heightmaps,
+            biome_registry_size,
         )?;
 
         self.set(pos, Some(chunk), chunk_storage);

@@ -15,6 +15,7 @@ use azalea_protocol::packets::game::{
     c_level_chunk_with_light::ClientboundLevelChunkWithLight,
     s_chunk_batch_received::ServerboundChunkBatchReceived,
 };
+use azalea_registry::identifier::Identifier;
 use bevy_app::{App, Plugin, Update};
 use bevy_ecs::prelude::*;
 use tracing::{error, trace};
@@ -94,12 +95,22 @@ pub fn handle_receive_chunk_event(
 
         let heightmaps = &event.packet.chunk_data.heightmaps;
 
-        if let Err(e) = partial_world.chunks.replace_with_packet_data(
-            &pos,
-            &mut Cursor::new(&event.packet.chunk_data.data),
-            heightmaps,
-            &mut world.chunks,
-        ) {
+        // the biome registry sizes globally paletted biome storage
+        let biome_registry_size = world
+            .registries
+            .extra
+            .get(&Identifier::new("minecraft:worldgen/biome"))
+            .map(|r| r.map.len());
+        if let Err(e) = partial_world
+            .chunks
+            .replace_with_packet_data_and_biome_registry_size(
+                &pos,
+                &mut Cursor::new(&event.packet.chunk_data.data),
+                heightmaps,
+                &mut world.chunks,
+                biome_registry_size,
+            )
+        {
             error!(
                 "Couldn't set chunk data: {e}. World height: {}",
                 world.chunks.height()

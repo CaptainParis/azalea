@@ -16,8 +16,8 @@ pub use container::*;
 pub enum Palette<S: PalletedContainerKind> {
     /// ID of the corresponding entry in its global palette
     SingleValue(S),
-    // in vanilla this keeps a `size` field that might be less than the length, but i'm not sure
-    // it's actually needed?
+    // in vanilla this keeps a `size` field that might be less than the length,
+    // but i'm not sure it's actually needed?
     Linear(Vec<S>),
     Hashmap(Vec<S>),
     Global,
@@ -64,23 +64,25 @@ impl PaletteKind {
         &self,
         buf: &mut Cursor<&[u8]>,
     ) -> Result<Palette<S>, BufReadError> {
+        // vanilla reads palette entries with byIdOrThrow
+        fn entry<S: PalletedContainerKind>(id: u32) -> Result<S, BufReadError> {
+            S::try_from(id).map_err(|_| BufReadError::Custom(format!("Invalid palette entry {id}")))
+        }
         Ok(match self {
-            // since they're read as varints it's actually fine to just use BlockStateIntegerRepr
-            // instead of the correct type (u32)
-            PaletteKind::SingleValue => {
-                Palette::SingleValue(S::try_from(u32::azalea_read_var(buf)?).unwrap_or_default())
-            }
+            // since they're read as varints it's actually fine to just use
+            // BlockStateIntegerRepr instead of the correct type (u32)
+            PaletteKind::SingleValue => Palette::SingleValue(entry(u32::azalea_read_var(buf)?)?),
             PaletteKind::Linear => Palette::Linear(
                 Vec::<u32>::azalea_read_var(buf)?
                     .into_iter()
-                    .map(|v| S::try_from(v).unwrap_or_default())
-                    .collect(),
+                    .map(entry)
+                    .collect::<Result<_, _>>()?,
             ),
             PaletteKind::Hashmap => Palette::Hashmap(
                 Vec::<u32>::azalea_read_var(buf)?
                     .into_iter()
-                    .map(|v| S::try_from(v).unwrap_or_default())
-                    .collect(),
+                    .map(entry)
+                    .collect::<Result<_, _>>()?,
             ),
             PaletteKind::Global => Palette::Global,
         })

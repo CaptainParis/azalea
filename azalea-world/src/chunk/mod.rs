@@ -73,10 +73,23 @@ impl Chunk {
         min_y: i32,
         heightmaps_data: &[(HeightmapKind, Box<[u64]>)],
     ) -> Result<Self, BufReadError> {
+        Self::read_with_dimension(buf, dimension_height, min_y, heightmaps_data, None)
+    }
+
+    /// Read a chunk's sections. `biome_registry_size` is the size of the
+    /// biome registry, which sizes globally paletted biome storage as in
+    /// vanilla (if it's `None`, the bits per entry the server sent are used).
+    pub fn read_with_dimension(
+        buf: &mut Cursor<&[u8]>,
+        dimension_height: u32,
+        min_y: i32,
+        heightmaps_data: &[(HeightmapKind, Box<[u64]>)],
+        biome_registry_size: Option<usize>,
+    ) -> Result<Self, BufReadError> {
         let section_count = dimension_height / SECTION_HEIGHT;
         let mut sections = Vec::with_capacity(section_count as usize);
         for _ in 0..section_count {
-            let section = Section::azalea_read(buf)?;
+            let section = Section::read_with_biome_registry_size(buf, biome_registry_size)?;
             sections.push(section);
         }
         let sections = sections.into_boxed_slice();
@@ -179,6 +192,23 @@ pub fn get_block_state_from_sections(
 
 impl AzBuf for Section {
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
+        Self::read_with_biome_registry_size(buf, None)
+    }
+    fn azalea_write(&self, buf: &mut impl Write) -> io::Result<()> {
+        self.block_count.azalea_write(buf)?;
+        self.states.write(buf)?;
+        self.biomes.write(buf)?;
+        Ok(())
+    }
+}
+
+impl Section {
+    /// Read a section; see [`Chunk::read_with_dimension`] for
+    /// `biome_registry_size`.
+    pub fn read_with_biome_registry_size(
+        buf: &mut Cursor<&[u8]>,
+        biome_registry_size: Option<usize>,
+    ) -> Result<Self, BufReadError> {
         // 1.21.4 LevelChunkSection.read: nonEmptyBlockCount, states, biomes
         // (no fluid count)
         let block_count = u16::azalea_read(buf)?;
@@ -201,22 +231,14 @@ impl AzBuf for Section {
             }
         }
 
-        let biomes = PalettedContainer::<Biome>::read(buf)?;
+        let biomes = PalettedContainer::<Biome>::read_with_registry_size(buf, biome_registry_size)?;
         Ok(Section {
             block_count,
             states,
             biomes,
         })
     }
-    fn azalea_write(&self, buf: &mut impl Write) -> io::Result<()> {
-        self.block_count.azalea_write(buf)?;
-        self.states.write(buf)?;
-        self.biomes.write(buf)?;
-        Ok(())
-    }
-}
 
-impl Section {
     pub fn get_block_state(&self, pos: ChunkSectionBlockPos) -> BlockState {
         self.states.get(pos)
     }
