@@ -83,8 +83,12 @@ pub fn poll_request_certs_task(
 
             match poll_res {
                 Ok(certs) => {
-                    commands.entity(entity).insert(QueuedCertsToSend {
-                        certs: certs.clone(),
+                    // announced by request_certs_if_needed if the key differs
+                    // from the session's (Mojang returns the same key until
+                    // refreshedAfter: never announce it again); no new fetch
+                    // before refreshedAfter, when Mojang gives a new key
+                    commands.entity(entity).insert(OnlyRefreshCertsAfter {
+                        refresh_at: refetch_at(certs.refresh_after, Utc::now(), Instant::now()),
                     });
                     account.set_certs(certs);
                 }
@@ -113,12 +117,66 @@ impl Default for CertRefreshMargin {
     }
 }
 
-fn due(certs: &Certificates, margin: Duration) -> bool {
+/// The least time between two certificate fetches of one client.
+pub const REFETCH_SPACING: Duration = Duration::from_secs(60);
+
+/// When the next fetch may go: at the certificates' `refreshedAfter` (Mojang
+/// answers with the same key before it), at least [`REFETCH_SPACING`] away.
+fn refetch_at(
+    refresh_after: chrono::DateTime<Utc>,
+    now: chrono::DateTime<Utc>,
+    now_i: Instant,
+) -> Instant {
+    let until = (refresh_after - now).to_std().unwrap_or(Duration::ZERO);
+    now_i + until.max(REFETCH_SPACING)
+}
+
+/// What the client does about its chat signing key now.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CertAction {
+    /// Send a chat session with the account's key.
+    pub announce: bool,
+    /// Fetch new certificates.
+    pub fetch: bool,
+}
+
+/// The account's key as the decision sees it.
+#[derive(Clone, Copy, Debug)]
+pub struct KeyView<'a> {
+    pub public_key_der: &'a [u8],
+    pub expires_at: chrono::DateTime<Utc>,
+    pub refresh_after: chrono::DateTime<Utc>,
+}
+
+/// The decision of [`request_certs_if_needed`]:
+/// - announce a key that hasn't expired when the connection has no chat session
+///   or the session has another key; never the session's own key again (the
+///   server ignores a session update with an unchanged key and the client's new
+///   session id would break every signed message after it);
+/// - fetch (only when the account doesn't renew its own keys) when there is no
+///   key, at `refreshedAfter` (vanilla's `dueRefresh`), or within `margin` of
+///   expiry, unless a fetch is on hold (`hold`: before the last fetch's
+///   `refreshedAfter`, or after a failure).
+pub fn cert_action(
+    owner: bool,
+    key: Option<KeyView<'_>>,
+    session_key: Option<&[u8]>,
+    margin: Duration,
+    now: chrono::DateTime<Utc>,
+    hold: bool,
+) -> CertAction {
     let margin = chrono::Duration::from_std(margin).unwrap_or(chrono::Duration::MAX);
-    certs
-        .expires_at
-        .checked_sub_signed(margin)
-        .is_none_or(|t| Utc::now() >= t)
+    let announce = key.is_some_and(|k| now < k.expires_at && session_key != Some(k.public_key_der));
+    let due = key.is_none_or(|k| {
+        now >= k.refresh_after
+            || k.expires_at
+                .checked_sub_signed(margin)
+                .is_none_or(|t| now >= t)
+    });
+    CertAction {
+        announce,
+        fetch: !owner && due && !hold,
+    }
 }
 
 #[allow(clippy::type_complexity)]
@@ -147,21 +205,28 @@ pub fn request_certs_if_needed(
         query.iter_mut()
     {
         let margin = margin.copied().unwrap_or_default().0;
-        if let Some(certs) = account.certs()
-            && !due(&certs, margin)
+        let certs = account.certs();
+        let hold = only_refresh_certs_after.is_some_and(|o| o.refresh_at > Instant::now());
+        let action = cert_action(
+            account.renews_certificates(),
+            certs.as_ref().map(|c| KeyView {
+                public_key_der: &c.public_key_der,
+                expires_at: c.expires_at,
+                refresh_after: c.refresh_after,
+            }),
+            chat_signing_session.map(|s| s.public_key_der.as_slice()),
+            margin,
+            Utc::now(),
+            hold,
+        );
+        if action.announce
+            && let Some(certs) = certs
         {
-            // valid certs: send them if this connection has no chat session
-            // yet, or if the account's key changed (renewed elsewhere): a new
-            // chat session with the new key, as vanilla's setKeyPair
-            let send = chat_signing_session.is_none_or(|s| s.public_key_der != certs.public_key_der);
-            if send {
-                commands.entity(entity).insert(QueuedCertsToSend { certs });
-            }
-            continue;
+            // a new chat session with the account's key (renewed elsewhere,
+            // or the connection's first), as vanilla's setKeyPair
+            commands.entity(entity).insert(QueuedCertsToSend { certs });
         }
-        if let Some(only_refresh_certs_after) = only_refresh_certs_after
-            && only_refresh_certs_after.refresh_at > Instant::now()
-        {
+        if !action.fetch {
             continue;
         }
 
@@ -171,7 +236,9 @@ pub fn request_certs_if_needed(
         let task = crate::task_pool::owner::spawn_io(async_compat::Compat::new(async move {
             tokio::time::timeout(cap, account.fetch_certificates())
                 .await
-                .unwrap_or(Err(azalea_auth::certs::FetchCertificatesError::TimedOut(cap)))
+                .unwrap_or(Err(azalea_auth::certs::FetchCertificatesError::TimedOut(
+                    cap,
+                )))
         }));
         commands
             .entity(entity)
@@ -193,7 +260,10 @@ pub fn handle_queued_certs_to_send(
     mut commands: Commands,
     query: Query<
         (Entity, &QueuedCertsToSend),
-        (With<IsAuthenticated>, With<crate::secure_chat::SecureChatState>),
+        (
+            With<IsAuthenticated>,
+            With<crate::secure_chat::SecureChatState>,
+        ),
     >,
 ) {
     for (entity, queued_certs) in &query {
@@ -226,5 +296,84 @@ pub fn handle_queued_certs_to_send(
                 private_key: certs.private_key.clone(),
                 announced_at: Instant::now(),
             });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use chrono::TimeZone;
+
+    use super::*;
+
+    fn t(s: i64) -> chrono::DateTime<Utc> {
+        Utc.timestamp_opt(1_800_000_000 + s, 0).unwrap()
+    }
+    const H: i64 = 3600;
+
+    fn key(der: &[u8], expires: i64, refresh: i64) -> KeyView<'_> {
+        KeyView {
+            public_key_der: der,
+            expires_at: t(expires),
+            refresh_after: t(refresh),
+        }
+    }
+
+    #[test]
+    fn never_announces_the_sessions_own_key_again() {
+        let six = Duration::from_secs(6 * 3600);
+        let k = key(b"A", 48 * H, 40 * H);
+        // first session of the connection
+        assert!(cert_action(false, Some(k), None, six, t(0), false).announce);
+        // the same key (Mojang before refreshedAfter): not again
+        assert!(!cert_action(false, Some(k), Some(b"A"), six, t(0), false).announce);
+        // a new key: a new session
+        assert!(cert_action(false, Some(k), Some(b"B"), six, t(0), false).announce);
+        // never an expired one
+        assert!(!cert_action(false, Some(k), Some(b"B"), six, t(48 * H), false).announce);
+    }
+
+    #[test]
+    fn fetch_at_refreshed_after_or_margin_and_never_for_an_owner() {
+        let six = Duration::from_secs(6 * 3600);
+        let k = key(b"A", 48 * H, 40 * H);
+        assert!(!cert_action(false, Some(k), Some(b"A"), six, t(39 * H), false).fetch);
+        assert!(
+            cert_action(false, Some(k), Some(b"A"), six, t(40 * H), false).fetch,
+            "refreshedAfter"
+        );
+        // short-lived keys: within the margin from the start, but a fetch on
+        // hold (before the last fetch's refreshedAfter) doesn't loop
+        let short = key(b"A", 2 * H, H);
+        assert!(cert_action(false, Some(short), Some(b"A"), six, t(0), false).fetch);
+        assert!(!cert_action(false, Some(short), Some(b"A"), six, t(0), true).fetch);
+        // no key: fetch, unless the account renews its own
+        assert!(cert_action(false, None, None, six, t(0), false).fetch);
+        assert!(!cert_action(true, None, None, six, t(0), false).fetch);
+        assert!(!cert_action(true, Some(short), Some(b"A"), six, t(2 * H), false).fetch);
+        assert!(
+            cert_action(
+                true,
+                Some(key(b"N", 48 * H, 40 * H)),
+                Some(b"A"),
+                six,
+                t(0),
+                false
+            )
+            .announce
+        );
+    }
+
+    #[test]
+    fn next_fetch_waits_for_refreshed_after() {
+        let now_i = Instant::now();
+        assert_eq!(
+            refetch_at(t(H), t(0), now_i),
+            now_i + Duration::from_secs(3600)
+        );
+        assert_eq!(
+            refetch_at(t(-5), t(0), now_i),
+            now_i + REFETCH_SPACING,
+            "spaced even when already due"
+        );
     }
 }

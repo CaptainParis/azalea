@@ -104,6 +104,16 @@ pub trait AccountTrait: Send + Sync + Debug {
         let _ = certs;
     }
 
+    /// The account renews its own chat signing certificates (an auth flow of
+    /// its own with background renewal): Azalea then never fetches them,
+    /// it only announces a key the account holds that differs from the
+    /// connection's chat session. One owner for renewal; the default is
+    /// Azalea's own (`fetch_certificates` when due).
+    #[cfg(feature = "online-mode")]
+    fn renews_certificates(&self) -> bool {
+        false
+    }
+
     /// Fetch fresh chat signing certificates (profile keys) for this account.
     ///
     /// The default asks `api.minecraftservices.com` with
