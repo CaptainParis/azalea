@@ -437,6 +437,13 @@ impl Style {
         }
     }
 
+    /// Whether every field is unset, like vanilla `Style.isEmpty` (unlike
+    /// [`Style::is_empty`], this includes events, insertion, font and shadow
+    /// color).
+    pub fn is_unstyled(&self) -> bool {
+        *self == Style::default()
+    }
+
     /// Check if a style has no attributes set
     pub fn is_empty(&self) -> bool {
         self.color.is_none()

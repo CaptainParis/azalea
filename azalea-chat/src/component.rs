@@ -429,10 +429,114 @@ impl<'de> Deserialize<'de> for FormattedText {
 #[cfg(feature = "simdnbt")]
 impl simdnbt::Serialize for FormattedText {
     fn to_compound(self) -> simdnbt::owned::NbtCompound {
-        match self {
-            FormattedText::Text(c) => c.to_compound(),
-            FormattedText::Translatable(c) => c.to_compound(),
+        component_compound(&self)
+    }
+}
+
+/// The full (uncollapsed) compound form of a component, as vanilla 1.21.4
+/// `ComponentSerialization.CODEC` writes it: contents fields, then `extra`
+/// (omitted when empty), then the style fields.
+#[cfg(feature = "simdnbt")]
+pub(crate) fn component_compound(component: &FormattedText) -> simdnbt::owned::NbtCompound {
+    use simdnbt::Serialize;
+
+    let mut compound = simdnbt::owned::NbtCompound::new();
+    match component {
+        FormattedText::Text(c) => {
+            compound.insert("text", c.text.clone());
         }
+        FormattedText::Translatable(c) => {
+            compound.insert("translate", c.key.clone());
+            if let Some(fallback) = &c.fallback {
+                compound.insert("fallback", fallback.clone());
+            }
+            // TranslatableContents.adjustArgs: no args means no `with` field
+            if !c.args.is_empty() {
+                use simdnbt::ToNbtTag;
+                compound.insert(
+                    "with",
+                    collect_nbt_list(c.args.iter().cloned().map(|a| a.to_nbt_tag()).collect()),
+                );
+            }
+        }
+    }
+    let base = component.get_base();
+    if !base.siblings.is_empty() {
+        compound.insert(
+            "extra",
+            collect_nbt_list(
+                base.siblings
+                    .iter()
+                    .map(FormattedText::to_vanilla_nbt_tag)
+                    .collect(),
+            ),
+        );
+    }
+    compound.extend((*base.style).clone().to_compound());
+    compound
+}
+
+/// Builds a list tag the way vanilla 1.21.4 `NbtOps.createList` does: bytes,
+/// ints and longs become arrays, other homogeneous lists stay typed lists, and
+/// a list that starts with a compound or mixes types wraps every element that
+/// is not a plain compound in `{"": element}`.
+#[cfg(feature = "simdnbt")]
+pub(crate) fn collect_nbt_list(tags: Vec<simdnbt::owned::NbtTag>) -> simdnbt::owned::NbtTag {
+    use simdnbt::owned::{NbtCompound, NbtList, NbtTag};
+
+    fn wrap_if_needed(tag: NbtTag) -> NbtCompound {
+        match tag {
+            NbtTag::Compound(c) if !(c.len() == 1 && c.get("").is_some()) => c,
+            other => {
+                let mut c = NbtCompound::new();
+                c.insert("", other);
+                c
+            }
+        }
+    }
+    let Some(first) = tags.first() else {
+        return NbtTag::List(NbtList::Empty);
+    };
+    let first_id = first.id();
+    let homogeneous = tags.iter().all(|t| t.id() == first_id);
+    if matches!(first, NbtTag::Compound(_)) || !homogeneous {
+        return NbtTag::List(NbtList::Compound(
+            tags.into_iter().map(wrap_if_needed).collect(),
+        ));
+    }
+    match first {
+        NbtTag::Byte(_) => NbtTag::ByteArray(
+            tags.into_iter()
+                .map(|t| t.into_byte().expect("homogeneous") as u8)
+                .collect(),
+        ),
+        NbtTag::Int(_) => NbtTag::IntArray(
+            tags.into_iter()
+                .map(|t| t.into_int().expect("homogeneous"))
+                .collect(),
+        ),
+        NbtTag::Long(_) => NbtTag::LongArray(
+            tags.into_iter()
+                .map(|t| t.into_long().expect("homogeneous"))
+                .collect(),
+        ),
+        _ => NbtTag::List(NbtList::from(tags)),
+    }
+}
+
+#[cfg(feature = "simdnbt")]
+impl FormattedText {
+    /// The tag vanilla 1.21.4 writes for this component: a plain string when it
+    /// is literal text with no style and no siblings
+    /// (`Component.tryCollapseToString`), else the full compound.
+    pub fn to_vanilla_nbt_tag(&self) -> simdnbt::owned::NbtTag {
+        if let FormattedText::Text(c) = self
+            && c.base.siblings.is_empty()
+            && c.base.style.is_unstyled()
+        {
+            return simdnbt::owned::NbtTag::String(c.text.as_str().into());
+        }
+        simdnbt::owned::NbtTag::Compound(component_compound(self))
     }
 }
 
@@ -494,80 +598,96 @@ impl FormattedText {
             component = FormattedText::Text(TextComponent::new(text));
         } else if let Some(translate) = compound.get("translate") {
             let translate = translate.string()?.into();
+            // TranslatableContents.CODEC: lenientOptionalFieldOf("fallback")
+            let fallback = compound.string("fallback").map(|s| s.to_string());
             if let Some(with) = compound.get("with") {
                 let mut with_array = Vec::new();
-                let with_list = with.list()?;
-                if with_list.empty() {
-                } else if let Some(with) = with_list.strings() {
-                    for item in with {
-                        with_array.push(PrimitiveOrComponent::String(item.to_string()));
-                    }
-                } else if let Some(with) = with_list.ints() {
-                    for item in with {
-                        with_array.push(PrimitiveOrComponent::Integer(item));
-                    }
-                } else if let Some(with) = with_list.longs() {
-                    for item in with {
-                        with_array.push(PrimitiveOrComponent::Long(item));
-                    }
-                } else if let Some(with) = with_list.compounds() {
-                    for item in with {
-                        // if it's a string component with no styling and no
-                        // siblings, just add a string to with_array. otherwise,
-                        // add the component to the array
-                        if let Some(primitive) = item.get("") {
-                            // minecraft does this sometimes, for example
-                            // for the /give system messages
-                            if let Some(b) = primitive.byte() {
-                                // interpreted as boolean
-                                with_array.push(PrimitiveOrComponent::Boolean(b != 0));
-                            } else if let Some(s) = primitive.short() {
-                                with_array.push(PrimitiveOrComponent::Short(s));
-                            } else if let Some(i) = primitive.int() {
-                                with_array.push(PrimitiveOrComponent::Integer(i));
-                            } else if let Some(l) = primitive.long() {
-                                with_array.push(PrimitiveOrComponent::Long(l));
-                            } else if let Some(f) = primitive.float() {
-                                with_array.push(PrimitiveOrComponent::Float(f));
-                            } else if let Some(d) = primitive.double() {
-                                with_array.push(PrimitiveOrComponent::Double(d));
-                            } else if let Some(s) = primitive.string() {
-                                with_array.push(PrimitiveOrComponent::String(s.to_string()));
+                // NbtOps writes lists of ints, bytes and longs as array tags
+                if let Some(ints) = with.int_array() {
+                    with_array.extend(ints.into_iter().map(PrimitiveOrComponent::Integer));
+                } else if let Some(bytes) = with.byte_array() {
+                    with_array.extend(bytes.iter().map(|&b| PrimitiveOrComponent::Boolean(b != 0)));
+                } else if let Some(longs) = with.long_array() {
+                    with_array.extend(longs.into_iter().map(PrimitiveOrComponent::Long));
+                } else {
+                    let with_list = with.list()?;
+                    if with_list.empty() {
+                    } else if let Some(with) = with_list.strings() {
+                        for item in with {
+                            with_array.push(PrimitiveOrComponent::String(item.to_string()));
+                        }
+                    } else if let Some(with) = with_list.ints() {
+                        for item in with {
+                            with_array.push(PrimitiveOrComponent::Integer(item));
+                        }
+                    } else if let Some(with) = with_list.longs() {
+                        for item in with {
+                            with_array.push(PrimitiveOrComponent::Long(item));
+                        }
+                    } else if let Some(with) = with_list.compounds() {
+                        for item in with {
+                            // if it's a string component with no styling and no
+                            // siblings, just add a string to with_array.
+                            // otherwise, add the component to the array
+                            if let Some(primitive) = item.get("") {
+                                // minecraft does this sometimes, for example
+                                // for the /give system messages
+                                if let Some(b) = primitive.byte() {
+                                    // interpreted as boolean
+                                    with_array.push(PrimitiveOrComponent::Boolean(b != 0));
+                                } else if let Some(s) = primitive.short() {
+                                    with_array.push(PrimitiveOrComponent::Short(s));
+                                } else if let Some(i) = primitive.int() {
+                                    with_array.push(PrimitiveOrComponent::Integer(i));
+                                } else if let Some(l) = primitive.long() {
+                                    with_array.push(PrimitiveOrComponent::Long(l));
+                                } else if let Some(f) = primitive.float() {
+                                    with_array.push(PrimitiveOrComponent::Float(f));
+                                } else if let Some(d) = primitive.double() {
+                                    with_array.push(PrimitiveOrComponent::Double(d));
+                                } else if let Some(s) = primitive.string() {
+                                    with_array.push(PrimitiveOrComponent::String(s.to_string()));
+                                } else {
+                                    warn!(
+                                        "couldn't parse {item:?} as FormattedText because it has a disallowed primitive"
+                                    );
+                                    with_array.push(PrimitiveOrComponent::String("?".to_owned()));
+                                }
+                            } else if let Some(c) = FormattedText::from_nbt_compound(item) {
+                                if let FormattedText::Text(text_component) = c
+                                    && text_component.base.siblings.is_empty()
+                                    && text_component.base.style.is_unstyled()
+                                {
+                                    with_array
+                                        .push(PrimitiveOrComponent::String(text_component.text));
+                                    continue;
+                                }
+                                with_array.push(PrimitiveOrComponent::FormattedText(
+                                    FormattedText::from_nbt_compound(item)?,
+                                ));
                             } else {
-                                warn!(
-                                    "couldn't parse {item:?} as FormattedText because it has a disallowed primitive"
-                                );
+                                warn!("couldn't parse {item:?} as FormattedText");
                                 with_array.push(PrimitiveOrComponent::String("?".to_owned()));
                             }
-                        } else if let Some(c) = FormattedText::from_nbt_compound(item) {
-                            if let FormattedText::Text(text_component) = c
-                                && text_component.base.siblings.is_empty()
-                                && text_component.base.style.is_empty()
-                            {
-                                with_array.push(PrimitiveOrComponent::String(text_component.text));
-                                continue;
-                            }
-                            with_array.push(PrimitiveOrComponent::FormattedText(
-                                FormattedText::from_nbt_compound(item)?,
-                            ));
-                        } else {
-                            warn!("couldn't parse {item:?} as FormattedText");
-                            with_array.push(PrimitiveOrComponent::String("?".to_owned()));
                         }
+                    } else {
+                        warn!(
+                            "couldn't parse {with:?} as FormattedText because it's not a list of compounds"
+                        );
+                        return None;
                     }
-                } else {
-                    warn!(
-                        "couldn't parse {with:?} as FormattedText because it's not a list of compounds"
-                    );
-                    return None;
                 }
-                component =
-                    FormattedText::Translatable(TranslatableComponent::new(translate, with_array));
+                component = FormattedText::Translatable(TranslatableComponent::with_fallback(
+                    translate, fallback, with_array,
+                ));
             } else {
                 // if it doesn't have a "with", just have the with_array be
                 // empty
-                component =
-                    FormattedText::Translatable(TranslatableComponent::new(translate, Vec::new()));
+                component = FormattedText::Translatable(TranslatableComponent::with_fallback(
+                    translate,
+                    fallback,
+                    Vec::new(),
+                ));
             }
         } else if let Some(score) = compound.compound("score") {
             if score.get("name").is_none() || score.get("objective").is_none() {
@@ -658,10 +778,9 @@ impl AzBuf for FormattedText {
         }
     }
     fn azalea_write(&self, buf: &mut impl Write) -> io::Result<()> {
-        use simdnbt::Serialize;
-
+        // network NBT: tag type id, then the unnamed payload
         let mut out = Vec::new();
-        simdnbt::owned::BaseNbt::write_unnamed(&(self.clone().to_compound().into()), &mut out);
+        self.to_vanilla_nbt_tag().write(&mut out);
         buf.write_all(&out)
     }
 }
@@ -786,5 +905,79 @@ mod tests {
         let component = FormattedText::deserialize(&json).unwrap();
         let ansi = component.to_ansi();
         assert!(ansi.contains("\u{1b}[38;2;85;255;85m"));
+    }
+
+    #[cfg(all(feature = "azalea-buf", feature = "simdnbt"))]
+    fn round_trip(c: &FormattedText) -> (Vec<u8>, FormattedText) {
+        let mut buf = Vec::new();
+        c.azalea_write(&mut buf).unwrap();
+        let back = FormattedText::azalea_read(&mut Cursor::new(&buf[..])).unwrap();
+        (buf, back)
+    }
+
+    #[cfg(all(feature = "azalea-buf", feature = "simdnbt"))]
+    #[test]
+    fn nbt_plain_text_is_a_string_tag() {
+        // Component.tryCollapseToString: literal text, no style, no siblings
+        let (buf, back) = round_trip(&FormattedText::from("azalea-hunt rig"));
+        assert_eq!(buf[0], 8, "string tag");
+        assert_eq!(back, FormattedText::from("azalea-hunt rig"));
+    }
+
+    #[cfg(all(feature = "azalea-buf", feature = "simdnbt"))]
+    #[test]
+    fn nbt_translate_arg_keeps_insertion_click_and_hover() {
+        use crate::{click_event::ClickEvent, hover_event::HoverEvent};
+
+        // what Paper 1.21.4 sends for "CorpusBot1 joined the game"
+        let mut name = TextComponent::new("CorpusBot1".to_owned());
+        name.base.style = Box::new(Style {
+            insertion: Some("CorpusBot1".to_owned()),
+            click_event: Some(ClickEvent::SuggestCommand {
+                command: "/tell CorpusBot1 ".to_owned(),
+            }),
+            hover_event: Some(HoverEvent::ShowEntity {
+                kind: "minecraft:player".to_owned(),
+                id: "76c4497e-481e-3492-89da-2c512999bba5".to_owned(),
+                name: Some(Box::new(FormattedText::from("CorpusBot1"))),
+            }),
+            ..Style::default()
+        });
+        let mut joined = TranslatableComponent::new(
+            "multiplayer.player.joined".to_owned(),
+            vec![PrimitiveOrComponent::FormattedText(FormattedText::Text(
+                name,
+            ))],
+        );
+        joined.base.style = Box::new(Style {
+            color: TextColor::parse("yellow"),
+            ..Style::default()
+        });
+        let joined = FormattedText::Translatable(joined);
+        let (buf, back) = round_trip(&joined);
+        assert_eq!(back, joined);
+        // the uuid is written as vanilla's int array
+        let ints: [u8; 4] = 0x76c4497e_u32.to_be_bytes();
+        assert!(buf.windows(4).any(|w| w == ints));
+    }
+
+    #[cfg(all(feature = "azalea-buf", feature = "simdnbt"))]
+    #[test]
+    fn nbt_translatable_keeps_extra_and_fallback() {
+        let mut c = TranslatableComponent::with_fallback(
+            "a.key".to_owned(),
+            Some("fallback %s".to_owned()),
+            vec![PrimitiveOrComponent::Integer(3)],
+        );
+        c.base.siblings.push(FormattedText::from("\n"));
+        c.base
+            .siblings
+            .push(FormattedText::Translatable(TranslatableComponent::new(
+                "b.key".to_owned(),
+                vec![],
+            )));
+        let c = FormattedText::Translatable(c);
+        let (_, back) = round_trip(&c);
+        assert_eq!(back, c);
     }
 }

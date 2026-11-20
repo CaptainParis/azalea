@@ -1,11 +1,6 @@
 use std::fmt::{self, Display};
 
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "simdnbt")]
-use simdnbt::{
-    ToNbtTag,
-    owned::{NbtList, NbtTag},
-};
 
 use crate::{FormattedText, base_component::BaseComponent, text_component::TextComponent};
 
@@ -33,7 +28,7 @@ impl simdnbt::ToNbtTag for PrimitiveOrComponent {
             PrimitiveOrComponent::Float(value) => value.to_nbt_tag(),
             PrimitiveOrComponent::Double(value) => value.to_nbt_tag(),
             PrimitiveOrComponent::String(value) => value.to_nbt_tag(),
-            PrimitiveOrComponent::FormattedText(value) => value.to_nbt_tag(),
+            PrimitiveOrComponent::FormattedText(value) => value.to_vanilla_nbt_tag(),
         }
     }
 }
@@ -52,23 +47,9 @@ pub struct TranslatableComponent {
 }
 
 #[cfg(feature = "simdnbt")]
-fn serialize_args_as_nbt(args: Vec<PrimitiveOrComponent>) -> NbtList {
-    let tags = args
-        .into_iter()
-        .map(|arg| arg.to_nbt_tag())
-        .collect::<Vec<NbtTag>>();
-    NbtList::from(tags)
-}
-
-#[cfg(feature = "simdnbt")]
 impl simdnbt::Serialize for TranslatableComponent {
     fn to_compound(self) -> simdnbt::owned::NbtCompound {
-        let mut compound = simdnbt::owned::NbtCompound::new();
-        compound.insert("translate", self.key);
-        compound.extend(self.base.style.to_compound());
-
-        compound.insert("with", serialize_args_as_nbt(self.args));
-        compound
+        crate::component::component_compound(&FormattedText::Translatable(self))
     }
 }
 

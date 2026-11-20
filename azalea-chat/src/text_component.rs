@@ -35,22 +35,7 @@ impl Serialize for TextComponent {
 #[cfg(feature = "simdnbt")]
 impl simdnbt::Serialize for TextComponent {
     fn to_compound(self) -> simdnbt::owned::NbtCompound {
-        let mut compound = simdnbt::owned::NbtCompound::new();
-        compound.insert("text", self.text);
-        compound.extend(self.base.style.to_compound());
-        if !self.base.siblings.is_empty() {
-            compound.insert(
-                "extra",
-                simdnbt::owned::NbtList::from(
-                    self.base
-                        .siblings
-                        .into_iter()
-                        .map(|component| component.to_compound())
-                        .collect::<Vec<_>>(),
-                ),
-            );
-        }
-        compound
+        crate::component::component_compound(&FormattedText::Text(self))
     }
 }
 
