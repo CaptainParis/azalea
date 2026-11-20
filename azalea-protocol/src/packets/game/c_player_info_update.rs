@@ -160,6 +160,18 @@ impl AzBuf for ClientboundPlayerInfoUpdate {
                 }
                 .azalea_write(buf)?;
             }
+            if self.actions.update_list_order {
+                UpdateListOrderAction {
+                    list_order: entry.list_order,
+                }
+                .azalea_write(buf)?;
+            }
+            if self.actions.update_hat {
+                UpdateHatAction {
+                    update_hat: entry.update_hat,
+                }
+                .azalea_write(buf)?;
+            }
         }
 
         Ok(())
@@ -180,7 +192,7 @@ pub struct ActionEnumSet {
 
 impl AzBuf for ActionEnumSet {
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
-        let set = FixedBitSet::<7>::azalea_read(buf)?;
+        let set = FixedBitSet::<8>::azalea_read(buf)?;
         Ok(ActionEnumSet {
             add_player: set.index(0),
             initialize_chat: set.index(1),
@@ -193,7 +205,7 @@ impl AzBuf for ActionEnumSet {
         })
     }
     fn azalea_write(&self, buf: &mut impl Write) -> io::Result<()> {
-        let mut set = FixedBitSet::<7>::new();
+        let mut set = FixedBitSet::<8>::new();
         if self.add_player {
             set.set(0);
         }
@@ -237,7 +249,7 @@ mod tests {
             update_latency: true,
             update_display_name: false,
             update_list_order: true,
-            update_hat: false,
+            update_hat: true,
         };
         let mut buf = Vec::new();
         data.azalea_write(&mut buf).unwrap();
