@@ -7,7 +7,10 @@ use std::{
     time::{Duration, Instant},
 };
 
-use azalea_core::position::ChunkPos;
+use azalea_core::{
+    decode_errors::{DecodeErrorKind, record_decode_error},
+    position::ChunkPos,
+};
 use azalea_protocol::packets::game::{
     c_level_chunk_with_light::ClientboundLevelChunkWithLight,
     s_chunk_batch_received::ServerboundChunkBatchReceived,
@@ -101,6 +104,8 @@ pub fn handle_receive_chunk_event(
                 "Couldn't set chunk data: {e}. World height: {}",
                 world.chunks.height()
             );
+            // decode error hook: chunks that fail to parse are skipped
+            record_decode_error(DecodeErrorKind::Chunk);
         }
     }
 }

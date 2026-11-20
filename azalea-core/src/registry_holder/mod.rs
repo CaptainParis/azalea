@@ -22,6 +22,8 @@ use simdnbt::{DeserializeError, FromNbtTag, borrow, owned::NbtCompound};
 use thiserror::Error;
 use tracing::error;
 
+use crate::decode_errors::{DecodeErrorKind, record_decode_error};
+
 /// The base of the registry.
 ///
 /// This is the registry that is sent to the client upon login.
@@ -157,6 +159,9 @@ impl<T: simdnbt::Deserialize> RegistryType<T> {
                     }
                     Err(err) => {
                         error!("Error deserializing {id} entry {key}: {err:?}\n{value:?}");
+                        // decode error hook: registry entries that fail to
+                        // parse are left out
+                        record_decode_error(DecodeErrorKind::Registry);
                     }
                 }
             } else {

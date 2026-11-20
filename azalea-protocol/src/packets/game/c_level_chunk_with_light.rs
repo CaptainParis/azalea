@@ -6,7 +6,10 @@ use std::{
 };
 
 use azalea_buf::{AzBuf, BufReadError};
-use azalea_core::heightmap_kind::HeightmapKind;
+use azalea_core::{
+    decode_errors::{DecodeErrorKind, record_decode_error},
+    heightmap_kind::HeightmapKind,
+};
 use azalea_protocol_macros::ClientboundGamePacket;
 use azalea_registry::builtin::BlockEntityKind;
 use simdnbt::owned::{Nbt, NbtCompound, NbtTag};
@@ -59,6 +62,7 @@ impl AzBuf for Heightmaps {
             let name = name.to_str();
             let Ok(kind) = HeightmapKind::from_str(&name) else {
                 warn!("Unknown heightmap kind {name:?}");
+                record_decode_error(DecodeErrorKind::Chunk);
                 continue;
             };
             let Some(data) = tag.long_array() else {

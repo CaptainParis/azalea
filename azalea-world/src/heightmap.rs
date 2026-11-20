@@ -1,5 +1,10 @@
 use azalea_block::BlockState;
-use azalea_core::{heightmap_kind::HeightmapKind as HeightmapKind_, math, position::ChunkBlockPos};
+use azalea_core::{
+    decode_errors::{DecodeErrorKind, record_decode_error},
+    heightmap_kind::HeightmapKind as HeightmapKind_,
+    math,
+    position::ChunkBlockPos,
+};
 use azalea_registry::tags::blocks::LEAVES;
 use tracing::warn;
 
@@ -56,6 +61,7 @@ impl Heightmap {
                 bit_storage.data.len(),
                 data.len()
             );
+            record_decode_error(DecodeErrorKind::Chunk);
         } else {
             bit_storage.data.copy_from_slice(&data);
         }

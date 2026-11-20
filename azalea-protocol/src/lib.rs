@@ -12,6 +12,11 @@ pub mod resolve;
 pub mod write;
 
 // re-export for internal use in azalea-client
+/// Counts of data that was received but couldn't be decoded. See
+/// [`azalea_core::decode_errors`].
+pub use azalea_core::decode_errors::{
+    self, DecodeErrorCounts, DecodeErrorKind, decode_errors, reset_decode_errors,
+};
 #[doc(hidden)]
 pub use azalea_protocol_macros;
 // re-export to make it easier for users to have the correct version

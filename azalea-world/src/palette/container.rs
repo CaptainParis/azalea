@@ -5,7 +5,10 @@ use std::{
 
 use azalea_block::BlockState;
 use azalea_buf::{AzBuf, AzBufVar, BufReadError};
-use azalea_core::position::{ChunkSectionBiomePos, ChunkSectionBlockPos};
+use azalea_core::{
+    decode_errors::{DecodeErrorKind, record_decode_error},
+    position::{ChunkSectionBiomePos, ChunkSectionBlockPos},
+};
 use azalea_registry::data::Biome;
 use tracing::{debug, warn};
 
@@ -163,6 +166,7 @@ impl<S: PalletedContainerKind> PalettedContainer<S> {
                 "Paletted container data length {data_len} doesn't match expected {}, ignoring the data",
                 storage.data.len()
             );
+            record_decode_error(DecodeErrorKind::Chunk);
             buf.set_position(buf.position() + data_len as u64 * 8);
         }
 

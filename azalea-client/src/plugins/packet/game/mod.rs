@@ -3,6 +3,7 @@ mod events;
 use std::{collections::HashSet, sync::Arc};
 
 use azalea_core::{
+    decode_errors::{DecodeErrorKind, record_decode_error},
     delta::PositionDelta8,
     entity_id::MinecraftEntityId,
     game_type::GameMode,
@@ -699,6 +700,9 @@ impl GamePacketHandler<'_> {
                             apply_metadata(&mut entity_commands, entity_kind, packed_items)
                         {
                             warn!("{e}");
+                            // decode error hook: metadata that doesn't fit the
+                            // entity is skipped
+                            record_decode_error(DecodeErrorKind::PacketHandler);
                         }
                         world.flush();
                     });

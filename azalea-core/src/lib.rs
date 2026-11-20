@@ -13,6 +13,7 @@ pub mod color;
 pub mod cursor3d;
 #[cfg(feature = "serde")]
 pub mod data_registry;
+pub mod decode_errors;
 pub mod delta;
 pub mod difficulty;
 pub mod direction;

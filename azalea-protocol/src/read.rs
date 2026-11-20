@@ -11,6 +11,7 @@ use std::{
 };
 
 use azalea_buf::{AzBufVar, BufReadError};
+use azalea_core::decode_errors::{DecodeErrorKind, record_decode_error};
 use azalea_crypto::Aes128CfbDec;
 use flate2::read::ZlibDecoder;
 use futures::StreamExt;
@@ -153,9 +154,18 @@ pub fn deserialize_packet<P: ProtocolPacket + Debug>(
     stream: &mut Cursor<&[u8]>,
 ) -> Result<P, Box<ReadPacketError>> {
     // Packet ID
-    let packet_id =
-        u32::azalea_read_var(stream).map_err(|e| ReadPacketError::ReadPacketId { source: e })?;
-    P::read(packet_id, stream)
+    let res = u32::azalea_read_var(stream)
+        .map_err(|e| Box::new(ReadPacketError::ReadPacketId { source: e }))
+        .and_then(|packet_id| P::read(packet_id, stream));
+    if let Err(err) = &res {
+        // decode error hooks: unknown packet id, and packet id/body parse
+        // failures
+        record_decode_error(match **err {
+            ReadPacketError::UnknownPacketId { .. } => DecodeErrorKind::UnknownPacketId,
+            _ => DecodeErrorKind::PacketBody,
+        });
+    }
+    res
 }
 
 // this is always true in multiplayer, false in singleplayer
@@ -372,14 +382,24 @@ pub fn read_raw_packet_from_buffer<R>(
 where
     R: AsyncRead + Unpin + Send + Sync,
 {
-    let Some(mut buf) = frame_splitter(buffer).map_err(ReadPacketError::from)? else {
+    // decode error hook: frame decode failures (bad length prefix or bad
+    // compression)
+    let Some(mut buf) = frame_splitter(buffer).map_err(|e| {
+        record_decode_error(DecodeErrorKind::Frame);
+        ReadPacketError::from(e)
+    })?
+    else {
         // no full packet yet :(
         return Ok(None);
     };
 
     if let Some(compression_threshold) = compression_threshold {
-        buf = compression_decoder(&mut Cursor::new(&buf[..]), compression_threshold)
-            .map_err(ReadPacketError::from)?;
+        buf = compression_decoder(&mut Cursor::new(&buf[..]), compression_threshold).map_err(
+            |e| {
+                record_decode_error(DecodeErrorKind::Frame);
+                ReadPacketError::from(e)
+            },
+        )?;
     }
 
     if tracing::enabled!(tracing::Level::TRACE) {
@@ -454,5 +474,35 @@ mod tests {
     fn fuzzed_6() {
         // memory leak in simdnbt
         let _ = simdnbt::owned::Nbt::azalea_read(&mut Cursor::new([10, 10, 0, 0, 0].as_slice()));
+    }
+
+    #[test]
+    fn decode_errors_are_counted() {
+        use crate::decode_errors::decode_errors;
+
+        // other tests in this crate decode bad data too and the counters are
+        // global, so only check that ours went up
+        let before = decode_errors();
+        // 200 isn't a clientbound game packet id in 1.21.4 (there are 131)
+        let res =
+            deserialize_packet::<ClientboundGamePacket>(&mut Cursor::new([0xc8, 0x01].as_slice()));
+        assert!(res.is_err());
+        let after = decode_errors();
+        assert!(after.unknown_packet_id > before.unknown_packet_id);
+
+        // keep alive (0x27) with a truncated u64 id
+        let res = deserialize_packet::<ClientboundGamePacket>(&mut Cursor::new(
+            [0x27, 1, 2, 3].as_slice(),
+        ));
+        assert!(res.is_err());
+        assert!(decode_errors().packet_body > after.packet_body);
+
+        // a compressed frame that claims an uncompressed size below the
+        // compression threshold
+        let before = decode_errors();
+        let mut buffer = Cursor::new(vec![2, 1, 0]);
+        let res = super::read_raw_packet_from_buffer::<tokio::io::Empty>(&mut buffer, Some(256));
+        assert!(res.is_err());
+        assert!(decode_errors().frame > before.frame);
     }
 }
