@@ -59,7 +59,10 @@ pub struct Ingredient {
 }
 
 /// [`azalea_registry::builtin::SlotDisplay`]
+///
+/// Slot displays contain slot displays, so their depth is bounded.
 #[derive(AzBuf, Clone, Debug, PartialEq)]
+#[recursive]
 pub enum SlotDisplayData {
     Empty,
     AnyFuel,

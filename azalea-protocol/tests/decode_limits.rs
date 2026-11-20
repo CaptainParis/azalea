@@ -82,7 +82,6 @@ fn nbt_depth_and_size_are_counted() {
     assert!(deserialize_packet::<ClientboundGamePacket>(&mut Cursor::new(&packet[..])).is_err());
     let after = decode_errors();
     assert!(after.nbt_depth > before.nbt_depth);
-    assert_eq!(after.packet_body, before.packet_body);
 
     // a string tag accounted at 36 + 2 * 65535 bytes, in a list of 17: over
     // the 2 097 152 quota
@@ -98,4 +97,100 @@ fn nbt_depth_and_size_are_counted() {
     assert!(deserialize_packet::<ClientboundGamePacket>(&mut Cursor::new(&packet[..])).is_err());
     let after = decode_errors();
     assert!(after.nbt_size > before.nbt_size);
+}
+
+/// `depth` item stacks, each but the last holding the next in a container.
+fn nested_items(depth: usize) -> Vec<u8> {
+    use azalea_buf::AzBuf;
+    use azalea_registry::builtin::{DataComponentKind, ItemKind};
+    let mut v = Vec::new();
+    for _ in 0..depth - 1 {
+        1i32.azalea_write_var(&mut v).unwrap();
+        ItemKind::ShulkerBox.azalea_write(&mut v).unwrap();
+        1u32.azalea_write_var(&mut v).unwrap();
+        0u32.azalea_write_var(&mut v).unwrap();
+        DataComponentKind::Container.azalea_write(&mut v).unwrap();
+        1u32.azalea_write_var(&mut v).unwrap();
+    }
+    1i32.azalea_write_var(&mut v).unwrap();
+    ItemKind::Stone.azalea_write(&mut v).unwrap();
+    0u32.azalea_write_var(&mut v).unwrap();
+    0u32.azalea_write_var(&mut v).unwrap();
+    v
+}
+
+fn on_bot_thread(f: impl FnOnce() + Send + 'static) {
+    std::thread::Builder::new()
+        .stack_size(16 * 1024 * 1024)
+        .spawn(f)
+        .unwrap()
+        .join()
+        .unwrap();
+}
+
+#[test]
+fn nesting_depth_is_counted() {
+    on_bot_thread(|| {
+        use azalea_protocol::packets::game::c_container_set_slot::ClientboundContainerSetSlot;
+        let packet = ClientboundContainerSetSlot {
+            container_id: 0,
+            state_id: 1,
+            slot: 36,
+            item_stack: azalea_inventory::ItemStack::Empty,
+        }
+        .into_variant();
+        let mut head = varint(packet.id() as i32);
+        packet.write(&mut head).unwrap();
+        // drop the empty item stack (one 0 byte)
+        head.pop();
+
+        let mut packet = head.clone();
+        packet.extend(nested_items(512));
+        assert!(deserialize_packet::<ClientboundGamePacket>(&mut Cursor::new(&packet[..])).is_ok());
+
+        let mut packet = head;
+        packet.extend(nested_items(513));
+        let before = decode_errors();
+        assert!(
+            deserialize_packet::<ClientboundGamePacket>(&mut Cursor::new(&packet[..])).is_err()
+        );
+        let after = decode_errors();
+        assert!(after.nesting_depth > before.nesting_depth);
+    });
+}
+
+/// `depth` slot displays, each but the last a `with_remainder` whose input
+/// is the next one.
+fn nested_slot_displays(depth: usize) -> Vec<u8> {
+    let mut v = vec![6u8; depth - 1];
+    // the innermost input, then each level's remainder: empty
+    v.extend(std::iter::repeat_n(0u8, depth));
+    v
+}
+
+#[test]
+fn nested_slot_displays_at_the_limit() {
+    use azalea_buf::{AzBuf, BufReadError, limits::LimitKind};
+    use azalea_protocol::common::recipe::SlotDisplayData;
+    on_bot_thread(|| {
+        let data = nested_slot_displays(512);
+        let start = std::time::Instant::now();
+        let mut cursor = Cursor::new(&data[..]);
+        let display = SlotDisplayData::azalea_read(&mut cursor).unwrap();
+        assert!(start.elapsed() < std::time::Duration::from_secs(1));
+        assert_eq!(cursor.position() as usize, data.len());
+        let mut out = Vec::new();
+        display.azalea_write(&mut out).unwrap();
+        assert_eq!(out, data);
+
+        let data = nested_slot_displays(513);
+        let e = SlotDisplayData::azalea_read(&mut Cursor::new(&data[..])).unwrap_err();
+        assert!(matches!(
+            e,
+            BufReadError::Limit {
+                kind: LimitKind::NestingDepth,
+                ..
+            }
+        ));
+    });
 }

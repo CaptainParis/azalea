@@ -1,7 +1,10 @@
 use quote::{ToTokens, quote};
 use syn::{Data, Field, FieldsNamed, Ident, punctuated::Punctuated, token::Comma};
 
-pub fn create_fn_azalea_read(data: &Data) -> proc_macro2::TokenStream {
+pub fn create_fn_azalea_read(
+    data: &Data,
+    prelude: &proc_macro2::TokenStream,
+) -> proc_macro2::TokenStream {
     match data {
         syn::Data::Struct(syn::DataStruct { fields, .. }) => match fields {
             syn::Fields::Named(FieldsNamed { named, .. }) => {
@@ -9,6 +12,7 @@ pub fn create_fn_azalea_read(data: &Data) -> proc_macro2::TokenStream {
 
                 quote! {
                     fn azalea_read(buf: &mut std::io::Cursor<&[u8]>) -> std::result::Result<Self, azalea_buf::BufReadError> {
+                        #prelude
                         #(#read_fields)*
                         Ok(Self {
                             #(#read_field_names),*
@@ -19,6 +23,7 @@ pub fn create_fn_azalea_read(data: &Data) -> proc_macro2::TokenStream {
             syn::Fields::Unit => {
                 quote! {
                     fn azalea_read(buf: &mut std::io::Cursor<&[u8]>) -> std::result::Result<Self, azalea_buf::BufReadError> {
+                        #prelude
                         Ok(Self)
                     }
                 }
@@ -28,6 +33,7 @@ pub fn create_fn_azalea_read(data: &Data) -> proc_macro2::TokenStream {
 
                 quote! {
                     fn azalea_read(buf: &mut std::io::Cursor<&[u8]>) -> std::result::Result<Self, azalea_buf::BufReadError> {
+                        #prelude
                         Ok(Self(
                             #(#read_fields),*
                         ))
@@ -130,6 +136,7 @@ pub fn create_fn_azalea_read(data: &Data) -> proc_macro2::TokenStream {
 
             quote! {
                 fn azalea_read(buf: &mut std::io::Cursor<&[u8]>) -> std::result::Result<Self, azalea_buf::BufReadError> {
+                        #prelude
                     let id = azalea_buf::AzBufVar::azalea_read_var(buf)?;
 
                     match id {

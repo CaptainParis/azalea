@@ -551,7 +551,10 @@ impl AzBuf for IntangibleProjectile {
     }
 }
 
+/// Effect details hold the hidden effect's details, so their depth is
+/// bounded.
 #[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
+#[recursive]
 pub struct MobEffectDetails {
     #[var]
     #[serde(skip_serializing_if = "is_default")]

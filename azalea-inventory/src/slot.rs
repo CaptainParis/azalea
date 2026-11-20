@@ -223,7 +223,12 @@ impl ItemStackData {
 }
 
 impl AzBuf for ItemStack {
+    const MIN_ENCODED_SIZE: usize = 1;
+
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
+        // item stacks contain item stacks (container, bundle contents,
+        // charged projectiles, use remainder), so their depth is bounded
+        let _nesting = azalea_buf::limits::enter_nesting()?;
         let count = i32::azalea_read_var(buf)?;
         if count <= 0 {
             Ok(ItemStack::Empty)
