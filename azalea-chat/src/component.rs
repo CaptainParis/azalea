@@ -626,6 +626,19 @@ impl FormattedText {
                         for item in with {
                             with_array.push(PrimitiveOrComponent::Long(item));
                         }
+                    // ARG_CODEC reads every primitive; NbtOps writes a
+                    // homogeneous list of shorts, floats or doubles as a
+                    // typed list (and of bytes as an array, above)
+                    } else if let Some(with) = with_list.shorts() {
+                        with_array.extend(with.into_iter().map(PrimitiveOrComponent::Short));
+                    } else if let Some(with) = with_list.floats() {
+                        with_array.extend(with.into_iter().map(PrimitiveOrComponent::Float));
+                    } else if let Some(with) = with_list.doubles() {
+                        with_array.extend(with.into_iter().map(PrimitiveOrComponent::Double));
+                    } else if let Some(with) = with_list.bytes() {
+                        with_array.extend(
+                            with.iter().map(|&b| PrimitiveOrComponent::Boolean(b != 0)),
+                        );
                     } else if let Some(with) = with_list.compounds() {
                         for item in with {
                             // if it's a string component with no styling and no
