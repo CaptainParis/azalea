@@ -1,0 +1,37 @@
+From 3199ec61df172a81b4c9c3fa82dafd327281fa8b Mon Sep 17 00:00:00 2001
+From: hunt <hunt@local>
+Date: Thu, 19 Nov 2026 16:38:20 -0800
+Subject: [PATCH] 1.21.4: EntityType is the entity list before 26.1
+
+---
+ burger/toppings/identify.py | 12 +++++++++++-
+ 1 file changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/burger/toppings/identify.py b/burger/toppings/identify.py
+index aeb535a..82dffeb 100644
+--- a/burger/toppings/identify.py
++++ b/burger/toppings/identify.py
+@@ -112,9 +112,19 @@ def identify(classloader: ClassLoader, path: str):
+         'net/minecraft/network/chat/Component': 'chatcomponent',
+         'net/minecraft/world/level/block/Blocks': 'block.list',
+         'net/minecraft/world/entity/EntityTypes': 'entity.list',
++        # Before 26.1 the entity type constants lived in EntityType itself (azalea-hunt
++        # 1.21.4 patch, run on a Mojang-mapped jar).
++        'net/minecraft/world/entity/EntityType': 'entity.list',
+     }
+     if path in CLASSES_TO_BURGER_IDS:
+-        return CLASSES_TO_BURGER_IDS[path], path
++        if (
++            path == 'net/minecraft/world/entity/EntityType'
++            and 'net/minecraft/world/entity/EntityTypes' in classloader
++        ):
++            # 26.1+: EntityTypes is the list, EntityType is only the type class.
++            pass
++        else:
++            return CLASSES_TO_BURGER_IDS[path], path
+ 
+     possible_match = None
+     for c in classloader.search_constant_pool(path=path, type_=(String, ConstantClass)):
+-- 
+2.56.0
+

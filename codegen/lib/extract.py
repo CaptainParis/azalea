@@ -11,6 +11,7 @@ from .download import (
     get_fabric_data,
 )
 from .utils import get_dir_location
+from . import legacy
 from zipfile import ZipFile
 import subprocess
 import json
@@ -23,8 +24,11 @@ def generate_data_from_server_jar(version_id: str):
         return
 
     get_server_jar(version_id)
-    os.system(
-        f'cd {get_dir_location("__cache__")} && java -DbundlerMainClass=net.minecraft.data.Main -jar {get_dir_location(f"__cache__/server-{version_id}.jar")} --all --output "{get_dir_location(f"__cache__/generated-{version_id}")}"'
+    env = legacy.java_env(version_id) if legacy.is_legacy(version_id) else None
+    subprocess.run(
+        f'cd {get_dir_location("__cache__")} && java -DbundlerMainClass=net.minecraft.data.Main -jar {get_dir_location(f"__cache__/server-{version_id}.jar")} --all --output "{get_dir_location(f"__cache__/generated-{version_id}")}"',
+        shell=True,
+        env=env,
     )
 
 
@@ -46,6 +50,12 @@ def get_items_report(version_id: str):
         f"__cache__/generated-{version_id}/reports/minecraft/components/item"
     )
     if not os.path.exists(items_dir):
+        # Before 1.21.5 the data generator wrote all item components into one
+        # reports/items.json, keyed by item id, with the same per-item shape.
+        legacy_items = get_dir_location(f"__cache__/generated-{version_id}/reports/items.json")
+        if os.path.exists(legacy_items):
+            with open(legacy_items, "r") as f:
+                return json.load(f)
         return {}
     items = {}
     for root, dirs, files in os.walk(items_dir, topdown=False):
@@ -156,12 +166,20 @@ def run_python_command_and_download_deps(command):
 def get_burger_data_for_version(version_id: str):
     if not os.path.exists(get_dir_location(f"__cache__/burger-{version_id}.json")):
         get_burger()
-        get_client_jar(version_id)
+        burger_dir = get_dir_location("__cache__/azalea-burger")
+        if legacy.is_legacy(version_id):
+            # needs the Mojang-mapped jar, which the extractor build produces
+            get_pumpkin_data(version_id, "blocks")
+            burger_dir = legacy.patched_tool(burger_dir, "burger", version_id)
+            jar = legacy.mojmap_jar(version_id)
+        else:
+            get_client_jar(version_id)
+            jar = f"{get_dir_location('__cache__')}/client-{version_id}.jar"
 
         print("\033[92mRunning azalea-burger...\033[m")
         run_python_command_and_download_deps(
-            f"cd {get_dir_location('__cache__/azalea-burger')} && "
-            f"venv/bin/python munch.py {get_dir_location('__cache__')}/client-{version_id}.jar "
+            f"cd {burger_dir} && "
+            f"venv/bin/python munch.py {jar} "
             f"--output {get_dir_location('__cache__')}/burger-{version_id}.json "
         )
     with open(get_dir_location(f"__cache__/burger-{version_id}.json"), "r") as f:
@@ -179,6 +197,8 @@ def get_pumpkin_data(version_id: str, category: str):
             return json.load(f)
 
     pumpkin_dir = get_pumpkin_extractor()
+    if legacy.is_legacy(version_id):
+        pumpkin_dir = legacy.patched_tool(pumpkin_dir, "pumpkin-extractor", version_id)
 
     pumpkin_run_directory = f"{pumpkin_dir}/run"
 
@@ -189,6 +209,10 @@ def get_pumpkin_data(version_id: str, category: str):
         f.write("eula=true")
     with open(f"{pumpkin_run_directory}/server.properties", "w") as f:
         f.write("server-port=0")
+
+    if legacy.is_legacy(version_id):
+        # tool versions are pinned in the patch's gradle.properties
+        return _run_pumpkin(pumpkin_dir, target_parent_dir, category_dir, legacy.java_env(version_id))
 
     fabric_data = get_fabric_data(version_id)[0]
     fabric_api_version = get_fabric_api_version(version_id)
@@ -211,12 +235,17 @@ fabric_version={fabric_api_version}
     with open(f"{pumpkin_dir}/gradle.properties", "w") as f:
         f.write(gradle_properties)
 
+    return _run_pumpkin(pumpkin_dir, target_parent_dir, category_dir, None)
+
+
+def _run_pumpkin(pumpkin_dir, target_parent_dir, category_dir, env):
     # run ./gradlew runServer until it logs "(pumpkin_extractor) Done"
     p = subprocess.Popen(
         f"cd {pumpkin_dir} && ./gradlew clean && ./gradlew runServer",
         stderr=subprocess.PIPE,
         stdout=subprocess.PIPE,
         shell=True,
+        env=env,
     )
 
     while True:

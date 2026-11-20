@@ -1,0 +1,1544 @@
+From a39e3deb2477b6529fade22e699d829be3c3f38c Mon Sep 17 00:00:00 2001
+From: hunt <hunt@local>
+Date: Thu, 19 Nov 2026 16:36:07 -0800
+Subject: [PATCH] 1.21.4: blocks extractor only, Mojang mappings, loom 1.11.8
+
+---
+ build.gradle.kts                              |  13 ++-
+ gradle.properties                             |  13 +--
+ gradle/wrapper/gradle-wrapper.properties      |   2 +-
+ .../kotlin/de/snowii/extractor/Extractor.kt   |  29 -----
+ .../de/snowii/extractor/extractors/Blocks.kt  |   2 +-
+ .../extractor/extractors/DamageTypes.kt       |  37 ------
+ .../extractor/extractors/DataComponent.kt     |  24 ----
+ .../de/snowii/extractor/extractors/Effect.kt  |  67 -----------
+ .../extractor/extractors/Enchantments.kt      |  32 ------
+ .../snowii/extractor/extractors/Entities.kt   |  93 ---------------
+ .../extractor/extractors/EntityAttributes.kt  |  29 -----
+ .../de/snowii/extractor/extractors/Fluids.kt  |  64 -----------
+ .../de/snowii/extractor/extractors/Fuels.kt   |  25 -----
+ .../snowii/extractor/extractors/GameEvent.kt  |  26 -----
+ .../snowii/extractor/extractors/GameRules.kt  |  27 -----
+ .../de/snowii/extractor/extractors/Items.kt   |  41 -------
+ .../extractor/extractors/MessageType.kt       |  37 ------
+ .../de/snowii/extractor/extractors/Packets.kt | 106 ------------------
+ .../snowii/extractor/extractors/Particles.kt  |  25 -----
+ .../de/snowii/extractor/extractors/Potion.kt  |  44 --------
+ .../extractor/extractors/PotionBrewing.kt     |  91 ---------------
+ .../de/snowii/extractor/extractors/Screens.kt |  24 ----
+ .../de/snowii/extractor/extractors/Sounds.kt  |  25 -----
+ .../de/snowii/extractor/extractors/Tags.kt    |  39 -------
+ .../non_registry/ComposterIncreaseChance.kt   |  23 ----
+ .../extractors/non_registry/EntityPose.kt     |  24 ----
+ .../extractors/non_registry/EntityStatuses.kt |  29 -----
+ .../non_registry/FlowerPotTransformation.kt   |  27 -----
+ .../extractors/non_registry/Properties.kt     |  73 ------------
+ .../non_registry/ScoreboardDisplaySlot.kt     |  24 ----
+ .../extractors/non_registry/SoundCategory.kt  |  24 ----
+ .../extractors/non_registry/Translations.kt   |  30 -----
+ .../extractors/non_registry/WorldEvent.kt     |  29 -----
+ src/main/resources/extractor.accesswidener    |   3 +-
+ 34 files changed, 14 insertions(+), 1187 deletions(-)
+ delete mode 100644 src/main/kotlin/de/snowii/extractor/extractors/DamageTypes.kt
+ delete mode 100644 src/main/kotlin/de/snowii/extractor/extractors/DataComponent.kt
+ delete mode 100644 src/main/kotlin/de/snowii/extractor/extractors/Effect.kt
+ delete mode 100644 src/main/kotlin/de/snowii/extractor/extractors/Enchantments.kt
+ delete mode 100644 src/main/kotlin/de/snowii/extractor/extractors/Entities.kt
+ delete mode 100644 src/main/kotlin/de/snowii/extractor/extractors/EntityAttributes.kt
+ delete mode 100644 src/main/kotlin/de/snowii/extractor/extractors/Fluids.kt
+ delete mode 100644 src/main/kotlin/de/snowii/extractor/extractors/Fuels.kt
+ delete mode 100644 src/main/kotlin/de/snowii/extractor/extractors/GameEvent.kt
+ delete mode 100644 src/main/kotlin/de/snowii/extractor/extractors/GameRules.kt
+ delete mode 100644 src/main/kotlin/de/snowii/extractor/extractors/Items.kt
+ delete mode 100644 src/main/kotlin/de/snowii/extractor/extractors/MessageType.kt
+ delete mode 100644 src/main/kotlin/de/snowii/extractor/extractors/Packets.kt
+ delete mode 100644 src/main/kotlin/de/snowii/extractor/extractors/Particles.kt
+ delete mode 100644 src/main/kotlin/de/snowii/extractor/extractors/Potion.kt
+ delete mode 100644 src/main/kotlin/de/snowii/extractor/extractors/PotionBrewing.kt
+ delete mode 100644 src/main/kotlin/de/snowii/extractor/extractors/Screens.kt
+ delete mode 100644 src/main/kotlin/de/snowii/extractor/extractors/Sounds.kt
+ delete mode 100644 src/main/kotlin/de/snowii/extractor/extractors/Tags.kt
+ delete mode 100644 src/main/kotlin/de/snowii/extractor/extractors/non_registry/ComposterIncreaseChance.kt
+ delete mode 100644 src/main/kotlin/de/snowii/extractor/extractors/non_registry/EntityPose.kt
+ delete mode 100644 src/main/kotlin/de/snowii/extractor/extractors/non_registry/EntityStatuses.kt
+ delete mode 100644 src/main/kotlin/de/snowii/extractor/extractors/non_registry/FlowerPotTransformation.kt
+ delete mode 100644 src/main/kotlin/de/snowii/extractor/extractors/non_registry/Properties.kt
+ delete mode 100644 src/main/kotlin/de/snowii/extractor/extractors/non_registry/ScoreboardDisplaySlot.kt
+ delete mode 100644 src/main/kotlin/de/snowii/extractor/extractors/non_registry/SoundCategory.kt
+ delete mode 100644 src/main/kotlin/de/snowii/extractor/extractors/non_registry/Translations.kt
+ delete mode 100644 src/main/kotlin/de/snowii/extractor/extractors/non_registry/WorldEvent.kt
+
+diff --git a/build.gradle.kts b/build.gradle.kts
+index 7d2e545..7ac4815 100644
+--- a/build.gradle.kts
++++ b/build.gradle.kts
+@@ -2,8 +2,8 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+ 
+ plugins {
+-    kotlin("jvm") version "2.3.0"
+-    id("net.fabricmc.fabric-loom") version "1.14-SNAPSHOT"
++    kotlin("jvm") version "2.1.21"
++    id("fabric-loom") version "1.11.8"
+     id("maven-publish")
+ }
+ 
+@@ -14,7 +14,7 @@ base {
+     archivesName.set(project.property("archives_base_name") as String)
+ }
+ 
+-val targetJavaVersion = 25
++val targetJavaVersion = 21
+ java {
+     toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+     // Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
+@@ -45,11 +45,12 @@ repositories {
+ dependencies {
+     // To change the versions see the gradle.properties file
+     minecraft("com.mojang:minecraft:${project.property("minecraft_version")}")
++    mappings(loom.officialMojangMappings())
+ 
+-    implementation("net.fabricmc:fabric-loader:${project.property("loader_version")}")
++    modImplementation("net.fabricmc:fabric-loader:${project.property("loader_version")}")
+ 
+-    implementation("net.fabricmc.fabric-api:fabric-api:${project.property("fabric_version")}")
+-    implementation("net.fabricmc:fabric-language-kotlin:${project.property("kotlin_loader_version")}")
++    modImplementation("net.fabricmc.fabric-api:fabric-api:${project.property("fabric_version")}")
++    modImplementation("net.fabricmc:fabric-language-kotlin:${project.property("kotlin_loader_version")}")
+ 
+     // To allow for reflection
+     implementation(kotlin("reflect"))
+diff --git a/gradle.properties b/gradle.properties
+index 1feea77..9be236f 100644
+--- a/gradle.properties
++++ b/gradle.properties
+@@ -1,13 +1,8 @@
+-# Done to increase the memory available to gradle.
+ org.gradle.jvmargs=-Xmx2G
+-org.gradle.parallel=true
+-# Fabric Properties
+-# check these on https://fabricmc.net/develop/
+-minecraft_version=26.2-snapshot-8
+-loader_version=0.19.2
+-kotlin_loader_version=1.13.11+kotlin.2.3.21
+-# Mod Properties
++minecraft_version=1.21.4
++loader_version=0.16.14
++kotlin_loader_version=1.13.3+kotlin.2.1.21
+ mod_version=1.0-SNAPSHOT
+ maven_group=de.snowii
+ archives_base_name=extractor
+-fabric_version=0.149.1+26.2
++fabric_version=0.119.4+1.21.4
+diff --git a/gradle/wrapper/gradle-wrapper.properties b/gradle/wrapper/gradle-wrapper.properties
+index b52fb7e..fec70bd 100644
+--- a/gradle/wrapper/gradle-wrapper.properties
++++ b/gradle/wrapper/gradle-wrapper.properties
+@@ -1,6 +1,6 @@
+ distributionBase=GRADLE_USER_HOME
+ distributionPath=wrapper/dists
+-distributionUrl=https\://services.gradle.org/distributions/gradle-9.5.0-bin.zip
++distributionUrl=https\://services.gradle.org/distributions/gradle-8.14.3-bin.zip
+ networkTimeout=10000
+ retries=0
+ retryBackOffMs=500
+diff --git a/src/main/kotlin/de/snowii/extractor/Extractor.kt b/src/main/kotlin/de/snowii/extractor/Extractor.kt
+index 8d760e7..c50b510 100644
+--- a/src/main/kotlin/de/snowii/extractor/Extractor.kt
++++ b/src/main/kotlin/de/snowii/extractor/Extractor.kt
+@@ -3,7 +3,6 @@ package de.snowii.extractor
+ import com.google.gson.GsonBuilder
+ import com.google.gson.JsonElement
+ import de.snowii.extractor.extractors.*
+-import de.snowii.extractor.extractors.non_registry.*
+ import net.fabricmc.api.ModInitializer
+ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
+ import net.minecraft.server.MinecraftServer
+@@ -28,35 +27,7 @@ class Extractor : ModInitializer {
+ 
+ 
+         val extractors = arrayOf(
+-            Effect(),
+-            PotionBrewing(),
+-            Potion(),
+-            Sounds(),
+-            WorldEvent(),
+-            Enchantments(),
+-            ScoreboardDisplaySlot(),
+-            Particles(),
+-            EntityAttributes(),
+-            EntityStatuses(),
+-            MessageType(),
+-            SoundCategory(),
+-            EntityPose(),
+-            GameEvent(),
+-            GameRules(),
+-            Packets(),
+-            Screens(),
+-            Tags(),
+-            Entities(),
+-            Items(),
+-            DataComponent(),
+             Blocks(),
+-            Translations(),
+-            DamageTypes(),
+-            Fluids(),
+-            Properties(),
+-            ComposterIncreaseChance(),
+-            FlowerPotTransformation(),
+-            Fuels(),
+         )
+ 
+         val outputDirectory: Path
+diff --git a/src/main/kotlin/de/snowii/extractor/extractors/Blocks.kt b/src/main/kotlin/de/snowii/extractor/extractors/Blocks.kt
+index 2d9cfa3..7af3d10 100644
+--- a/src/main/kotlin/de/snowii/extractor/extractors/Blocks.kt
++++ b/src/main/kotlin/de/snowii/extractor/extractors/Blocks.kt
+@@ -184,7 +184,7 @@ class Blocks : Extractor.Extractor {
+                 stateJson.addProperty("piston_behavior", state.pistonPushReaction.name)
+                 stateJson.addProperty("hardness", state.getDestroySpeed(EmptyBlockGetter.INSTANCE, BlockPos.ZERO))
+ 
+-                stateJson.addProperty("opacity", state.lightDampening)
++                stateJson.addProperty("opacity", state.lightBlock)
+ 
+                 if (block.defaultBlockState() == state) {
+                     blockJson.addProperty("default_state_id", Block.getId(state))
+diff --git a/src/main/kotlin/de/snowii/extractor/extractors/DamageTypes.kt b/src/main/kotlin/de/snowii/extractor/extractors/DamageTypes.kt
+deleted file mode 100644
+index 17d7542..0000000
+--- a/src/main/kotlin/de/snowii/extractor/extractors/DamageTypes.kt
++++ /dev/null
+@@ -1,37 +0,0 @@
+-package de.snowii.extractor.extractors
+-
+-import com.google.gson.JsonElement
+-import com.google.gson.JsonObject
+-import com.mojang.serialization.JsonOps
+-import de.snowii.extractor.Extractor
+-import net.minecraft.world.damagesource.DamageType
+-import net.minecraft.core.registries.Registries
+-import net.minecraft.resources.RegistryOps
+-import net.minecraft.server.MinecraftServer
+-
+-class DamageTypes : Extractor.Extractor {
+-    override fun fileName(): String {
+-        return "damage_type.json"
+-    }
+-
+-    override fun extract(server: MinecraftServer): JsonElement {
+-        val damageTypesJson = JsonObject()
+-        val damageTypeRegistry = server.registryAccess().lookupOrThrow(Registries.DAMAGE_TYPE)
+-        for (type in damageTypeRegistry) {
+-            val json = JsonObject()
+-            json.addProperty("id", damageTypeRegistry.getId(type))
+-            json.add(
+-                "components",
+-                DamageType.DIRECT_CODEC
+-                    .encodeStart(
+-                        RegistryOps.create(JsonOps.INSTANCE, server.registryAccess()),
+-                        type
+-                    )
+-                    .getOrThrow()
+-            )
+-            damageTypesJson.add(damageTypeRegistry.getKey(type)!!.path, json)
+-        }
+-
+-        return damageTypesJson
+-    }
+-}
+diff --git a/src/main/kotlin/de/snowii/extractor/extractors/DataComponent.kt b/src/main/kotlin/de/snowii/extractor/extractors/DataComponent.kt
+deleted file mode 100644
+index 721ca90..0000000
+--- a/src/main/kotlin/de/snowii/extractor/extractors/DataComponent.kt
++++ /dev/null
+@@ -1,24 +0,0 @@
+-package de.snowii.extractor.extractors
+-
+-import com.google.gson.JsonElement
+-import com.google.gson.JsonObject
+-import de.snowii.extractor.Extractor
+-import net.minecraft.core.registries.BuiltInRegistries
+-import net.minecraft.core.registries.Registries
+-import net.minecraft.server.MinecraftServer
+-
+-
+-class DataComponent : Extractor.Extractor {
+-    override fun fileName(): String {
+-        return "data_component.json"
+-    }
+-
+-    override fun extract(server: MinecraftServer): JsonElement {
+-        val dataComponentJson = JsonObject()
+-        val list = server.registryAccess().lookupOrThrow(Registries.DATA_COMPONENT_TYPE).listElements().toList();
+-        for (item in list) {
+-            dataComponentJson.addProperty(item.value().toString(), BuiltInRegistries.DATA_COMPONENT_TYPE.getId(item.value()));
+-        }
+-        return dataComponentJson
+-    }
+-}
+diff --git a/src/main/kotlin/de/snowii/extractor/extractors/Effect.kt b/src/main/kotlin/de/snowii/extractor/extractors/Effect.kt
+deleted file mode 100644
+index b3d5d67..0000000
+--- a/src/main/kotlin/de/snowii/extractor/extractors/Effect.kt
++++ /dev/null
+@@ -1,67 +0,0 @@
+-package de.snowii.extractor.extractors
+-
+-import com.google.gson.JsonArray
+-import com.google.gson.JsonElement
+-import com.google.gson.JsonObject
+-import com.mojang.serialization.JsonOps
+-import de.snowii.extractor.Extractor
+-import net.minecraft.world.entity.ai.attributes.Attribute
+-import net.minecraft.world.entity.ai.attributes.AttributeModifier
+-import net.minecraft.world.effect.MobEffect
+-import net.minecraft.world.effect.MobEffectInstance
+-import net.minecraft.world.item.crafting.Ingredient
+-import net.minecraft.core.registries.BuiltInRegistries
+-import net.minecraft.core.registries.Registries
+-import net.minecraft.resources.RegistryOps
+-import net.minecraft.core.Holder
+-import net.minecraft.server.MinecraftServer
+-import net.minecraft.sounds.SoundEvent
+-import net.minecraft.resources.Identifier
+-import java.util.Optional
+-
+-
+-class Effect : Extractor.Extractor {
+-    override fun fileName(): String {
+-        return "effect.json"
+-    }
+-
+-
+-    override fun extract(server: MinecraftServer): JsonElement {
+-        val json = JsonObject()
+-        for (potion in server.registryAccess().lookupOrThrow(Registries.MOB_EFFECT).listElements().toList()) {
+-            val itemJson = JsonObject()
+-            val realPotion = potion.value()
+-            itemJson.addProperty("id", BuiltInRegistries.MOB_EFFECT.getId(realPotion))
+-            itemJson.addProperty("category", realPotion.category.toString())
+-            itemJson.addProperty("color", realPotion.color)
+-            if (realPotion.blendInDurationTicks != 0 || realPotion.blendOutDurationTicks != 0 || realPotion.blendOutAdvanceTicks != 0) {
+-                itemJson.addProperty("fade_in_ticks", realPotion.blendInDurationTicks)
+-                itemJson.addProperty("fade_out_ticks", realPotion.blendOutDurationTicks)
+-                itemJson.addProperty("fade_out_threshold_ticks", realPotion.blendOutAdvanceTicks)
+-            }
+-            itemJson.addProperty("translation_key", realPotion.descriptionId)
+-
+-            val t3 = MobEffect::class.java.getDeclaredField("applySound")
+-            t3.isAccessible = true
+-            val applySound = t3.get(realPotion) as? Optional<SoundEvent>
+-            applySound?.ifPresent { soundEvent -> itemJson.addProperty("apply_sound", BuiltInRegistries.SOUND_EVENT.getKey(soundEvent)!!.path)}
+-
+-            val attributesRegistry =
+-                server.registryAccess().lookupOrThrow(Registries.ATTRIBUTE)
+-
+-            val attributeModifiersJson = JsonArray()
+-            realPotion.createModifiers(0) { reg, mod ->
+-                val potionJson = JsonObject()
+-                potionJson.addProperty("attribute", attributesRegistry.getKey(reg.value())!!.path)
+-                potionJson.addProperty("operation", mod.operation.toString())
+-                potionJson.addProperty("id", mod.id.toString())
+-                potionJson.addProperty("baseValue", mod.amount)
+-                attributeModifiersJson.add(potionJson)
+-            }
+-            itemJson.add("attribute_modifiers", attributeModifiersJson)
+-
+-            BuiltInRegistries.MOB_EFFECT.getKey(realPotion)?.let { json.add(it.path, itemJson) }
+-        }
+-        return json
+-    }
+-}
+diff --git a/src/main/kotlin/de/snowii/extractor/extractors/Enchantments.kt b/src/main/kotlin/de/snowii/extractor/extractors/Enchantments.kt
+deleted file mode 100644
+index a472f65..0000000
+--- a/src/main/kotlin/de/snowii/extractor/extractors/Enchantments.kt
++++ /dev/null
+@@ -1,32 +0,0 @@
+-package de.snowii.extractor.extractors
+-
+-import com.google.gson.JsonElement
+-import com.google.gson.JsonObject
+-import com.mojang.serialization.JsonOps
+-import de.snowii.extractor.Extractor
+-import net.minecraft.world.item.enchantment.Enchantment
+-import net.minecraft.core.registries.Registries
+-import net.minecraft.resources.RegistryOps
+-import net.minecraft.server.MinecraftServer
+-
+-class Enchantments : Extractor.Extractor {
+-    override fun fileName(): String {
+-        return "enchantments.json"
+-    }
+-
+-    override fun extract(server: MinecraftServer): JsonElement {
+-        val finalJson = JsonObject()
+-        val registry =
+-            server.registryAccess().lookupOrThrow(Registries.ENCHANTMENT)
+-        for (enchantment in registry) {
+-            val sub = Enchantment.DIRECT_CODEC.encodeStart(
+-                RegistryOps.create(JsonOps.INSTANCE, server.registryAccess()), enchantment
+-            ).getOrThrow() as JsonObject
+-            sub.addProperty("id", registry.getId(enchantment))
+-            finalJson.add(
+-                registry.getKey(enchantment)!!.toString(), sub
+-            )
+-        }
+-        return finalJson
+-    }
+-}
+\ No newline at end of file
+diff --git a/src/main/kotlin/de/snowii/extractor/extractors/Entities.kt b/src/main/kotlin/de/snowii/extractor/extractors/Entities.kt
+deleted file mode 100644
+index 5355278..0000000
+--- a/src/main/kotlin/de/snowii/extractor/extractors/Entities.kt
++++ /dev/null
+@@ -1,93 +0,0 @@
+-package de.snowii.extractor.extractors
+-
+-import com.google.gson.JsonArray
+-import com.google.gson.JsonElement
+-import com.google.gson.JsonObject
+-import com.mojang.serialization.JsonOps
+-import de.snowii.extractor.Extractor
+-import net.minecraft.world.entity.LivingEntity
+-import net.minecraft.world.entity.SpawnPlacementTypes
+-import net.minecraft.world.entity.EntitySpawnReason
+-import net.minecraft.world.entity.SpawnPlacements
+-import net.minecraft.world.entity.Mob
+-import net.minecraft.world.level.storage.loot.LootTable
+-import net.minecraft.core.registries.BuiltInRegistries
+-import net.minecraft.resources.ResourceKey
+-import net.minecraft.resources.RegistryOps
+-import net.minecraft.server.MinecraftServer
+-
+-class Entities : Extractor.Extractor {
+-    override fun fileName(): String {
+-        return "entities.json"
+-    }
+-
+-    override fun extract(server: MinecraftServer): JsonElement {
+-        val entitiesJson = JsonObject()
+-        for (entityType in BuiltInRegistries.ENTITY_TYPE) {
+-            val entityJson = JsonObject()
+-            entityJson.addProperty("id", BuiltInRegistries.ENTITY_TYPE.getId(entityType))
+-            val entity = entityType.create(server.overworld()!!, EntitySpawnReason.NATURAL)
+-            if (entity != null) {
+-                if (entity is LivingEntity) {
+-                    entityJson.addProperty("max_health", entity.maxHealth)
+-                }
+-                entityJson.addProperty("attackable", entity.isAttackable)
+-                entityJson.addProperty("mob", entity is Mob)
+-                entityJson.addProperty("limit_per_chunk", (entity as? Mob)?.maxSpawnClusterSize ?: 0)
+-            }
+-            entityJson.addProperty("summonable", entityType.canSummon())
+-            entityJson.addProperty("saveable", entityType.canSerialize())
+-            entityJson.addProperty("fire_immune", entityType.fireImmune())
+-            entityJson.addProperty("category", entityType.category.name)
+-            entityJson.addProperty("can_spawn_far_from_player", entityType.canSpawnFarFromPlayer())
+-            val dimension = JsonArray()
+-            dimension.add(entityType.width)
+-            dimension.add(entityType.height)
+-            entityJson.add("dimension", dimension)
+-            entityJson.addProperty("eye_height", entityType.dimensions.eyeHeight)
+-            if (entityType.defaultLootTable.isPresent) {
+-                val table = server.reloadableRegistries()
+-                    .getLootTable(entityType.defaultLootTable.get())
+-                entityJson.add(
+-                    "loot_table", LootTable::DIRECT_CODEC.get().encodeStart(
+-                        RegistryOps.create(JsonOps.INSTANCE, server.registryAccess()),
+-                        table
+-                    ).getOrThrow()
+-                )
+-            }
+-            val spawnRestriction = JsonObject()
+-            val location = SpawnPlacements.getPlacementType(entityType)
+-            val locationName = when (location) {
+-                SpawnPlacementTypes::IN_LAVA.get() -> {
+-                    "IN_LAVA"
+-                }
+-
+-                SpawnPlacementTypes::IN_WATER.get() -> {
+-                    "IN_WATER"
+-                }
+-
+-                SpawnPlacementTypes::ON_GROUND.get() -> {
+-                    "ON_GROUND"
+-                }
+-
+-                SpawnPlacementTypes::NO_RESTRICTIONS.get() -> {
+-                    "UNRESTRICTED"
+-                }
+-
+-                else -> {
+-                    ""
+-                }
+-            }
+-
+-            spawnRestriction.addProperty("location", locationName)
+-            spawnRestriction.addProperty("heightmap", SpawnPlacements.getHeightmapType(entityType).toString())
+-            entityJson.add("spawn_restriction", spawnRestriction)
+-
+-            entitiesJson.add(
+-                BuiltInRegistries.ENTITY_TYPE.getKey(entityType).path, entityJson
+-            )
+-        }
+-
+-        return entitiesJson
+-    }
+-}
+diff --git a/src/main/kotlin/de/snowii/extractor/extractors/EntityAttributes.kt b/src/main/kotlin/de/snowii/extractor/extractors/EntityAttributes.kt
+deleted file mode 100644
+index 4d51648..0000000
+--- a/src/main/kotlin/de/snowii/extractor/extractors/EntityAttributes.kt
++++ /dev/null
+@@ -1,29 +0,0 @@
+-package de.snowii.extractor.extractors
+-
+-import com.google.gson.JsonElement
+-import com.google.gson.JsonObject
+-import de.snowii.extractor.Extractor
+-import net.minecraft.core.registries.BuiltInRegistries
+-import net.minecraft.server.MinecraftServer
+-
+-class EntityAttributes : Extractor.Extractor {
+-    override fun fileName(): String {
+-        return "attributes.json"
+-    }
+-
+-    override fun extract(server: MinecraftServer): JsonElement {
+-        val finalJson = JsonObject()
+-        for (attribute in BuiltInRegistries.ATTRIBUTE) {
+-            var subObject = JsonObject()
+-            subObject.addProperty("id", BuiltInRegistries.ATTRIBUTE.getId(attribute))
+-            subObject.addProperty("default_value", attribute.defaultValue)
+-
+-            finalJson.add(
+-                BuiltInRegistries.ATTRIBUTE.getKey(attribute)!!.path,
+-                subObject
+-            )
+-        }
+-
+-        return finalJson
+-    }
+-}
+\ No newline at end of file
+diff --git a/src/main/kotlin/de/snowii/extractor/extractors/Fluids.kt b/src/main/kotlin/de/snowii/extractor/extractors/Fluids.kt
+deleted file mode 100644
+index a0f8225..0000000
+--- a/src/main/kotlin/de/snowii/extractor/extractors/Fluids.kt
++++ /dev/null
+@@ -1,64 +0,0 @@
+-package de.snowii.extractor.extractors
+-
+-import com.google.gson.JsonArray
+-import com.google.gson.JsonElement
+-import com.google.gson.JsonObject
+-import de.snowii.extractor.Extractor
+-import net.minecraft.world.level.block.Block
+-import net.minecraft.core.registries.BuiltInRegistries
+-import net.minecraft.server.MinecraftServer
+-
+-class Fluids : Extractor.Extractor {
+-    override fun fileName(): String {
+-        return "fluids.json"
+-    }
+-
+-    override fun extract(server: MinecraftServer): JsonElement {
+-        val topLevelJson = JsonArray()
+-
+-        for (fluid in BuiltInRegistries.FLUID) {
+-            val fluidJson = JsonObject()
+-            fluidJson.addProperty("id", BuiltInRegistries.FLUID.getId(fluid))
+-            fluidJson.addProperty("name", BuiltInRegistries.FLUID.getKey(fluid).path)
+-
+-            val propsJson = JsonArray()
+-            for (prop in fluid.stateDefinition.properties) {
+-                val propJson = JsonObject()
+-
+-                propJson.addProperty("name", prop.name)
+-
+-                val valuesJson = JsonArray()
+-                for (value in prop.possibleValues) {
+-                    valuesJson.add(value.toString().lowercase())
+-                }
+-                propJson.add("values", valuesJson)
+-
+-                propsJson.add(propJson)
+-            }
+-            fluidJson.add("properties", propsJson)
+-
+-            val statesJson = JsonArray()
+-            for ((index, state) in fluid.stateDefinition.possibleStates.withIndex()) {
+-                val stateJson = JsonObject()
+-                stateJson.addProperty("height", state.ownHeight)
+-                stateJson.addProperty("level", state.amount)
+-                stateJson.addProperty("is_empty", state.isEmpty)
+-                stateJson.addProperty("blast_resistance", state.explosionResistance)
+-                stateJson.addProperty("block_state_id", Block.getId(state.createLegacyBlock()))
+-                stateJson.addProperty("is_still", state.isSource)
+-                // TODO: Particle effects
+-
+-                if (fluid.defaultFluidState() == state) {
+-                    fluidJson.addProperty("default_state_index", index)
+-                }
+-
+-                statesJson.add(stateJson)
+-            }
+-            fluidJson.add("states", statesJson)
+-
+-            topLevelJson.add(fluidJson)
+-        }
+-
+-        return topLevelJson
+-    }
+-}
+\ No newline at end of file
+diff --git a/src/main/kotlin/de/snowii/extractor/extractors/Fuels.kt b/src/main/kotlin/de/snowii/extractor/extractors/Fuels.kt
+deleted file mode 100644
+index 881053f..0000000
+--- a/src/main/kotlin/de/snowii/extractor/extractors/Fuels.kt
++++ /dev/null
+@@ -1,25 +0,0 @@
+-package de.snowii.extractor.extractors
+-
+-import com.google.gson.JsonElement
+-import com.google.gson.JsonObject
+-import com.google.gson.JsonPrimitive
+-import de.snowii.extractor.Extractor
+-import net.minecraft.world.item.Item
+-import net.minecraft.world.item.ItemStack
+-import net.minecraft.server.MinecraftServer
+-
+-
+-
+-class Fuels : Extractor.Extractor {
+-    override fun fileName(): String {
+-        return "fuels.json"
+-    }
+-
+-    override fun extract(server: MinecraftServer): JsonElement {
+-        val fuelsJson = JsonObject()
+-        server.fuelValues().fuelItems().forEach { fuel ->
+-            fuelsJson.add(Item.getId(fuel).toString(), JsonPrimitive(server.fuelValues().burnDuration(ItemStack(fuel))))
+-        }
+-        return fuelsJson
+-    }
+-}
+\ No newline at end of file
+diff --git a/src/main/kotlin/de/snowii/extractor/extractors/GameEvent.kt b/src/main/kotlin/de/snowii/extractor/extractors/GameEvent.kt
+deleted file mode 100644
+index f0319ad..0000000
+--- a/src/main/kotlin/de/snowii/extractor/extractors/GameEvent.kt
++++ /dev/null
+@@ -1,26 +0,0 @@
+-package de.snowii.extractor.extractors
+-
+-import com.google.gson.JsonArray
+-import com.google.gson.JsonElement
+-import de.snowii.extractor.Extractor
+-import net.minecraft.core.registries.Registries
+-import net.minecraft.server.MinecraftServer
+-
+-class GameEvent : Extractor.Extractor {
+-    override fun fileName(): String {
+-        return "game_event.json"
+-    }
+-
+-    override fun extract(server: MinecraftServer): JsonElement {
+-        val gameEventJson = JsonArray()
+-        val gameEventTypeRegistry =
+-            server.registryAccess().lookupOrThrow(Registries.GAME_EVENT)
+-        for (event in gameEventTypeRegistry) {
+-            gameEventJson.add(
+-                gameEventTypeRegistry.getKey(event)!!.path,
+-            )
+-        }
+-
+-        return gameEventJson
+-    }
+-}
+\ No newline at end of file
+diff --git a/src/main/kotlin/de/snowii/extractor/extractors/GameRules.kt b/src/main/kotlin/de/snowii/extractor/extractors/GameRules.kt
+deleted file mode 100644
+index 5359260..0000000
+--- a/src/main/kotlin/de/snowii/extractor/extractors/GameRules.kt
++++ /dev/null
+@@ -1,27 +0,0 @@
+-package de.snowii.extractor.extractors
+-
+-import com.google.gson.JsonElement
+-import com.google.gson.JsonObject
+-import de.snowii.extractor.Extractor
+-import net.minecraft.core.registries.Registries
+-import net.minecraft.server.MinecraftServer
+-import net.minecraft.world.level.gamerules.GameRuleType
+-
+-class GameRules : Extractor.Extractor {
+-    override fun fileName(): String {
+-        return "game_rules.json"
+-    }
+-
+-    override fun extract(server: MinecraftServer): JsonElement {
+-        val gameEventJson = JsonObject()
+-        val gameEventTypeRegistry =
+-            server.registryAccess().lookupOrThrow(Registries.GAME_RULE)
+-        for (rule in gameEventTypeRegistry) {
+-            when (rule.gameRuleType()) {
+-                GameRuleType.INT -> gameEventJson.addProperty(rule.toString(), rule.defaultValue() as Int)
+-                GameRuleType.BOOL -> gameEventJson.addProperty(rule.toString(), rule.defaultValue() as Boolean)
+-            }
+-        }
+-        return gameEventJson
+-    }
+-}
+\ No newline at end of file
+diff --git a/src/main/kotlin/de/snowii/extractor/extractors/Items.kt b/src/main/kotlin/de/snowii/extractor/extractors/Items.kt
+deleted file mode 100644
+index 17c778b..0000000
+--- a/src/main/kotlin/de/snowii/extractor/extractors/Items.kt
++++ /dev/null
+@@ -1,41 +0,0 @@
+-package de.snowii.extractor.extractors
+-
+-import com.google.gson.JsonElement
+-import com.google.gson.JsonObject
+-import com.mojang.serialization.JsonOps
+-import de.snowii.extractor.Extractor
+-import net.minecraft.core.component.DataComponentMap
+-import net.minecraft.world.item.Item
+-import net.minecraft.core.registries.BuiltInRegistries
+-import net.minecraft.core.registries.Registries
+-import net.minecraft.resources.RegistryOps
+-import net.minecraft.server.MinecraftServer
+-
+-
+-class Items : Extractor.Extractor {
+-    override fun fileName(): String {
+-        return "items.json"
+-    }
+-
+-
+-    override fun extract(server: MinecraftServer): JsonElement {
+-        val itemsJson = JsonObject()
+-
+-        for (item in server.registryAccess().lookupOrThrow(Registries.ITEM).listElements().toList()) {
+-            val itemJson = JsonObject()
+-            val realItem: Item = item.value()
+-
+-            itemJson.addProperty("id", BuiltInRegistries.ITEM.getId(realItem))
+-            itemJson.add(
+-                "components",
+-                DataComponentMap.CODEC.encodeStart(
+-                    RegistryOps.create(JsonOps.INSTANCE, server.registryAccess()),
+-                    realItem.components()
+-                ).getOrThrow()
+-            )
+-
+-            itemsJson.add(BuiltInRegistries.ITEM.getKey(realItem).path, itemJson)
+-        }
+-        return itemsJson
+-    }
+-}
+diff --git a/src/main/kotlin/de/snowii/extractor/extractors/MessageType.kt b/src/main/kotlin/de/snowii/extractor/extractors/MessageType.kt
+deleted file mode 100644
+index 322c27c..0000000
+--- a/src/main/kotlin/de/snowii/extractor/extractors/MessageType.kt
++++ /dev/null
+@@ -1,37 +0,0 @@
+-package de.snowii.extractor.extractors
+-
+-import com.google.gson.JsonElement
+-import com.google.gson.JsonObject
+-import com.mojang.serialization.JsonOps
+-import de.snowii.extractor.Extractor
+-import net.minecraft.network.chat.ChatType
+-import net.minecraft.core.registries.Registries
+-import net.minecraft.resources.RegistryOps
+-import net.minecraft.server.MinecraftServer
+-
+-class MessageType : Extractor.Extractor {
+-    override fun fileName(): String {
+-        return "message_type.json"
+-    }
+-
+-    override fun extract(server: MinecraftServer): JsonElement {
+-        val messagesJson = JsonObject()
+-        val messageTypeRegistry =
+-            server.registryAccess().lookupOrThrow(Registries.CHAT_TYPE)
+-        for (type in messageTypeRegistry) {
+-            val json = JsonObject()
+-            json.addProperty("id", messageTypeRegistry.getId(type))
+-            json.add(
+-                "components", ChatType.DIRECT_CODEC.encodeStart(
+-                    RegistryOps.create(JsonOps.INSTANCE, server.registryAccess()), type
+-                ).getOrThrow()
+-            )
+-            messagesJson.add(
+-                messageTypeRegistry.getKey(type)!!.path,
+-                json
+-            )
+-        }
+-
+-        return messagesJson
+-    }
+-}
+\ No newline at end of file
+diff --git a/src/main/kotlin/de/snowii/extractor/extractors/Packets.kt b/src/main/kotlin/de/snowii/extractor/extractors/Packets.kt
+deleted file mode 100644
+index 352b18d..0000000
+--- a/src/main/kotlin/de/snowii/extractor/extractors/Packets.kt
++++ /dev/null
+@@ -1,106 +0,0 @@
+-package de.snowii.extractor.extractors
+-
+-import com.google.gson.JsonArray
+-import com.google.gson.JsonElement
+-import com.google.gson.JsonObject
+-import de.snowii.extractor.Extractor
+-import net.minecraft.SharedConstants
+-import net.minecraft.network.ConnectionProtocol
+-import net.minecraft.network.ProtocolInfo
+-import net.minecraft.network.protocol.PacketType
+-import net.minecraft.network.protocol.configuration.ConfigurationProtocols
+-import net.minecraft.network.protocol.game.GameProtocols
+-import net.minecraft.network.protocol.handshake.HandshakeProtocols
+-import net.minecraft.network.protocol.login.LoginProtocols
+-import net.minecraft.network.protocol.status.StatusProtocols
+-import net.minecraft.server.MinecraftServer
+-
+-
+-class Packets : Extractor.Extractor {
+-    override fun fileName(): String {
+-        return "packets.json"
+-    }
+-
+-    override fun extract(server: MinecraftServer): JsonElement {
+-        val packetsJson = JsonObject()
+-
+-        val clientBound = arrayOf(
+-            StatusProtocols.CLIENTBOUND_TEMPLATE.details(),
+-            LoginProtocols.CLIENTBOUND_TEMPLATE.details(),
+-            ConfigurationProtocols.CLIENTBOUND_TEMPLATE.details(),
+-            GameProtocols.CLIENTBOUND_TEMPLATE.details()
+-        )
+-
+-        val serverBound = arrayOf(
+-            HandshakeProtocols.SERVERBOUND_TEMPLATE.details(),
+-            StatusProtocols.SERVERBOUND_TEMPLATE.details(),
+-            LoginProtocols.SERVERBOUND_TEMPLATE.details(),
+-            ConfigurationProtocols.SERVERBOUND_TEMPLATE.details(),
+-            GameProtocols.SERVERBOUND_TEMPLATE.details()
+-        )
+-        val serverBoundJson = serializeServerBound(serverBound)
+-        val clientBoundJson = serializeClientBound(clientBound)
+-        packetsJson.addProperty("version", SharedConstants.getProtocolVersion())
+-        packetsJson.add("serverbound", serverBoundJson)
+-        packetsJson.add("clientbound", clientBoundJson)
+-        return packetsJson
+-    }
+-
+-
+-    private fun serializeServerBound(
+-        packets: Array<ProtocolInfo.Details>
+-    ): JsonObject {
+-        val handshakeArray = JsonArray()
+-        val statusArray = JsonArray()
+-        val loginArray = JsonArray()
+-        val configArray = JsonArray()
+-        val playArray = JsonArray()
+-
+-        for (factory in packets) {
+-            factory.listPackets { type: PacketType<*>, _: Int ->
+-                when (factory.id()!!) {
+-                    ConnectionProtocol.HANDSHAKING -> handshakeArray.add(type.id().path)
+-                    ConnectionProtocol.PLAY -> playArray.add(type.id().path)
+-                    ConnectionProtocol.STATUS -> statusArray.add(type.id().path)
+-                    ConnectionProtocol.LOGIN -> loginArray.add(type.id().path)
+-                    ConnectionProtocol.CONFIGURATION -> configArray.add(type.id().path)
+-                }
+-            }
+-        }
+-
+-        val finalJson = JsonObject()
+-        finalJson.add("handshake", handshakeArray)
+-        finalJson.add("status", statusArray)
+-        finalJson.add("login", loginArray)
+-        finalJson.add("config", configArray)
+-        finalJson.add("play", playArray)
+-        return finalJson
+-    }
+-
+-    private fun serializeClientBound(
+-        packets: Array<ProtocolInfo.Details>
+-    ): JsonObject {
+-        val statusArray = JsonArray()
+-        val loginArray = JsonArray()
+-        val configArray = JsonArray()
+-        val playArray = JsonArray()
+-
+-        for (factory in packets) {
+-            factory.listPackets { type: PacketType<*>, _: Int ->
+-                when (factory.id()!!) {
+-                    ConnectionProtocol.HANDSHAKING -> error("Client bound Packet should have no handshake")
+-                    ConnectionProtocol.PLAY -> playArray.add(type.id().path)
+-                    ConnectionProtocol.STATUS -> statusArray.add(type.id().path)
+-                    ConnectionProtocol.LOGIN -> loginArray.add(type.id().path)
+-                    ConnectionProtocol.CONFIGURATION -> configArray.add(type.id().path)
+-                }
+-            }
+-        }
+-        val finalJson = JsonObject()
+-        finalJson.add("status", statusArray)
+-        finalJson.add("login", loginArray)
+-        finalJson.add("config", configArray)
+-        finalJson.add("play", playArray)
+-        return finalJson
+-    }
+-}
+diff --git a/src/main/kotlin/de/snowii/extractor/extractors/Particles.kt b/src/main/kotlin/de/snowii/extractor/extractors/Particles.kt
+deleted file mode 100644
+index 774f2b4..0000000
+--- a/src/main/kotlin/de/snowii/extractor/extractors/Particles.kt
++++ /dev/null
+@@ -1,25 +0,0 @@
+-package de.snowii.extractor.extractors
+-
+-import com.google.gson.JsonArray
+-import com.google.gson.JsonElement
+-import de.snowii.extractor.Extractor
+-import net.minecraft.core.registries.BuiltInRegistries
+-import net.minecraft.server.MinecraftServer
+-
+-
+-class Particles : Extractor.Extractor {
+-    override fun fileName(): String {
+-        return "particles.json"
+-    }
+-
+-    override fun extract(server: MinecraftServer): JsonElement {
+-        val particlesJson = JsonArray()
+-        for (particle in BuiltInRegistries.PARTICLE_TYPE) {
+-            particlesJson.add(
+-                BuiltInRegistries.PARTICLE_TYPE.getKey(particle)!!.path,
+-            )
+-        }
+-
+-        return particlesJson
+-    }
+-}
+diff --git a/src/main/kotlin/de/snowii/extractor/extractors/Potion.kt b/src/main/kotlin/de/snowii/extractor/extractors/Potion.kt
+deleted file mode 100644
+index 490408d..0000000
+--- a/src/main/kotlin/de/snowii/extractor/extractors/Potion.kt
++++ /dev/null
+@@ -1,44 +0,0 @@
+-package de.snowii.extractor.extractors
+-
+-import com.google.gson.JsonArray
+-import com.google.gson.JsonElement
+-import com.google.gson.JsonObject
+-import com.mojang.serialization.JsonOps
+-import de.snowii.extractor.Extractor
+-import net.minecraft.world.effect.MobEffectInstance
+-import net.minecraft.core.registries.BuiltInRegistries
+-import net.minecraft.core.registries.Registries
+-import net.minecraft.resources.RegistryOps
+-import net.minecraft.server.MinecraftServer
+-
+-
+-class Potion : Extractor.Extractor {
+-    override fun fileName(): String {
+-        return "potion.json"
+-    }
+-
+-
+-    override fun extract(server: MinecraftServer): JsonElement {
+-        val json = JsonObject()
+-        for (potion in server.registryAccess().lookupOrThrow(Registries.POTION).listElements().toList()) {
+-            val itemJson = JsonObject()
+-            val realPotion = potion.value()
+-            val array = JsonArray()
+-            itemJson.addProperty("id", BuiltInRegistries.POTION.getId(realPotion))
+-            itemJson.addProperty("base_name", realPotion.name())
+-            for (effect in realPotion.effects) {
+-                val obj = JsonObject()
+-                obj.addProperty("effect_type", effect.effect.unwrapKey().get().identifier().toString())
+-                obj.addProperty("duration", effect.duration)
+-                obj.addProperty("amplifier", effect.amplifier)
+-                obj.addProperty("ambient", effect.isAmbient)
+-                obj.addProperty("show_particles", effect.isVisible)
+-                obj.addProperty("show_icon", effect.showIcon())
+-                array.add(obj)
+-            }
+-            itemJson.add("effects", array)
+-            BuiltInRegistries.POTION.getKey(realPotion)?.let { json.add(it.path, itemJson) }
+-        }
+-        return json
+-    }
+-}
+diff --git a/src/main/kotlin/de/snowii/extractor/extractors/PotionBrewing.kt b/src/main/kotlin/de/snowii/extractor/extractors/PotionBrewing.kt
+deleted file mode 100644
+index 95c48b6..0000000
+--- a/src/main/kotlin/de/snowii/extractor/extractors/PotionBrewing.kt
++++ /dev/null
+@@ -1,91 +0,0 @@
+-package de.snowii.extractor.extractors
+-
+-import com.google.gson.JsonArray
+-import com.google.gson.JsonElement
+-import com.google.gson.JsonObject
+-import de.snowii.extractor.Extractor
+-import net.minecraft.world.item.alchemy.Potion
+-import net.minecraft.world.item.crafting.Ingredient
+-import net.minecraft.core.registries.BuiltInRegistries
+-import net.minecraft.core.Holder
+-import net.minecraft.server.MinecraftServer
+-
+-
+-class PotionBrewing : Extractor.Extractor {
+-    override fun fileName(): String {
+-        return "potion_brewing.json"
+-    }
+-
+-
+-    override fun extract(server: MinecraftServer): JsonElement {
+-        val json = JsonObject()
+-        val reg = server.potionBrewing()
+-
+-        val t = reg.javaClass.getDeclaredField("potionTypes")
+-        t.isAccessible = true
+-        val potionTypes = t.get(reg) as? List<Ingredient>
+-        val types = JsonArray()
+-        for (type in potionTypes!!) {
+-            val items = JsonArray()
+-            for (item in type.items()) {
+-                items.add(item.value().toString())
+-            }
+-            types.add(items)
+-        }
+-        json.add("potion_types", types)
+-
+-        val t2 = reg.javaClass.getDeclaredField("potionRecipes")
+-        t2.isAccessible = true
+-        val potionRecipes = t2.get(reg) as? List<*>
+-        val recipes = JsonArray()
+-        for (recipe in potionRecipes!!) {
+-            val recipeJson = JsonObject()
+-            val clazz = recipe?.javaClass
+-            clazz?.let {
+-                for (field in it.declaredFields) {
+-                    field.isAccessible = true
+-                    val value = field.get(recipe)
+-                    if (value is Holder<*>) {
+-                        recipeJson.addProperty(field.name, value.unwrapKey().get().identifier().toString())
+-                    } else if (value is Ingredient) {
+-                        val tags = JsonArray()
+-                        for (tag in value.items()) {
+-                            tags.add(tag.value().toString())
+-                        }
+-                        recipeJson.add(field.name, tags)
+-                    }
+-                }
+-            }
+-            recipes.add(recipeJson)
+-        }
+-        json.add("potion_recipes", recipes)
+-
+-        val t3 = reg.javaClass.getDeclaredField("itemRecipes")
+-        t3.isAccessible = true
+-        val itemRecipes = t3.get(reg) as? List<*>
+-        val recipes2 = JsonArray()
+-        for (recipe in itemRecipes!!) {
+-            val recipeJson = JsonObject()
+-            val clazz = recipe?.javaClass
+-            clazz?.let {
+-                for (field in it.declaredFields) {
+-                    field.isAccessible = true
+-                    val value = field.get(recipe)
+-                    if (value is Holder<*>) {
+-                        recipeJson.addProperty(field.name, value.unwrapKey().get().identifier().toString())
+-                    } else if (value is Ingredient) {
+-                        val tags = JsonArray()
+-                        for (tag in value.items()) {
+-                            tags.add(tag.value().toString())
+-                        }
+-                        recipeJson.add(field.name, tags)
+-                    }
+-                }
+-            }
+-            recipes2.add(recipeJson)
+-        }
+-        json.add("item_recipes", recipes2)
+-
+-        return json
+-    }
+-}
+diff --git a/src/main/kotlin/de/snowii/extractor/extractors/Screens.kt b/src/main/kotlin/de/snowii/extractor/extractors/Screens.kt
+deleted file mode 100644
+index 3c04c12..0000000
+--- a/src/main/kotlin/de/snowii/extractor/extractors/Screens.kt
++++ /dev/null
+@@ -1,24 +0,0 @@
+-package de.snowii.extractor.extractors
+-
+-import com.google.gson.JsonArray
+-import com.google.gson.JsonElement
+-import de.snowii.extractor.Extractor
+-import net.minecraft.core.registries.BuiltInRegistries
+-import net.minecraft.server.MinecraftServer
+-
+-class Screens : Extractor.Extractor {
+-    override fun fileName(): String {
+-        return "screens.json"
+-    }
+-
+-    override fun extract(server: MinecraftServer): JsonElement {
+-        val screensJson = JsonArray()
+-        for (screen in BuiltInRegistries.MENU) {
+-            screensJson.add(
+-                BuiltInRegistries.MENU.getKey(screen)!!.path,
+-            )
+-        }
+-
+-        return screensJson
+-    }
+-}
+diff --git a/src/main/kotlin/de/snowii/extractor/extractors/Sounds.kt b/src/main/kotlin/de/snowii/extractor/extractors/Sounds.kt
+deleted file mode 100644
+index 598bfa5..0000000
+--- a/src/main/kotlin/de/snowii/extractor/extractors/Sounds.kt
++++ /dev/null
+@@ -1,25 +0,0 @@
+-package de.snowii.extractor.extractors
+-
+-import com.google.gson.JsonArray
+-import com.google.gson.JsonElement
+-import de.snowii.extractor.Extractor
+-import net.minecraft.core.registries.BuiltInRegistries
+-import net.minecraft.server.MinecraftServer
+-
+-
+-class Sounds : Extractor.Extractor {
+-    override fun fileName(): String {
+-        return "sounds.json"
+-    }
+-
+-    override fun extract(server: MinecraftServer): JsonElement {
+-        val soundJson = JsonArray()
+-        for (sound in BuiltInRegistries.SOUND_EVENT) {
+-            soundJson.add(
+-                BuiltInRegistries.SOUND_EVENT.getKey(sound)!!.path,
+-            )
+-        }
+-
+-        return soundJson
+-    }
+-}
+diff --git a/src/main/kotlin/de/snowii/extractor/extractors/Tags.kt b/src/main/kotlin/de/snowii/extractor/extractors/Tags.kt
+deleted file mode 100644
+index 3f455fd..0000000
+--- a/src/main/kotlin/de/snowii/extractor/extractors/Tags.kt
++++ /dev/null
+@@ -1,39 +0,0 @@
+-package de.snowii.extractor.extractors
+-
+-import com.google.gson.JsonArray
+-import com.google.gson.JsonElement
+-import com.google.gson.JsonObject
+-import de.snowii.extractor.Extractor
+-import net.minecraft.tags.TagNetworkSerialization
+-import net.minecraft.server.MinecraftServer
+-
+-
+-class Tags : Extractor.Extractor {
+-    override fun fileName(): String {
+-        return "tags.json"
+-    }
+-
+-    override fun extract(server: MinecraftServer): JsonElement {
+-        val tagsJson = JsonObject()
+-
+-        val tags = TagNetworkSerialization.serializeTagsToNetwork(server.registries())
+-
+-        for (tag in tags.entries) {
+-            val tagGroupTagsJson = JsonObject()
+-            val tagValues =
+-                tag.value.resolve(server.registries().compositeAccess().lookupOrThrow(tag.key))
+-            for (value in tagValues.tags) {
+-                val tagGroupTagsJsonArray = JsonArray()
+-                for (tagVal in value.value) {
+-                    tagGroupTagsJsonArray.add(tagVal.unwrapKey().orElseThrow().identifier().path)
+-                }
+-                tagGroupTagsJson.add(value.key.location.toString(), tagGroupTagsJsonArray)
+-            }
+-            tagsJson.add(tag.key.identifier().path, tagGroupTagsJson)
+-        }
+-
+-        return tagsJson
+-    }
+-
+-
+-}
+diff --git a/src/main/kotlin/de/snowii/extractor/extractors/non_registry/ComposterIncreaseChance.kt b/src/main/kotlin/de/snowii/extractor/extractors/non_registry/ComposterIncreaseChance.kt
+deleted file mode 100644
+index fcd56e1..0000000
+--- a/src/main/kotlin/de/snowii/extractor/extractors/non_registry/ComposterIncreaseChance.kt
++++ /dev/null
+@@ -1,23 +0,0 @@
+-package de.snowii.extractor.extractors
+-
+-import com.google.gson.JsonElement
+-import com.google.gson.JsonObject
+-import com.google.gson.JsonPrimitive
+-import de.snowii.extractor.Extractor
+-import net.minecraft.world.level.block.ComposterBlock
+-import net.minecraft.core.registries.BuiltInRegistries
+-import net.minecraft.server.MinecraftServer
+-
+-class ComposterIncreaseChance : Extractor.Extractor {
+-    override fun fileName(): String {
+-        return "composter_increase_chance.json"
+-    }
+-
+-    override fun extract(server: MinecraftServer): JsonElement {
+-        val composterChancesJson = JsonObject()
+-        for ((item, chance) in ComposterBlock.COMPOSTABLES) {
+-            composterChancesJson.add(BuiltInRegistries.ITEM.getId(item.asItem()!!).toString(), JsonPrimitive(chance))
+-        }
+-        return composterChancesJson
+-    }
+-}
+diff --git a/src/main/kotlin/de/snowii/extractor/extractors/non_registry/EntityPose.kt b/src/main/kotlin/de/snowii/extractor/extractors/non_registry/EntityPose.kt
+deleted file mode 100644
+index c6f2efa..0000000
+--- a/src/main/kotlin/de/snowii/extractor/extractors/non_registry/EntityPose.kt
++++ /dev/null
+@@ -1,24 +0,0 @@
+-package de.snowii.extractor.extractors.non_registry
+-
+-import com.google.gson.JsonArray
+-import com.google.gson.JsonElement
+-import de.snowii.extractor.Extractor
+-import net.minecraft.world.entity.Pose
+-import net.minecraft.server.MinecraftServer
+-
+-class EntityPose : Extractor.Extractor {
+-    override fun fileName(): String {
+-        return "entity_pose.json"
+-    }
+-
+-    override fun extract(server: MinecraftServer): JsonElement {
+-        val poseesJson = JsonArray()
+-        for (pose in Pose.entries) {
+-            poseesJson.add(
+-                pose.name,
+-            )
+-        }
+-
+-        return poseesJson
+-    }
+-}
+\ No newline at end of file
+diff --git a/src/main/kotlin/de/snowii/extractor/extractors/non_registry/EntityStatuses.kt b/src/main/kotlin/de/snowii/extractor/extractors/non_registry/EntityStatuses.kt
+deleted file mode 100644
+index a7ec855..0000000
+--- a/src/main/kotlin/de/snowii/extractor/extractors/non_registry/EntityStatuses.kt
++++ /dev/null
+@@ -1,29 +0,0 @@
+-package de.snowii.extractor.extractors.non_registry
+-
+-import com.google.gson.JsonElement
+-import com.google.gson.JsonObject
+-import de.snowii.extractor.Extractor
+-import net.minecraft.world.entity.EntityEvent
+-import net.minecraft.server.MinecraftServer
+-
+-class EntityStatuses : Extractor.Extractor {
+-    override fun fileName(): String {
+-        return "entity_statuses.json"
+-    }
+-
+-    override fun extract(server: MinecraftServer): JsonElement {
+-        val jsonObject = JsonObject()
+-        val fields = EntityEvent::class.java.declaredFields
+-
+-        for (field in fields) {
+-            if (field.type == Byte::class.javaPrimitiveType || field.type == Byte::class.java) {
+-                if (field.name.startsWith("field")) continue
+-                field.isAccessible = true
+-                val byteValue = field.get(null) as Byte
+-                jsonObject.addProperty(field.name, byteValue)
+-            }
+-        }
+-
+-        return jsonObject
+-    }
+-}
+\ No newline at end of file
+diff --git a/src/main/kotlin/de/snowii/extractor/extractors/non_registry/FlowerPotTransformation.kt b/src/main/kotlin/de/snowii/extractor/extractors/non_registry/FlowerPotTransformation.kt
+deleted file mode 100644
+index 7fa2dba..0000000
+--- a/src/main/kotlin/de/snowii/extractor/extractors/non_registry/FlowerPotTransformation.kt
++++ /dev/null
+@@ -1,27 +0,0 @@
+-package de.snowii.extractor.extractors.non_registry
+-
+-import com.google.gson.JsonElement
+-import com.google.gson.JsonObject
+-import com.google.gson.JsonPrimitive
+-import de.snowii.extractor.Extractor
+-import net.minecraft.world.level.block.FlowerPotBlock
+-import net.minecraft.core.registries.BuiltInRegistries
+-import net.minecraft.server.MinecraftServer
+-
+-class FlowerPotTransformation : Extractor.Extractor {
+-    override fun fileName(): String {
+-        return "flower_pot_transformations.json"
+-    }
+-
+-    override fun extract(server: MinecraftServer): JsonElement {
+-        val flowerPotsJson = JsonObject()
+-        for ((block, pottedBlock) in FlowerPotBlock.POTTED_BY_CONTENT){
+-            if (BuiltInRegistries.BLOCK.getId(block) == 0) continue
+-            flowerPotsJson.add(
+-                BuiltInRegistries.ITEM.getId(block.asItem()!!).toString(),
+-                JsonPrimitive(BuiltInRegistries.BLOCK.getId(pottedBlock)))
+-        }
+-
+-        return flowerPotsJson
+-    }
+-}
+\ No newline at end of file
+diff --git a/src/main/kotlin/de/snowii/extractor/extractors/non_registry/Properties.kt b/src/main/kotlin/de/snowii/extractor/extractors/non_registry/Properties.kt
+deleted file mode 100644
+index 8dfec74..0000000
+--- a/src/main/kotlin/de/snowii/extractor/extractors/non_registry/Properties.kt
++++ /dev/null
+@@ -1,73 +0,0 @@
+-package de.snowii.extractor.extractors.non_registry
+-
+-import com.google.gson.JsonArray
+-import com.google.gson.JsonElement
+-import com.google.gson.JsonObject
+-import de.snowii.extractor.Extractor
+-import net.minecraft.server.MinecraftServer
+-import net.minecraft.world.level.block.state.properties.BooleanProperty
+-import net.minecraft.world.level.block.state.properties.EnumProperty
+-import net.minecraft.world.level.block.state.properties.IntegerProperty
+-import net.minecraft.world.level.block.state.properties.Property
+-import java.lang.reflect.Modifier
+-
+-class Properties : Extractor.Extractor {
+-    override fun fileName(): String {
+-        return "properties.json"
+-    }
+-
+-    override fun extract(server: MinecraftServer): JsonElement {
+-        val topLevelJson = JsonArray()
+-
+-        for (field in net.minecraft.world.level.block.state.properties.BlockStateProperties::class.java.declaredFields) {
+-            if (Modifier.isStatic(field.modifiers)) {
+-                val maybeProperty = field.get(null)
+-                if (maybeProperty is Property<*>) {
+-                    val property = JsonObject()
+-                    // The key used by Blocks.json to map to a property
+-                    property.addProperty("hash_key", maybeProperty.hashCode())
+-                    // The unique enum name
+-                    property.addProperty("enum_name", field.name.lowercase())
+-                    // What the enum is serialized as, may overlap with others
+-                    property.addProperty("serialized_name", maybeProperty.name.lowercase())
+-
+-                    when (maybeProperty) {
+-                        is BooleanProperty -> {
+-                            property.addProperty("type", "boolean")
+-                        }
+-
+-                        is IntegerProperty -> {
+-                            var min: Int? = null
+-                            var max: Int? = null
+-                            for (intField in IntegerProperty::class.java.declaredFields) {
+-                                intField.trySetAccessible()
+-                                if (intField.name == "min") {
+-                                    min = intField.get(maybeProperty) as Int
+-                                } else if (intField.name == "max") {
+-                                    max = intField.get(maybeProperty) as Int
+-                                }
+-                            }
+-                            property.addProperty("type", "int")
+-                            property.addProperty("min", min!!)
+-                            property.addProperty("max", max!!)
+-                        }
+-
+-                        is EnumProperty<*> -> {
+-                            property.addProperty("type", "enum")
+-                            val enumArr = JsonArray()
+-                            for (value in maybeProperty.possibleValues) {
+-                                enumArr.add(value.toString().lowercase())
+-                            }
+-                            property.add("values", enumArr)
+-                        }
+-
+-                        else -> throw Exception("Unhandled property type: " + maybeProperty.javaClass.toString())
+-                    }
+-
+-                    topLevelJson.add(property)
+-                }
+-            }
+-        }
+-        return topLevelJson
+-    }
+-}
+\ No newline at end of file
+diff --git a/src/main/kotlin/de/snowii/extractor/extractors/non_registry/ScoreboardDisplaySlot.kt b/src/main/kotlin/de/snowii/extractor/extractors/non_registry/ScoreboardDisplaySlot.kt
+deleted file mode 100644
+index 794ce11..0000000
+--- a/src/main/kotlin/de/snowii/extractor/extractors/non_registry/ScoreboardDisplaySlot.kt
++++ /dev/null
+@@ -1,24 +0,0 @@
+-package de.snowii.extractor.extractors.non_registry
+-
+-import com.google.gson.JsonArray
+-import com.google.gson.JsonElement
+-import de.snowii.extractor.Extractor
+-import net.minecraft.world.scores.DisplaySlot
+-import net.minecraft.server.MinecraftServer
+-
+-class ScoreboardDisplaySlot : Extractor.Extractor {
+-    override fun fileName(): String {
+-        return "scoreboard_display_slot.json"
+-    }
+-
+-    override fun extract(server: MinecraftServer): JsonElement {
+-        val finalJson = JsonArray()
+-        for (slot in DisplaySlot.entries) {
+-            finalJson.add(
+-                slot.name,
+-            )
+-        }
+-
+-        return finalJson
+-    }
+-}
+\ No newline at end of file
+diff --git a/src/main/kotlin/de/snowii/extractor/extractors/non_registry/SoundCategory.kt b/src/main/kotlin/de/snowii/extractor/extractors/non_registry/SoundCategory.kt
+deleted file mode 100644
+index 34c542e..0000000
+--- a/src/main/kotlin/de/snowii/extractor/extractors/non_registry/SoundCategory.kt
++++ /dev/null
+@@ -1,24 +0,0 @@
+-package de.snowii.extractor.extractors.non_registry
+-
+-import com.google.gson.JsonArray
+-import com.google.gson.JsonElement
+-import de.snowii.extractor.Extractor
+-import net.minecraft.server.MinecraftServer
+-import net.minecraft.sounds.SoundSource
+-
+-class SoundCategory : Extractor.Extractor {
+-    override fun fileName(): String {
+-        return "sound_category.json"
+-    }
+-
+-    override fun extract(server: MinecraftServer): JsonElement {
+-        val categoriesJson = JsonArray()
+-        for (category in SoundSource.entries) {
+-            categoriesJson.add(
+-                category.name,
+-            )
+-        }
+-
+-        return categoriesJson
+-    }
+-}
+\ No newline at end of file
+diff --git a/src/main/kotlin/de/snowii/extractor/extractors/non_registry/Translations.kt b/src/main/kotlin/de/snowii/extractor/extractors/non_registry/Translations.kt
+deleted file mode 100644
+index 6c61051..0000000
+--- a/src/main/kotlin/de/snowii/extractor/extractors/non_registry/Translations.kt
++++ /dev/null
+@@ -1,30 +0,0 @@
+-package de.snowii.extractor.extractors.non_registry
+-
+-import com.google.gson.Gson
+-import com.google.gson.GsonBuilder
+-import com.google.gson.JsonElement
+-import com.google.gson.JsonObject
+-import de.snowii.extractor.Extractor
+-import net.minecraft.server.MinecraftServer
+-import java.io.InputStreamReader
+-import java.nio.charset.StandardCharsets
+-
+-class Translations : Extractor.Extractor {
+-    private val gson: Gson = GsonBuilder().disableHtmlEscaping().create()
+-
+-    override fun fileName(): String {
+-        return "en_us.json"
+-    }
+-
+-    override fun extract(server: MinecraftServer): JsonElement {
+-        val inputStream = this.javaClass.getResourceAsStream("/assets/minecraft/lang/en_us.json")
+-            ?: throw IllegalArgumentException("Could not find lang en_us.json")
+-
+-        return inputStream.use { stream ->
+-            gson.fromJson(
+-                InputStreamReader(stream, StandardCharsets.UTF_8),
+-                JsonObject::class.java
+-            ) as JsonObject
+-        }
+-    }
+-}
+\ No newline at end of file
+diff --git a/src/main/kotlin/de/snowii/extractor/extractors/non_registry/WorldEvent.kt b/src/main/kotlin/de/snowii/extractor/extractors/non_registry/WorldEvent.kt
+deleted file mode 100644
+index 6c72c85..0000000
+--- a/src/main/kotlin/de/snowii/extractor/extractors/non_registry/WorldEvent.kt
++++ /dev/null
+@@ -1,29 +0,0 @@
+-package de.snowii.extractor.extractors.non_registry
+-
+-import com.google.gson.JsonElement
+-import com.google.gson.JsonObject
+-import de.snowii.extractor.Extractor
+-import net.minecraft.server.MinecraftServer
+-import net.minecraft.world.level.block.LevelEvent
+-
+-class WorldEvent : Extractor.Extractor {
+-    override fun fileName(): String {
+-        return "world_event.json"
+-    }
+-
+-    override fun extract(server: MinecraftServer): JsonElement {
+-        val jsonObject = JsonObject()
+-        val fields = LevelEvent::class.java.declaredFields
+-
+-        for (field in fields) {
+-            if (field.type == Int::class.javaPrimitiveType || field.type == Int::class.java) {
+-                if (field.name.startsWith("field")) continue
+-                field.isAccessible = true
+-                val intValue = field.get(null) as Int
+-                jsonObject.addProperty(field.name, intValue)
+-            }
+-        }
+-
+-        return jsonObject
+-    }
+-}
+\ No newline at end of file
+diff --git a/src/main/resources/extractor.accesswidener b/src/main/resources/extractor.accesswidener
+index abff5c9..f50a68f 100644
+--- a/src/main/resources/extractor.accesswidener
++++ b/src/main/resources/extractor.accesswidener
+@@ -1,8 +1,7 @@
+-accessWidener v2 official
++accessWidener v2 named
+ 
+ accessible method net/minecraft/world/level/block/FireBlock getBurnOdds (Lnet/minecraft/world/level/block/state/BlockState;)I
+ accessible method net/minecraft/world/level/block/FireBlock getIgniteOdds (Lnet/minecraft/world/level/block/state/BlockState;)I
+-accessible field net/minecraft/world/level/block/FlowerPotBlock POTTED_BY_CONTENT Ljava/util/Map;
+ 
+ accessible field net/minecraft/world/level/block/state/BlockBehaviour$Properties forceSolidOn Z
+ accessible field net/minecraft/world/level/block/state/BlockBehaviour$Properties forceSolidOff Z
+-- 
+2.56.0
+
