@@ -255,6 +255,14 @@ pub struct GamePacketHandler<'a> {
     pub ecs: &'a mut World,
     pub player: Entity,
 }
+
+/// The close reason when a player chat or a chat delete names a signature
+/// that isn't in the cache: vanilla 1.21.4 disconnects with
+/// `multiplayer.disconnect.invalid_packet` (`handlePlayerChat`,
+/// `handleDeleteChat`).
+pub const UNCACHED_SIGNATURE_CLOSE: &str =
+    "multiplayer.disconnect.invalid_packet: a chat packet names a signature that isn't cached";
+
 impl GamePacketHandler<'_> {
     pub fn login(&mut self, p: &ClientboundLogin) {
         debug!("Got login packet");
@@ -1209,6 +1217,7 @@ impl GamePacketHandler<'_> {
         // vanilla handlePlayerChat + markMessageAsProcessed: resolve the
         // body's packed last-seen list, push it to the signature cache, track
         // the signature, acknowledge past 64 pending
+        let mut uncached = false;
         as_system::<(
             Commands,
             Query<(
@@ -1223,10 +1232,12 @@ impl GamePacketHandler<'_> {
                 return;
             };
             let Some(last_seen) = st.cache.unpack_all(&p.body.last_seen) else {
-                // vanilla disconnects (invalid packet); the message is only
-                // dropped here and counted, the chat state stays consistent
+                // vanilla disconnects (`multiplayer.disconnect.invalid_packet`):
+                // the message can't go into the cache or the window, so the
+                // server's view of both and ours would part; closed below
                 warn!("player chat refers to a signature that isn't cached");
                 record_decode_error(DecodeErrorKind::HandlerState);
+                uncached = true;
                 return;
             };
             st.cache.push(&last_seen, p.signature.as_ref());
@@ -1243,6 +1254,15 @@ impl GamePacketHandler<'_> {
                 }
             }
         });
+
+        if uncached {
+            crate::bad_packet::close_connection(
+                self.ecs,
+                self.player,
+                UNCACHED_SIGNATURE_CLOSE.to_owned(),
+            );
+            return;
+        }
 
         as_system::<MessageWriter<_>>(self.ecs, |mut events| {
             events.write(ChatReceivedEvent {
@@ -1538,6 +1558,7 @@ impl GamePacketHandler<'_> {
 
     pub fn delete_chat(&mut self, p: &ClientboundDeleteChat) {
         debug!("Got delete chat packet");
+        let mut uncached = false;
         as_system::<Query<&mut crate::secure_chat::SecureChatState>>(self.ecs, |mut query| {
             let Ok(mut st) = query.get_mut(self.player) else {
                 // decode error hook: a delete before a play login
@@ -1547,11 +1568,20 @@ impl GamePacketHandler<'_> {
             match st.cache.unpack(&p.signature) {
                 Some(sig) => st.tracker.ignore_pending(&sig),
                 None => {
+                    // vanilla handleDeleteChat disconnects (invalid packet)
                     warn!("delete chat refers to a signature that isn't cached");
                     record_decode_error(DecodeErrorKind::HandlerState);
+                    uncached = true;
                 }
             }
         });
+        if uncached {
+            crate::bad_packet::close_connection(
+                self.ecs,
+                self.player,
+                UNCACHED_SIGNATURE_CLOSE.to_owned(),
+            );
+        }
     }
 
     pub fn explode(&mut self, p: &ClientboundExplode) {
