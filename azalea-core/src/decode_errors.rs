@@ -112,6 +112,24 @@ pub enum DecodeErrorKind {
     /// teleport, start configuration, our own entity, frame errors) couldn't
     /// be decoded, so the connection was closed for a reconnect.
     PolicyClose,
+    /// Bad packet policy: a packet that couldn't be decoded whole was
+    /// applied from the part of its body that could be read, as vanilla
+    /// would have applied it (keep-alive, ping, chunk batch finished and
+    /// block changed ack get the reply the server waits for; an explosion's
+    /// knockback is applied, its particle and sound dropped).
+    PrefixApplied,
+    /// Bad packet policy: an entity spawn couldn't be decoded, so a
+    /// placeholder entity was spawned from the fields that could be read
+    /// (id, uuid, type, position), marked stale.
+    PlaceholderEntity,
+    /// Bad packet policy: a tab list update or removal couldn't be decoded,
+    /// so the client's tab list (and the game profiles taken from it) is
+    /// stale until the next login.
+    TabListStale,
+    /// A player entity was spawned whose uuid isn't in our tab list (vanilla
+    /// would skip the spawn); it's kept, without a game profile, marked
+    /// `MissingProfile` (azalea-client).
+    MissingProfile,
 }
 
 impl DecodeErrorKind {
@@ -201,6 +219,10 @@ kinds! {
     StaleEntity => stale_entity,
     ChunkUnknown => chunk_unknown,
     PolicyClose => policy_close,
+    PrefixApplied => prefix_applied,
+    PlaceholderEntity => placeholder_entity,
+    TabListStale => tab_list_stale,
+    MissingProfile => missing_profile,
 }
 
 fn counter(kind: DecodeErrorKind) -> &'static AtomicU64 {
