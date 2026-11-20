@@ -120,6 +120,7 @@ pub(crate) fn read_bytes<'a>(
 ) -> Result<&'a [u8], BufReadError> {
     let data = *buf.get_ref();
     let initial_position = (buf.position() as usize).min(data.len());
+    // network-safe: initial_position is at most data.len() (min above)
     let Some(bytes) = data[initial_position..].get(..length) else {
         return Err(BufReadError::UnexpectedEof {
             attempted_read: length,
@@ -179,10 +180,19 @@ pub(crate) fn write_utf_with_len(
     string: &str,
     max_len: u32,
 ) -> io::Result<()> {
-    let actual_len = string.len();
-    if actual_len > max_len as usize {
-        panic!("String too big (was {actual_len} bytes encoded, max {max_len})");
+    // Utf8String.write: the limit is in UTF-16 units (each is at least one
+    // byte, so only count them when the byte length is over it). An error,
+    // not a panic: strings we send can come from the server (item
+    // components in container clicks, for example)
+    if string.len() > max_len as usize {
+        let units = string.encode_utf16().count();
+        if units > max_len as usize {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("String too big (was {units} characters, max {max_len})"),
+            ));
+        }
     }
-    string.as_bytes().to_vec().azalea_write(buf)?;
-    Ok(())
+    (string.len() as u32).azalea_write_var(buf)?;
+    buf.write_all(string.as_bytes())
 }

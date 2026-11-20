@@ -27,8 +27,9 @@ impl SerializableUuid for Uuid {
     }
 
     fn from_int_array(array: [u32; 4]) -> Self {
-        let most = ((array[0] as u64) << 32) | ((array[1] as u64) & 0xFFFFFFFF);
-        let least = ((array[2] as u64) << 32) | ((array[3] as u64) & 0xFFFFFFFF);
+        let [a, b, c, d] = array;
+        let most = ((a as u64) << 32) | ((b as u64) & 0xFFFFFFFF);
+        let least = ((c as u64) << 32) | ((d as u64) & 0xFFFFFFFF);
 
         Uuid::from_u128(((most as u128) << 64) | least as u128)
     }

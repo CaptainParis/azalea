@@ -161,6 +161,18 @@ mod tests {
     }
 
     #[test]
+    fn test_write_string_limit_is_an_error() {
+        // Utf8String.write: at most 32767 UTF-16 units, an error (not a
+        // panic) past that
+        let ok = "\u{20ac}".repeat(32767);
+        let mut buf = Vec::new();
+        ok.azalea_write(&mut buf).unwrap();
+        assert_eq!(String::azalea_read(&mut Cursor::new(&buf[..])).unwrap(), ok);
+        let too_long = "\u{20ac}".repeat(32768);
+        assert!(too_long.azalea_write(&mut Vec::new()).is_err());
+    }
+
+    #[test]
     fn test_read_varint_too_big() {
         // VarInt.read/VarLong.read: a continuation bit on the last allowed
         // byte is an error, not the value so far

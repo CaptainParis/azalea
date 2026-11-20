@@ -54,6 +54,8 @@ impl<'a> Checker<'a> {
     }
 
     fn take(&mut self, n: usize) -> Result<&'a [u8], BufReadError> {
+        // network-safe: pos starts at most data.len() and only moves past
+        // bytes that were there
         let Some(bytes) = self.data[self.pos..].get(..n) else {
             return Err(self.eof(n));
         };
@@ -61,13 +63,19 @@ impl<'a> Checker<'a> {
         Ok(bytes)
     }
 
+    fn bytes<const N: usize>(&mut self) -> Result<[u8; N], BufReadError> {
+        let mut out = [0; N];
+        // take(N) returns exactly N bytes, so copy_from_slice can't panic
+        out.copy_from_slice(self.take(N)?);
+        Ok(out)
+    }
+
     fn u8(&mut self) -> Result<u8, BufReadError> {
-        Ok(self.take(1)?[0])
+        Ok(u8::from_be_bytes(self.bytes()?))
     }
 
     fn i32(&mut self) -> Result<i32, BufReadError> {
-        let b = self.take(4)?;
-        Ok(i32::from_be_bytes([b[0], b[1], b[2], b[3]]))
+        Ok(i32::from_be_bytes(self.bytes()?))
     }
 
     /// `NbtAccounter.accountBytes`
@@ -98,8 +106,7 @@ impl<'a> Checker<'a> {
     /// starts one unit, as modified UTF-8 writes supplementary characters as
     /// two 3-byte surrogates).
     fn string(&mut self) -> Result<(&'a [u8], u64), BufReadError> {
-        let len = self.take(2)?;
-        let len = u16::from_be_bytes([len[0], len[1]]) as usize;
+        let len = u16::from_be_bytes(self.bytes()?) as usize;
         let bytes = self.take(len)?;
         let units = bytes.iter().filter(|&&b| b & 0xc0 != 0x80).count() as u64;
         Ok((bytes, units))

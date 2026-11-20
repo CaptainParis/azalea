@@ -14,8 +14,12 @@ use crate::{
 
 impl AzBuf for UnsizedByteArray {
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
-        // read to end of the buffer
-        let data = buf.get_ref()[buf.position() as usize..].to_vec();
+        // read to end of the buffer (nothing if the position is past it)
+        let data = buf
+            .get_ref()
+            .get(buf.position() as usize..)
+            .unwrap_or_default()
+            .to_vec();
         buf.set_position((buf.position()) + data.len() as u64);
         Ok(UnsizedByteArray(data))
     }
@@ -271,6 +275,8 @@ impl<T: AzBuf, const N: usize> AzBuf for [T; N] {
         }
         Ok(contents
             .try_into()
+            // network-safe: exactly N elements were pushed above (any read
+            // error returned early)
             .unwrap_or_else(|_| unreachable!("The vec is the same size as the array")))
     }
     fn azalea_write(&self, buf: &mut impl Write) -> io::Result<()> {

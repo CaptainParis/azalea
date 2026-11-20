@@ -1,4 +1,4 @@
-use std::io::{self, Cursor, Read, Write};
+use std::io::{self, Cursor, Write};
 
 use byteorder::{BE, ReadBytesExt, WriteBytesExt};
 use tracing::warn;
@@ -29,12 +29,11 @@ impl AzBufVar for i32 {
     /// Read a single varint from the reader and return the value
     fn azalea_read_var(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
         // fast varint impl based on https://github.com/luojia65/mc-varint/blob/master/src/lib.rs#L67
-        let mut buffer = [0];
         let mut ans = 0;
         for i in 0..5 {
-            buf.read_exact(&mut buffer)?;
-            ans |= ((buffer[0] & 0b0111_1111) as i32) << (7 * i);
-            if buffer[0] & 0b1000_0000 == 0 {
+            let byte = buf.read_u8()?;
+            ans |= ((byte & 0b0111_1111) as i32) << (7 * i);
+            if byte & 0b1000_0000 == 0 {
                 return Ok(ans);
             }
         }
@@ -43,18 +42,17 @@ impl AzBufVar for i32 {
     }
 
     fn azalea_write_var(&self, buf: &mut impl Write) -> io::Result<()> {
-        let mut buffer = [0];
         let mut value = *self;
         if value == 0 {
-            buf.write_all(&buffer)?;
+            buf.write_all(&[0])?;
         }
         while value != 0 {
-            buffer[0] = (value & 0b0111_1111) as u8;
+            let mut byte = (value & 0b0111_1111) as u8;
             value = (value >> 7) & (i32::MAX >> 6);
             if value != 0 {
-                buffer[0] |= 0b1000_0000;
+                byte |= 0b1000_0000;
             }
-            buf.write_all(&buffer)?;
+            buf.write_all(&[byte])?;
         }
         Ok(())
     }
@@ -62,13 +60,11 @@ impl AzBufVar for i32 {
 
 impl AzBufVar for i64 {
     fn azalea_read_var(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
-        let mut buffer = [0];
         let mut ans = 0;
         for i in 0..10 {
-            buf.read_exact(&mut buffer)
-                .map_err(|_| BufReadError::InvalidVarLong)?;
-            ans |= ((buffer[0] & 0b0111_1111) as i64) << (7 * i);
-            if buffer[0] & 0b1000_0000 == 0 {
+            let byte = buf.read_u8().map_err(|_| BufReadError::InvalidVarLong)?;
+            ans |= ((byte & 0b0111_1111) as i64) << (7 * i);
+            if byte & 0b1000_0000 == 0 {
                 return Ok(ans);
             }
         }
@@ -77,18 +73,17 @@ impl AzBufVar for i64 {
     }
 
     fn azalea_write_var(&self, buf: &mut impl Write) -> io::Result<()> {
-        let mut buffer = [0];
         let mut value = *self;
         if value == 0 {
-            buf.write_all(&buffer).unwrap();
+            buf.write_all(&[0])?;
         }
         while value != 0 {
-            buffer[0] = (value & 0b0111_1111) as u8;
+            let mut byte = (value & 0b0111_1111) as u8;
             value = (value >> 7) & (i64::MAX >> 6);
             if value != 0 {
-                buffer[0] |= 0b1000_0000;
+                byte |= 0b1000_0000;
             }
-            buf.write_all(&buffer)?;
+            buf.write_all(&[byte])?;
         }
         Ok(())
     }
