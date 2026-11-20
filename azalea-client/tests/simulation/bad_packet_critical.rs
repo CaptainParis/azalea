@@ -145,7 +145,7 @@ fn bad_configuration_packet_closes_the_connection() {
     let events = events.lock();
     assert_eq!(events.len(), 1, "{events:?}");
     assert_eq!(events[0].state, ConnectionProtocol::Configuration);
-    assert_eq!(events[0].class, None);
+    assert_eq!(events[0].class, Some(PacketClass::Critical));
     assert!(matches!(events[0].action, BadPacketAction::Closed { .. }));
     assert_eq!(disconnects.lock().len(), 1);
 }

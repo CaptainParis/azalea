@@ -24,8 +24,12 @@
 //! - chunk and block packets: the chunk is unknown, treated as unloaded
 //!   ([`UnknownChunks`]);
 //! - everything with no safe repair (login, respawn, teleport, start
-//!   configuration, our own entity, keep-alive, configuration and login states,
+//!   configuration, our own entity, registries and tags, the login state,
 //!   unknown ids): the connection is closed and an alert raised.
+//!
+//! Configuration packets are classed too ([`classify_config`]): display-only
+//! ones (server links, report details, custom payloads) are dropped, so a bad
+//! one during a queue-to-main transfer doesn't cost the session.
 //!
 //! Every outcome is counted ([`DecodeErrorKind`]) and sent as a
 //! [`BadPacketEvent`], which carries the raw packet bytes (for a proxy to
@@ -155,7 +159,6 @@ pub fn classify_game(name: &str) -> Option<PacketClass> {
         | "sound_entity"
         | "sound"
         | "stop_sound"
-        | "store_cookie"
         | "system_chat"
         | "tab_list"
         | "tag_query"
@@ -232,7 +235,57 @@ pub fn classify_game(name: &str) -> Option<PacketClass> {
         | "block_changed_ack"
         | "ticking_state"
         | "ticking_step"
-        | "move_vehicle" => Critical,
+        | "move_vehicle"
+        // state the server reads back after a transfer (as in configuration)
+        | "store_cookie" => Critical,
+
+        _ => return None,
+    })
+}
+
+/// The class of a clientbound configuration packet, by its name. `None` for a
+/// name that isn't one.
+///
+/// Configuration also runs in the middle of a session (a proxy moving us from
+/// the queue to the main server sends `start_configuration`, then a whole
+/// configuration phase), so a display-only packet there must not cost the
+/// session either.
+pub fn classify_config(name: &str) -> Option<PacketClass> {
+    use PacketClass::*;
+    Some(match name {
+        // 1.21.4 ClientCommonPacketListenerImpl and
+        // ClientConfigurationPacketListenerImpl: server links and report
+        // details only feed the pause and crash report screens; custom
+        // payloads (brand, plugin channels) are only logged by Azalea;
+        // reset_chat clears the chat display; resource_pack_pop unloads a
+        // pack, and a bot never loads one
+        "server_links" | "custom_report_details" | "custom_payload" | "reset_chat"
+        | "resource_pack_pop" => StateFree,
+
+        // registry_data: every registry id after a lost entry would point to
+        // the wrong entry (dimension heights, biomes, damage types), so
+        // nothing later can be trusted
+        "registry_data"
+        // update_tags: the tag view (climbable, mineable, ...) would differ
+        // from the server's for the whole session
+        | "update_tags"
+        // update_enabled_features: decides which registry entries exist
+        | "update_enabled_features"
+        // finish_configuration: the switch to play; the server waits for our
+        // acknowledgement
+        | "finish_configuration"
+        // select_known_packs: the server waits for our answer, and the answer
+        // decides which registry data it sends
+        | "select_known_packs"
+        // keep_alive and ping: the server waits for the answer
+        | "keep_alive" | "ping"
+        // cookie_request and resource_pack_push: the server waits for an
+        // answer about a key or a pack id we couldn't read
+        | "cookie_request" | "resource_pack_push"
+        // store_cookie: state the server reads back after a transfer
+        | "store_cookie"
+        // the session itself
+        | "disconnect" | "transfer" => Critical,
 
         _ => return None,
     })
@@ -513,7 +566,10 @@ pub(crate) fn handle_bad_packet(
     };
     let class = match (state, &packet_name) {
         (ConnectionProtocol::Game, Some(name)) => classify_game(name),
-        // configuration and login: registries, tags, the session itself
+        (ConnectionProtocol::Configuration, Some(name)) => classify_config(name),
+        // login: the session itself; and a packet id that doesn't exist in
+        // this state (no name): vanilla closes the connection too
+        // (`PacketDecoder` throws "Unknown packet id", which disconnects)
         _ => None,
     };
     let body_start = cursor.position() as usize;
@@ -1088,6 +1144,22 @@ mod tests {
         assert!(names.len() > 100, "{names:?}");
         for name in names {
             assert!(classify_game(name).is_some(), "{name} has no class");
+        }
+    }
+
+    #[test]
+    fn every_clientbound_config_packet_has_a_class() {
+        let src = include_str!("../../../azalea-protocol/src/packets/config/mod.rs");
+        let start = src.find("Clientbound => [").unwrap();
+        let end = start + src[start..].find(']').unwrap();
+        let names: Vec<&str> = src[start + "Clientbound => [".len()..end]
+            .split(',')
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .collect();
+        assert!(names.len() > 15, "{names:?}");
+        for name in names {
+            assert!(classify_config(name).is_some(), "{name} has no class");
         }
     }
 
