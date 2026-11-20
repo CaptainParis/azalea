@@ -3,6 +3,7 @@
 
 mod events;
 
+use azalea_core::decode_errors::{DecodeErrorKind, record_decode_error};
 use azalea_protocol::packets::{
     ConnectionProtocol,
     login::{
@@ -57,6 +58,8 @@ impl LoginPacketHandler<'_> {
                 error!(
                     "Expected Account component to be present on player when receiving hello packet."
                 );
+                // decode error hook: the hello is dropped, so login stalls
+                record_decode_error(DecodeErrorKind::HandlerState);
                 return;
             };
             commands.trigger(ReceiveHelloEvent {

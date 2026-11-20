@@ -120,12 +120,6 @@ const NOT_DECODE_ERRORS: &[(&str, &str, usize, &str)] = &[
     // entity or component it refers to isn't (or isn't yet) in our world
     (
         "src/plugins/packet/game/mod.rs",
-        "let Ok((mut physics, mut direction, mut position)) = query.get_mut(self.player) else {",
-        1,
-        "ECS lookup of our own player",
-    ),
-    (
-        "src/plugins/packet/game/mod.rs",
         "warn!(\"got add player packet but we haven't gotten a login packet yet\");",
         1,
         "packet order (no login yet), not a decode error",
@@ -156,18 +150,6 @@ const NOT_DECODE_ERRORS: &[(&str, &str, usize, &str)] = &[
     ),
     (
         "src/plugins/packet/game/mod.rs",
-        "let Ok(mut entity_id_index) = query.get_mut(self.player) else {",
-        1,
-        "ECS lookup of our own player",
-    ),
-    (
-        "src/plugins/packet/game/mod.rs",
-        "warn!(\"our local player doesn't have EntityIdIndex\");",
-        1,
-        "ECS lookup of our own player",
-    ),
-    (
-        "src/plugins/packet/game/mod.rs",
         "let Ok(mut loaded_by) = entity_query.get_mut(entity) else {",
         1,
         "ECS lookup of an entity we already know",
@@ -177,30 +159,6 @@ const NOT_DECODE_ERRORS: &[(&str, &str, usize, &str)] = &[
         "warn!(",
         1,
         "ECS lookup of an entity we already know",
-    ),
-    (
-        "src/plugins/packet/game/mod.rs",
-        "let Ok((mut world_holder, game_profile, client_information, world_name)) =",
-        1,
-        "ECS lookup of our own player",
-    ),
-    (
-        "src/plugins/packet/game/mod.rs",
-        "warn!(\"Got respawn packet but player doesn't have the required components\");",
-        1,
-        "ECS lookup of our own player",
-    ),
-    (
-        "src/plugins/packet/game/mod.rs",
-        "let Some((mut raw_conn, mut world_holder)) = query.get_mut(self.player).ok() else {",
-        1,
-        "ECS lookup of our own player",
-    ),
-    (
-        "src/plugins/packet/game/mod.rs",
-        "warn!(\"Got start configuration packet but player doesn't have a RawConnection\");",
-        1,
-        "ECS lookup of our own player",
     ),
     (
         "src/plugins/packet/game/mod.rs",
@@ -215,18 +173,6 @@ const NOT_DECODE_ERRORS: &[(&str, &str, usize, &str)] = &[
         "ECS lookup of an entity",
     ),
     (
-        "src/plugins/packet/login/mod.rs",
-        "let Ok(account) = query.get(self.player) else {",
-        1,
-        "ECS lookup of our own player",
-    ),
-    (
-        "src/plugins/packet/login/mod.rs",
-        "error!(",
-        1,
-        "ECS lookup of our own player",
-    ),
-    (
         "src/plugins/packet/relative_updates.rs",
         "let Ok((minecraft_entity_id, updates_received, local_entity)) = entity_update_query.get(entity)",
         1,
@@ -237,12 +183,6 @@ const NOT_DECODE_ERRORS: &[(&str, &str, usize, &str)] = &[
         "warn!(\"Entity {entity:?} has both LocalEntity and UpdatesReceived\");",
         1,
         "ECS consistency check",
-    ),
-    (
-        "src/plugins/chunks.rs",
-        "if let Ok(mut chunk_batch_info) = query.get_mut(event.entity) {",
-        2,
-        "ECS lookup of our own chunk batch info",
     ),
     // registry parsing. these return an error (or None, which the caller turns
     // into an error) to the caller instead of skipping, so the failure reaches

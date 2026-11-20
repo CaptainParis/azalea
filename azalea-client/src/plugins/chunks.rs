@@ -138,9 +138,13 @@ pub fn handle_chunk_batch_start_event(
     mut events: MessageReader<ChunkBatchStartEvent>,
 ) {
     for event in events.read() {
-        if let Ok(mut chunk_batch_info) = query.get_mut(event.entity) {
-            chunk_batch_info.start_time = Instant::now();
-        }
+        let Ok(mut chunk_batch_info) = query.get_mut(event.entity) else {
+            error!("Got chunk batch start but our player doesn't have ChunkBatchInfo");
+            // decode error hook: the batch is not timed
+            record_decode_error(DecodeErrorKind::HandlerState);
+            continue;
+        };
+        chunk_batch_info.start_time = Instant::now();
     }
 }
 
@@ -150,16 +154,21 @@ pub fn handle_chunk_batch_finished_event(
     mut commands: Commands,
 ) {
     for event in events.read() {
-        if let Ok(mut chunk_batch_info) = query.get_mut(event.entity) {
-            chunk_batch_info.batch_finished(event.batch_size);
-            let desired_chunks_per_tick = chunk_batch_info.desired_chunks_per_tick();
-            commands.trigger(SendGamePacketEvent::new(
-                event.entity,
-                ServerboundChunkBatchReceived {
-                    desired_chunks_per_tick,
-                },
-            ));
-        }
+        let Ok(mut chunk_batch_info) = query.get_mut(event.entity) else {
+            error!("Got chunk batch finished but our player doesn't have ChunkBatchInfo");
+            // decode error hook: no chunk_batch_received is sent, so the server
+            // stops sending chunks
+            record_decode_error(DecodeErrorKind::HandlerState);
+            continue;
+        };
+        chunk_batch_info.batch_finished(event.batch_size);
+        let desired_chunks_per_tick = chunk_batch_info.desired_chunks_per_tick();
+        commands.trigger(SendGamePacketEvent::new(
+            event.entity,
+            ServerboundChunkBatchReceived {
+                desired_chunks_per_tick,
+            },
+        ));
     }
 }
 

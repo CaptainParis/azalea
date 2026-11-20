@@ -416,6 +416,9 @@ impl GamePacketHandler<'_> {
             Commands,
         )>(self.ecs, |(mut query, mut commands)| {
             let Ok((mut physics, mut direction, mut position)) = query.get_mut(self.player) else {
+                warn!("Got player position packet but our player doesn't have Physics/Position");
+                // decode error hook: the teleport is dropped and never accepted
+                record_decode_error(DecodeErrorKind::HandlerState);
                 return;
             };
 
@@ -942,6 +945,9 @@ impl GamePacketHandler<'_> {
             |(mut query, mut entity_query)| {
                 let Ok(mut entity_id_index) = query.get_mut(self.player) else {
                     warn!("our local player doesn't have EntityIdIndex");
+                    // decode error hook: the client the packet arrived on lacks
+                    // its own components, so the packet is dropped
+                    record_decode_error(DecodeErrorKind::HandlerState);
                     return;
                 };
 
@@ -1391,6 +1397,9 @@ impl GamePacketHandler<'_> {
                     query.get_mut(self.player)
                 else {
                     warn!("Got respawn packet but player doesn't have the required components");
+                    // decode error hook: the client the packet arrived on lacks
+                    // its own components, so the packet is dropped
+                    record_decode_error(DecodeErrorKind::HandlerState);
                     return;
                 };
 
@@ -1471,6 +1480,9 @@ impl GamePacketHandler<'_> {
             |(mut commands, mut query)| {
                 let Some((mut raw_conn, mut world_holder)) = query.get_mut(self.player).ok() else {
                     warn!("Got start configuration packet but player doesn't have a RawConnection");
+                    // decode error hook: the client the packet arrived on lacks
+                    // its own components, so the packet is dropped
+                    record_decode_error(DecodeErrorKind::HandlerState);
                     return;
                 };
                 raw_conn.state = ConnectionProtocol::Configuration;
