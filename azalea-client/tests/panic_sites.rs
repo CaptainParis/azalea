@@ -5,15 +5,23 @@
 //! network data that can panic must carry a `// network-safe: <reason>`
 //! comment, saying why network input can't make it panic (for example
 //! "length checked two lines above"), or be rewritten to return an error.
-//! The comment goes on the site's line or in the comment lines just above
-//! the statement the site is in. A new unannotated site makes this test
-//! fail.
+//! The comment goes on the site's line or in the comment lines directly
+//! above the statement the site is in, and covers only that statement: a
+//! statement ends at a line ending in `;`, `{`, `}` or `,` (so every match
+//! arm, struct field and call argument on its own line is its own
+//! statement), or a blank line. A new unannotated site makes this test fail.
 //!
 //! Sites: `.unwrap()`, `.expect(..)`, `unwrap_unchecked`, `panic!`,
 //! `unreachable!`, `todo!`, `unimplemented!`, `assert!`, `assert_eq!`,
 //! `assert_ne!` (not `debug_assert!`: debug and fuzz builds only; overflow
-//! checks are on there too, and the audit covers arithmetic by hand), and
-//! indexing or slicing (`x[..]`).
+//! checks are on there too, and the audit covers arithmetic by hand),
+//! indexing or slicing (`x[..]`), integer division or remainder by a
+//! non-literal (`a / b`, `a % b`, `/=`, `%=`: a zero divisor panics; float
+//! divisions are annotated as such), `.remove(` and `.swap_remove(` (an index
+//! out of bounds panics for `Vec` and `VecDeque`; not with a `&` argument,
+//! which is a map or set key: their index is a `usize` by value),
+//! `.copy_from_slice(` (a
+//! length mismatch panics), and `.split_at(` (a mid past the end panics).
 //!
 //! Test code (`#[cfg(test)]` items, `tests.rs` files) isn't scanned.
 
@@ -33,9 +41,12 @@ const SCANNED: &[&str] = &[
     "../azalea-world/src",
     "../azalea-entity/src",
     "../azalea-inventory/src",
-    "src/plugins/packet",
-    // the bad packet policy runs on every packet that failed to decode
-    "src/plugins/bad_packet.rs",
+    // every client plugin: packet handlers, the bad packet policy, and the
+    // systems that act on what they stored (inventory, chunks, movement, ...)
+    "src/plugins",
+    // the network NBT reader (vendored simdnbt), on every chat component,
+    // item and registry entry
+    "../vendor/simdnbt/src",
 ];
 
 fn rust_files(path: &Path, out: &mut Vec<PathBuf>) {
@@ -169,7 +180,7 @@ fn blank_test_items(code: &mut [u8]) {
 /// The panic sites in a file: (line number, line text).
 fn panic_sites(contents: &str) -> Vec<(usize, String)> {
     let sites = Regex::new(
-        r"\.unwrap\(\)|\.expect\(|\bunwrap_unchecked\b|\b(?:panic|unreachable|todo|unimplemented|assert|assert_eq|assert_ne)!|[\w)\]]\[",
+        r"\.unwrap\(\)|\.expect\(|\bunwrap_unchecked\b|\b(?:panic|unreachable|todo|unimplemented|assert|assert_eq|assert_ne)!|[\w)\]]\[|\.(?:swap_)?remove\([^&)]|\.copy_from_slice\(|\.split_at\(|[\w)\]]\s*[/%]=?\s*(?:[A-Za-z_(]|\*)",
     )
     .unwrap();
     let mut code = blank_non_code(contents);
@@ -185,18 +196,29 @@ fn panic_sites(contents: &str) -> Vec<(usize, String)> {
         if note(lines[i]) {
             return true;
         }
-        // the comment lines above the statement the site is in
+        // up through the lines of the statement the site is in, then the
+        // comment block directly above it
         let mut j = i;
-        while j > 0 && i - j < 20 {
+        let mut in_comments = false;
+        while j > 0 {
             j -= 1;
-            let code_part = code_lines[j].trim_end();
+            let code_part = code_lines[j].trim();
             if lines[j].trim_start().starts_with("//") {
                 if note(lines[j]) {
                     return true;
                 }
+                in_comments = true;
                 continue;
             }
-            if code_part.ends_with(';') || code_part.ends_with('{') || code_part.ends_with('}') {
+            if in_comments
+                || code_part.is_empty()
+                || code_part.ends_with(';')
+                || code_part.ends_with('{')
+                || code_part.ends_with('}')
+                || code_part.ends_with(',')
+            {
+                // code above the comment block, or the end of the previous
+                // statement
                 return false;
             }
             if note(lines[j]) {
@@ -210,6 +232,11 @@ fn panic_sites(contents: &str) -> Vec<(usize, String)> {
         // attributes (`#[..]`) and macro brackets (`vec![..]`) aren't indexing
         let hit = sites.find_iter(code_line).any(|m| {
             let s = m.as_str();
+            if s.contains('/') || s.contains('%') {
+                // `*/` and `/*` are comments (blanked already); a `/` that
+                // follows `*` is a deref divisor like `a / *b`
+                return true;
+            }
             if s.ends_with('[') {
                 let at = m.start();
                 let before = &code_line[..at + 1];
@@ -275,6 +302,19 @@ fn a(v: &[u8], o: Option<u8>) -> u8 {
     let arr = vec![1, 2];
     // network-safe:
     panic!("empty reason doesn't count");
+    let r = match o {
+        // network-safe: only this arm
+        Some(1) => v[1],
+        Some(2) => v[2],
+        _ => 0,
+    };
+    // network-safe: covers the statement below, not the one after the blank
+
+    let d = x / r;
+    let e = x / 2 + x % 3;
+    let mut l = vec![1];
+    l.remove(0);
+    m.remove(&k);
     x
 }
 #[cfg(test)]
@@ -290,5 +330,5 @@ mod more_tests {
         .into_iter()
         .map(|(l, _)| l)
         .collect::<Vec<_>>();
-    assert_eq!(lines, vec![3, 7, 17]);
+    assert_eq!(lines, vec![3, 7, 17, 21, 26, 29]);
 }
