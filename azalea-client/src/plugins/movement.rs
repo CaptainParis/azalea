@@ -275,8 +275,11 @@ pub fn send_sprinting_if_needed(
     }
 }
 
-/// Updates the [`PhysicsState::move_vector`] based on the
-/// [`PhysicsState::move_direction`].
+/// Updates the [`ClientMovementState::move_vector`] based on the
+/// [`ClientMovementState::move_direction`].
+///
+/// Like 1.21.4 `KeyboardInput.tick`, the impulses are -1, 0 or 1 on each axis
+/// and are not normalized.
 pub(crate) fn tick_controls(mut query: Query<&mut ClientMovementState>) {
     for mut physics_state in query.iter_mut() {
         let mut forward_impulse: f32 = 0.;
@@ -295,8 +298,7 @@ pub(crate) fn tick_controls(mut query: Query<&mut ClientMovementState>) {
             left_impulse -= 1.;
         }
 
-        let move_vector = Vec2::new(left_impulse, forward_impulse).normalized();
-        physics_state.move_vector = move_vector;
+        physics_state.move_vector = Vec2::new(left_impulse, forward_impulse);
     }
 }
 
@@ -308,7 +310,7 @@ pub fn local_player_ai_step(
     mut query: Query<
         (
             Entity,
-            &ClientMovementState,
+            &mut ClientMovementState,
             &PlayerAbilities,
             &metadata::Swimming,
             &metadata::SleepingPos,
@@ -330,7 +332,7 @@ pub fn local_player_ai_step(
 ) {
     for (
         entity,
-        physics_state,
+        mut physics_state,
         abilities,
         swimming,
         sleeping_pos,
@@ -395,7 +397,19 @@ pub fn local_player_ai_step(
         // TODO: status effects
         let has_blindness = false;
 
-        let has_enough_impulse = has_enough_impulse_to_start_sprinting(physics_state);
+        let moving_slowly = is_moving_slowly(&crouching, fall_flying, pose, is_in_water);
+
+        // 1.21.4 LocalPlayer.aiStep scales the impulses in place, before
+        // checking whether we can start sprinting
+        if using_item && !is_passenger {
+            physics_state.move_vector *= 0.2;
+        }
+        if moving_slowly {
+            let sneaking_speed = attributes.sneaking_speed.calculate() as f32;
+            physics_state.move_vector *= sneaking_speed;
+        }
+
+        let has_enough_impulse = has_enough_impulse_to_start_sprinting(&physics_state);
 
         // LocalPlayer.canStartSprinting
         let can_start_sprinting = !**sprinting
@@ -405,7 +419,7 @@ pub fn local_player_ai_step(
             && !has_blindness
             && (!is_passenger || is_underwater)
             && (!is_fall_flying || is_underwater)
-            && (!is_moving_slowly(&crouching, fall_flying, pose, is_in_water) || is_underwater)
+            && (!moving_slowly || is_underwater)
             && (!is_in_water || is_underwater);
         if trying_to_sprint && can_start_sprinting {
             set_sprinting(true, &mut sprinting, &mut attributes);
@@ -427,17 +441,10 @@ pub fn local_player_ai_step(
             }
         }
 
-        // TODO: replace those booleans when using items and passengers are
-        // properly implemented
-        let move_vector = modify_input(
-            physics_state.move_vector,
-            false,
-            false,
-            is_moving_slowly(&crouching, fall_flying, pose, is_in_water),
-            &attributes,
-        );
-        physics.x_acceleration = move_vector.x;
-        physics.z_acceleration = move_vector.y;
+        // LocalPlayer.serverAiStep. the 0.98 multiplier is applied in
+        // LivingEntity.aiStep (`azalea_physics::ai_step`) for every entity.
+        physics.x_acceleration = physics_state.move_vector.x;
+        physics.z_acceleration = physics_state.move_vector.y;
     }
 }
 
@@ -570,47 +577,6 @@ fn is_moving_slowly(
     }
 }
 
-// LocalPlayer.modifyInput
-fn modify_input(
-    mut move_vector: Vec2,
-    is_using_item: bool,
-    is_passenger: bool,
-    moving_slowly: bool,
-    attributes: &Attributes,
-) -> Vec2 {
-    if move_vector.length_squared() == 0. {
-        return move_vector;
-    }
-
-    move_vector *= 0.98;
-    if is_using_item && !is_passenger {
-        move_vector *= 0.2;
-    }
-
-    if moving_slowly {
-        let sneaking_speed = attributes.sneaking_speed.calculate() as f32;
-        move_vector *= sneaking_speed;
-    }
-
-    modify_input_speed_for_square_movement(move_vector)
-}
-fn modify_input_speed_for_square_movement(move_vector: Vec2) -> Vec2 {
-    let length = move_vector.length();
-    if length == 0. {
-        return move_vector;
-    }
-    let scaled_to_inverse_length = move_vector * (1. / length);
-    let dist = distance_to_unit_square(scaled_to_inverse_length);
-    let scale = (length * dist).min(1.);
-    scaled_to_inverse_length * scale
-}
-fn distance_to_unit_square(v: Vec2) -> f32 {
-    let x = v.x.abs();
-    let y = v.y.abs();
-    let ratio = if y > x { x / y } else { y / x };
-    (1. + ratio * ratio).sqrt()
-}
-
 /// An event sent when the client starts walking.
 ///
 /// This does not get sent for non-local entities.
@@ -686,12 +652,13 @@ fn set_sprinting(
     }
 }
 
-// Whether the player is moving fast enough to be able to start sprinting.
+// LocalPlayer.hasEnoughImpulseToStartSprinting. this uses the raw (but
+// scaled) forward impulse, so diagonal input can start sprinting.
 fn has_enough_impulse_to_start_sprinting(physics_state: &ClientMovementState) -> bool {
     // if self.underwater() {
     //     self.has_forward_impulse()
     // } else {
-    physics_state.move_vector.y > 0.8
+    physics_state.move_vector.y >= 0.8
     // }
 }
 

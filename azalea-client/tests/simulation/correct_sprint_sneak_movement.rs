@@ -9,7 +9,7 @@ use azalea_protocol::{
         ConnectionProtocol,
         game::{
             ClientboundBlockUpdate, ClientboundPlayerPosition, ServerboundGamePacket,
-            ServerboundPlayerInput,
+            ServerboundPlayerInput, s_player_command,
         },
     },
 };
@@ -107,23 +107,33 @@ fn test_correct_sprint_sneak_movement() {
     sent_packets.expect_tick_end();
     sent_packets.expect_empty();
 
+    // 1.21.4 LocalPlayer.aiStep: crouching (from the previous tick's shift
+    // key) makes shouldStopSprinting true and scales the impulse by the
+    // sneaking speed
     simulation.tick();
-    sent_packets.expect("MovePlayerPos { z: 1.2257983479146455 }", |p| {
+    sent_packets.expect("PlayerCommand(StopSprinting)", |p| {
+        matches!(
+            p,
+            ServerboundGamePacket::PlayerCommand(p)
+            if p.action == s_player_command::Action::StopSprinting
+        )
+    });
+    sent_packets.expect("MovePlayerPos { z: 1.216978344486782 }", |p| {
         matches!(
             p,
             ServerboundGamePacket::MovePlayerPos(p)
-            if p.pos == Vec3::new(0.5, 120., 1.2257983479146455)
+            if p.pos == Vec3::new(0.5, 120., 1.216978344486782)
         )
     });
     sent_packets.expect_tick_end();
     sent_packets.expect_empty();
 
     simulation.tick();
-    sent_packets.expect("MovePlayerPos: { z: 1.3549259948648078 }", |p| {
+    sent_packets.expect("MovePlayerPos: { z: 1.3324702655781087 }", |p| {
         matches!(
             p,
             ServerboundGamePacket::MovePlayerPos(p)
-            if p.pos == Vec3::new(0.5, 120., 1.3549259948648078)
+            if p.pos == Vec3::new(0.5, 120., 1.3324702655781087)
         )
     });
     sent_packets.expect_tick_end();

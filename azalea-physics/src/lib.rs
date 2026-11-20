@@ -16,11 +16,10 @@ use azalea_core::{
     tick::GameTick,
 };
 use azalea_entity::{
-    ActiveEffects, Attributes, EntityKindComponent, HasClientLoaded, Jumping, LocalEntity,
-    LookDirection, OnClimbable, Physics, Pose, Position, dimensions::EntityDimensions,
-    metadata::Sprinting, move_relative,
+    ActiveEffects, Attributes, HasClientLoaded, Jumping, LocalEntity, LookDirection, OnClimbable,
+    Physics, Pose, Position, dimensions::EntityDimensions, metadata::Sprinting, move_relative,
 };
-use azalea_registry::builtin::{BlockKind, EntityKind, MobEffect};
+use azalea_registry::builtin::{BlockKind, MobEffect};
 use azalea_world::{World, WorldName, Worlds};
 use bevy_app::{App, Plugin, Update};
 use bevy_ecs::prelude::*;
@@ -75,7 +74,6 @@ pub fn ai_step(
             &Sprinting,
             &ActiveEffects,
             &WorldName,
-            &EntityKindComponent,
             &ClientMovementState,
         ),
         (With<LocalEntity>, With<HasClientLoaded>),
@@ -90,12 +88,9 @@ pub fn ai_step(
         sprinting,
         active_effects,
         world_name,
-        entity_kind,
         client_movement,
     ) in &mut query
     {
-        let is_player = **entity_kind == EntityKind::Player;
-
         // vanilla does movement interpolation here, doesn't really matter much
         // for a bot though
 
@@ -103,29 +98,16 @@ pub fn ai_step(
             physics.no_jump_delay -= 1;
         }
 
-        if is_player {
-            if physics.velocity.horizontal_distance_squared() < 9.0e-6 {
-                physics.velocity.x = 0.;
-                physics.velocity.z = 0.;
-            }
-        } else {
-            if physics.velocity.x.abs() < 0.003 {
-                physics.velocity.x = 0.;
-            }
-            if physics.velocity.z.abs() < 0.003 {
-                physics.velocity.z = 0.;
-            }
+        // 1.21.4 LivingEntity.aiStep zeroes each axis on its own, for every
+        // entity (players included)
+        if physics.velocity.x.abs() < 0.003 {
+            physics.velocity.x = 0.;
         }
-
         if physics.velocity.y.abs() < 0.003 {
             physics.velocity.y = 0.;
         }
-
-        if is_player {
-            // handled in local_player_ai_step
-        } else {
-            physics.x_acceleration *= 0.98;
-            physics.z_acceleration *= 0.98;
+        if physics.velocity.z.abs() < 0.003 {
+            physics.velocity.z = 0.;
         }
 
         if client_movement.trying_to_crouch && physics.is_in_water() {
@@ -171,6 +153,10 @@ pub fn ai_step(
         } else {
             physics.no_jump_delay = 0;
         }
+
+        // LivingEntity.aiStep, for every entity
+        physics.x_acceleration *= 0.98;
+        physics.z_acceleration *= 0.98;
 
         // TODO: freezing, pushEntities, drowning damage (in their own systems,
         // after `travel`)
