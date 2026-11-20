@@ -35,10 +35,11 @@ impl AzBufVar for i32 {
             buf.read_exact(&mut buffer)?;
             ans |= ((buffer[0] & 0b0111_1111) as i32) << (7 * i);
             if buffer[0] & 0b1000_0000 == 0 {
-                break;
+                return Ok(ans);
             }
         }
-        Ok(ans)
+        // VarInt.read: "VarInt too big"
+        Err(BufReadError::InvalidVarInt)
     }
 
     fn azalea_write_var(&self, buf: &mut impl Write) -> io::Result<()> {
@@ -68,10 +69,11 @@ impl AzBufVar for i64 {
                 .map_err(|_| BufReadError::InvalidVarLong)?;
             ans |= ((buffer[0] & 0b0111_1111) as i64) << (7 * i);
             if buffer[0] & 0b1000_0000 == 0 {
-                break;
+                return Ok(ans);
             }
         }
-        Ok(ans)
+        // VarLong.read: "VarLong too big"
+        Err(BufReadError::InvalidVarLong)
     }
 
     fn azalea_write_var(&self, buf: &mut impl Write) -> io::Result<()> {

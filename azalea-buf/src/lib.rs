@@ -160,6 +160,28 @@ mod tests {
     }
 
     #[test]
+    fn test_read_varint_too_big() {
+        // VarInt.read/VarLong.read: a continuation bit on the last allowed
+        // byte is an error, not the value so far
+        let buf = vec![255, 255, 255, 255, 15];
+        assert_eq!(i32::azalea_read_var(&mut Cursor::new(&buf)).unwrap(), -1);
+        let buf = vec![255, 255, 255, 255, 255, 1];
+        assert!(matches!(
+            i32::azalea_read_var(&mut Cursor::new(&buf)),
+            Err(BufReadError::InvalidVarInt)
+        ));
+        let mut buf = vec![255; 9];
+        buf.push(1);
+        assert_eq!(i64::azalea_read_var(&mut Cursor::new(&buf)).unwrap(), -1);
+        let mut buf = vec![255; 10];
+        buf.push(1);
+        assert!(matches!(
+            i64::azalea_read_var(&mut Cursor::new(&buf)),
+            Err(BufReadError::InvalidVarLong)
+        ));
+    }
+
+    #[test]
     fn test_write_varlong() {
         let mut buf = Vec::new();
         0u64.azalea_write_var(&mut buf).unwrap();
