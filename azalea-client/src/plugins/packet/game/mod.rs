@@ -1213,6 +1213,11 @@ impl GamePacketHandler<'_> {
         for entity in removed {
             bad_packet::entity_removed(self.ecs, entity);
         }
+        crate::resources::forget_entity_updates(
+            self.ecs,
+            self.player,
+            p.entity_ids.iter().copied(),
+        );
     }
     pub fn player_chat(&mut self, p: &ClientboundPlayerChat) {
         debug!("Got player chat packet {p:?}");

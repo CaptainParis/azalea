@@ -6,14 +6,21 @@
 //!   ring eviction), and every [`ResourceBounds::sweep_every`] a sweep forgets
 //!   the entries whose chunk nothing holds anymore (another holder may have
 //!   dropped it later).
+//! - `PartialEntityInfos::updates_received` has entries only for entities the
+//!   client knows: an entity's entry goes when the server removes it, and the
+//!   sweep drops entries of ids no longer in the client's [`EntityIdIndex`].
 //!
 //! [`WeakChunkStorage`]: azalea_world::chunk::storage::WeakChunkStorage
 
 use std::time::{Duration, Instant};
 
+use azalea_core::entity_id::MinecraftEntityId;
+use azalea_entity::indexing::EntityIdIndex;
 use azalea_world::Worlds;
 use bevy_app::{App, Plugin, Update};
 use bevy_ecs::prelude::*;
+
+use crate::local_player::WorldHolder;
 
 /// The limits [`ResourcesPlugin`] keeps. Insert your own before the app
 /// starts to change them.
@@ -48,6 +55,7 @@ pub struct LastSweep(Option<Instant>);
 pub fn sweep_chunk_maps(
     bounds: Res<ResourceBounds>,
     worlds: Res<Worlds>,
+    players: Query<(&WorldHolder, &EntityIdIndex)>,
     mut last: Local<LastSweep>,
 ) {
     let now = Instant::now();
@@ -62,5 +70,30 @@ pub fn sweep_chunk_maps(
         if let Some(world) = weak.upgrade() {
             world.write().chunks.sweep();
         }
+    }
+    for (holder, index) in &players {
+        holder
+            .partial
+            .write()
+            .entity_infos
+            .updates_received
+            .retain(|id, _| index.contains_minecraft_entity(*id));
+    }
+}
+
+/// The server removed these entities for `player`: their update counters go
+/// too.
+pub(crate) fn forget_entity_updates(
+    ecs: &World,
+    player: Entity,
+    ids: impl IntoIterator<Item = MinecraftEntityId>,
+) {
+    let Some(holder) = ecs.get::<WorldHolder>(player) else {
+        return;
+    };
+    let mut partial = holder.partial.write();
+    for id in ids {
+        // network-safe: HashMap::remove by key, not an index
+        partial.entity_infos.updates_received.remove(&id);
     }
 }

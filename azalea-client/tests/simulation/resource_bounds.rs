@@ -115,3 +115,62 @@ fn entities_by_chunk_has_no_empty_sets() {
     s.tick();
     assert_eq!(chunk_entries(&s), vec![(ChunkPos::new(0, 0), 1)]);
 }
+
+/// `updates_received` has entries only for entities the client knows: the
+/// server's removal takes the entity's entry out.
+#[test]
+fn updates_received_forgets_removed_entities() {
+    use azalea_core::{entity_id::MinecraftEntityId, position::Vec3};
+    use azalea_protocol::{
+        common::movements::{PositionMoveRotation, RelativeMovements},
+        packets::game::{ClientboundRemoveEntities, ClientboundTeleportEntity},
+    };
+    use azalea_registry::builtin::EntityKind;
+
+    let _lock = init();
+    let mut s = Simulation::new(ConnectionProtocol::Game);
+    s.receive_packet(default_login_packet());
+    s.receive_packet(make_basic_empty_chunk(ChunkPos::new(0, 0), SECTIONS));
+    s.tick();
+    let ids = [100, 101, 102];
+    for id in ids {
+        let mut add = make_basic_add_entity(EntityKind::Cow, id, (0.5, 64., 0.5));
+        add.uuid = uuid::Uuid::from_u128(id as u128);
+        s.receive_packet(add);
+    }
+    s.tick();
+    for id in ids {
+        s.receive_packet(ClientboundTeleportEntity {
+            id: MinecraftEntityId(id),
+            change: PositionMoveRotation {
+                pos: Vec3::new(1., 0., 0.),
+                delta: Vec3::ZERO,
+                look_direction: Default::default(),
+            },
+            relative: RelativeMovements::all_relative(),
+            on_ground: true,
+        });
+    }
+    s.tick();
+    let counted = |s: &Simulation| {
+        let mut v = Vec::new();
+        s.with_component::<WorldHolder>(|wh| {
+            v = wh
+                .partial
+                .read()
+                .entity_infos
+                .updates_received
+                .keys()
+                .map(|k| k.0)
+                .collect();
+        });
+        v.sort();
+        v
+    };
+    assert_eq!(counted(&s), vec![100, 101, 102]);
+    s.receive_packet(ClientboundRemoveEntities {
+        entity_ids: vec![MinecraftEntityId(100), MinecraftEntityId(102)],
+    });
+    s.tick();
+    assert_eq!(counted(&s), vec![101]);
+}

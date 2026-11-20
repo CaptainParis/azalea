@@ -1320,6 +1320,7 @@ fn despawn_placeholder(ecs: &mut World, entity: Entity) {
         if let Some(mut loaded_by) = ecs.get_mut::<LoadedBy>(entity) {
             loaded_by.remove(&player);
         }
+        crate::resources::forget_entity_updates(ecs, player, [id]);
     }
     debug!("placeholder entity {id} left the loaded chunks: despawned");
     entity_removed(ecs, entity);
