@@ -705,8 +705,26 @@ impl GamePacketHandler<'_> {
 
     pub fn chunks_biomes(&mut self, _p: &ClientboundChunksBiomes) {}
 
-    pub fn light_update(&mut self, _p: &ClientboundLightUpdate) {
-        // debug!("Got light update packet {p:?}");
+    pub fn light_update(&mut self, p: &ClientboundLightUpdate) {
+        // kept in the chunk as received; a chunk we don't have gets none
+        // (no side map), counted
+        as_system::<Query<&WorldHolder>>(self.ecs, |query| {
+            let Ok(world_holder) = query.get(self.player) else {
+                warn!("Got light_update packet but our player is missing components");
+                // decode error hook: our own player's components are missing
+                record_decode_error(DecodeErrorKind::HandlerState);
+                return;
+            };
+            let pos = ChunkPos::new(p.x, p.z);
+            let partial_world = world_holder.partial.read();
+            let Some(chunk) = partial_world.chunks.limited_get(&pos) else {
+                debug!("light update for {pos:?}, which isn't loaded: dropped");
+                // decode error hook: light for a chunk we don't have
+                record_decode_error(DecodeErrorKind::LightUnloaded);
+                return;
+            };
+            chunks::apply_light(&mut chunk.write(), &p.light_data);
+        });
     }
 
     pub fn level_chunk_with_light(&mut self, p: &ClientboundLevelChunkWithLight) {

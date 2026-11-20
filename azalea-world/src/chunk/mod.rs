@@ -1,3 +1,4 @@
+pub mod light;
 pub mod partial;
 pub mod storage;
 
@@ -35,6 +36,8 @@ pub struct Chunk {
     /// Usually for clients only `WorldSurface` and `MotionBlocking` are
     /// present.
     pub heightmaps: HashMap<HeightmapKind, Heightmap>,
+    /// Light as the server sent it (not used by physics; kept for replay).
+    pub light: light::ChunkLight,
 }
 
 /// A section of a chunk, i.e. a 16*16*16 block area.
@@ -62,6 +65,7 @@ impl Default for Chunk {
         Chunk {
             sections: vec![Section::default(); (384 / 16) as usize].into(),
             heightmaps: HashMap::new(),
+            light: light::ChunkLight::new((384 / 16) as usize),
         }
     }
 }
@@ -103,6 +107,7 @@ impl Chunk {
         }
 
         Ok(Chunk {
+            light: light::ChunkLight::new(sections.len()),
             sections,
             heightmaps,
         })

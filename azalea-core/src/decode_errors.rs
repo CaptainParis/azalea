@@ -141,6 +141,9 @@ pub enum DecodeErrorKind {
     /// farthest non-player entities were dropped from its model, as if the
     /// server had removed them (one count per entity).
     EntityCap,
+    /// A light update for a chunk the client doesn't have was dropped (light
+    /// is kept per loaded chunk, never in a side map).
+    LightUnloaded,
 }
 
 impl DecodeErrorKind {
@@ -238,6 +241,7 @@ kinds! {
     MissingProfile => missing_profile,
     ChunkCap => chunk_cap,
     EntityCap => entity_cap,
+    LightUnloaded => light_unloaded,
 }
 
 fn counter(kind: DecodeErrorKind) -> &'static AtomicU64 {

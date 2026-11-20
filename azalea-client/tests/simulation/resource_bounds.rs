@@ -287,3 +287,93 @@ fn entity_cap_drops_farthest_non_players() {
     assert_eq!(known, vec![0, 10, 12, 14]);
     assert_eq!(decode_errors().entity_cap - before, 2);
 }
+
+fn light_packet(
+    sky: &[(usize, u8)],
+    empty_sky: &[usize],
+) -> azalea_protocol::packets::game::c_light_update::ClientboundLightUpdatePacketData {
+    use std::sync::Arc;
+
+    use azalea_core::bitset::BitSet;
+    let mut mask = BitSet::new(26);
+    let mut empty = BitSet::new(26);
+    let mut arrays = Vec::new();
+    for &(k, fill) in sky {
+        mask.set(k);
+        let mut a = vec![fill; 2048];
+        if fill == 0x12 {
+            a[0] = 0x34;
+        }
+        arrays.push(a.into_boxed_slice());
+    }
+    for &k in empty_sky {
+        empty.set(k);
+    }
+    azalea_protocol::packets::game::c_light_update::ClientboundLightUpdatePacketData {
+        sky_y_mask: mask,
+        empty_sky_y_mask: empty,
+        sky_updates: Arc::new(arrays.into_boxed_slice()),
+        ..Default::default()
+    }
+}
+
+/// Light is kept per chunk as received (all-0 and all-15 sections without
+/// their bytes), updated by `LightUpdate`, dropped with the chunk; a light
+/// update for a chunk we don't have is dropped and counted.
+#[test]
+fn light_kept_per_chunk_and_dropped_with_it() {
+    use azalea_core::decode_errors::decode_errors;
+    use azalea_protocol::packets::game::ClientboundLightUpdate;
+    use azalea_world::chunk::light::LightSection;
+
+    let _lock = init();
+    let mut s = Simulation::new(ConnectionProtocol::Game);
+    s.receive_packet(default_login_packet());
+    s.tick();
+    let pos = ChunkPos::new(2, 3);
+    let mut chunk = make_basic_empty_chunk(pos, SECTIONS);
+    chunk.light_data = light_packet(&[(0, 0), (1, 0x12), (25, 0xFF)], &[2]);
+    s.receive_packet(chunk);
+    s.tick();
+    let light = s.chunk(pos).unwrap().read().light.clone();
+    assert_eq!(light.sky.len(), 26);
+    assert_eq!(light.sky[0], LightSection::Zero);
+    assert!(matches!(light.sky[1], LightSection::Data(_)));
+    assert_eq!(light.sky[1].bytes().unwrap()[0], 0x34);
+    assert_eq!(light.sky[2], LightSection::Empty);
+    assert_eq!(light.sky[25], LightSection::Full);
+    assert_eq!(light.data_sections(), 1);
+
+    s.receive_packet(ClientboundLightUpdate {
+        x: pos.x,
+        z: pos.z,
+        light_data: light_packet(&[(1, 0xFF)], &[]),
+    });
+    s.tick();
+    let light = s.chunk(pos).unwrap().read().light.clone();
+    assert_eq!(light.sky[1], LightSection::Full);
+    assert_eq!(
+        light.sky[2],
+        LightSection::Empty,
+        "unnamed sections unchanged"
+    );
+    assert_eq!(light.data_sections(), 0);
+
+    // for a chunk we don't have: dropped, counted, nothing stored
+    let before = decode_errors().light_unloaded;
+    s.receive_packet(ClientboundLightUpdate {
+        x: 5,
+        z: 5,
+        light_data: light_packet(&[(1, 0x12)], &[]),
+    });
+    s.tick();
+    assert_eq!(decode_errors().light_unloaded - before, 1);
+    assert!(s.chunk(ChunkPos::new(5, 5)).is_none());
+
+    // forgetting the chunk drops its light with it
+    let weak = std::sync::Arc::downgrade(&s.chunk(pos).unwrap());
+    s.receive_packet(ClientboundForgetLevelChunk { pos });
+    s.tick();
+    assert!(weak.upgrade().is_none());
+    assert_eq!(weak_map_len(&s), 0);
+}

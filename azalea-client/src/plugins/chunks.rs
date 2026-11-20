@@ -13,7 +13,12 @@ use azalea_core::{
 };
 use azalea_protocol::packets::game::{
     c_level_chunk_with_light::ClientboundLevelChunkWithLight,
+    c_light_update::ClientboundLightUpdatePacketData,
     s_chunk_batch_received::ServerboundChunkBatchReceived,
+};
+use azalea_world::{
+    Chunk,
+    chunk::light::{LightDataError, LightLayer},
 };
 use azalea_registry::identifier::Identifier;
 use bevy_app::{App, Plugin, Update};
@@ -156,6 +161,36 @@ pub fn handle_receive_chunk_event(
                     });
                 }
             }
+            continue;
+        }
+        // the chunk's light, as received (the new chunk starts with none)
+        if let Some(chunk) = partial_world.chunks.limited_get(&pos) {
+            apply_light(&mut chunk.write(), &event.packet.light_data);
+        }
+    }
+}
+
+/// Store a light packet's data in its chunk, both layers, as vanilla's
+/// `applyLightData` reads it. Arrays that aren't 2048 bytes (vanilla would
+/// fail the packet) leave their sections unchanged and are counted.
+pub fn apply_light(chunk: &mut Chunk, data: &ClientboundLightUpdatePacketData) {
+    let sky = chunk.light.apply(
+        LightLayer::Sky,
+        &data.sky_y_mask,
+        &data.empty_sky_y_mask,
+        &data.sky_updates,
+    );
+    let block = chunk.light.apply(
+        LightLayer::Block,
+        &data.block_y_mask,
+        &data.empty_block_y_mask,
+        &data.block_updates,
+    );
+    for r in [sky, block] {
+        if let Err(LightDataError { bad_sections }) = r {
+            warn!("{bad_sections} light sections without a 2048 byte array; left unchanged");
+            // decode error hook: light data we couldn't store
+            record_decode_error(DecodeErrorKind::Chunk);
         }
     }
 }
