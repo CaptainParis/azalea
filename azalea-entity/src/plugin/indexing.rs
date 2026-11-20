@@ -145,9 +145,15 @@ pub fn update_entity_chunk_positions(
                 };
                 let mut world = world_lock.write();
 
-                // move the entity from the old chunk to the new one
+                // move the entity from the old chunk to the new one; a chunk
+                // with no entities left has no entry (the index stays bounded
+                // by the chunks that have entities)
                 if let Some(entities) = world.entities_by_chunk.get_mut(&old_chunk) {
                     entities.remove(&entity);
+                    if entities.is_empty() {
+                        // network-safe: HashMap::remove by key, not an index
+                        world.entities_by_chunk.remove(&old_chunk);
+                    }
                 }
                 world
                     .entities_by_chunk

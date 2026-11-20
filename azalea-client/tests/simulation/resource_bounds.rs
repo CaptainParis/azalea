@@ -54,3 +54,64 @@ fn weak_map_pruned_on_forget_and_eviction() {
     assert!(s.chunk(ChunkPos::new(1, 0)).is_none());
     assert!(s.chunk(ChunkPos::new(24, 0)).is_some());
 }
+
+/// An entity that moves to another chunk leaves no empty set behind in
+/// `World::entities_by_chunk`; a removed entity leaves nothing.
+#[test]
+fn entities_by_chunk_has_no_empty_sets() {
+    use azalea_core::{entity_id::MinecraftEntityId, position::Vec3};
+    use azalea_protocol::{
+        common::movements::{PositionMoveRotation, RelativeMovements},
+        packets::game::{ClientboundRemoveEntities, ClientboundTeleportEntity},
+    };
+    use azalea_registry::builtin::EntityKind;
+
+    let _lock = init();
+    let mut s = Simulation::new(ConnectionProtocol::Game);
+    s.receive_packet(default_login_packet());
+    for x in 0..4 {
+        s.receive_packet(make_basic_empty_chunk(ChunkPos::new(x, 0), SECTIONS));
+    }
+    s.tick();
+    s.receive_packet(make_basic_add_entity(EntityKind::Cow, 123, (0.5, 64., 0.5)));
+    s.tick();
+    let chunk_entries = |s: &Simulation| {
+        let mut v = Vec::new();
+        s.with_component::<WorldHolder>(|wh| {
+            let w = wh.shared.read();
+            v = w
+                .entities_by_chunk
+                .iter()
+                .map(|(p, e)| (*p, e.len()))
+                .collect();
+        });
+        v.sort_by_key(|(p, _)| (p.x, p.z));
+        v
+    };
+    // our own player (at the origin) and the cow
+    assert_eq!(chunk_entries(&s), vec![(ChunkPos::new(0, 0), 2)]);
+    for step in 1..4 {
+        s.receive_packet(ClientboundTeleportEntity {
+            id: MinecraftEntityId(123),
+            change: PositionMoveRotation {
+                pos: Vec3::new(16., 0., 0.),
+                delta: Vec3::ZERO,
+                look_direction: Default::default(),
+            },
+            relative: RelativeMovements::all_relative(),
+            on_ground: true,
+        });
+        s.tick();
+        let entries = chunk_entries(&s);
+        assert!(entries.iter().all(|(_, n)| *n > 0), "{entries:?}");
+        assert_eq!(
+            entries,
+            vec![(ChunkPos::new(0, 0), 1), (ChunkPos::new(step, 0), 1)]
+        );
+    }
+    s.receive_packet(ClientboundRemoveEntities {
+        entity_ids: vec![MinecraftEntityId(123)],
+    });
+    s.tick();
+    assert_eq!(chunk_entries(&s), vec![(ChunkPos::new(0, 0), 1)]);
+}
