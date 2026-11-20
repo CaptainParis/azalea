@@ -50,7 +50,23 @@ use crate::{
     tick_counter::TicksConnected,
 };
 
+/// A function called with every clientbound game packet a client receives,
+/// at the start of [`process_packet`], before Azalea's own handler.
+pub type GamePacketHook = Arc<dyn Fn(Entity, &ClientboundGamePacket) + Send + Sync>;
+
+/// The [`GamePacketHook`]s of an app, called in order. Insert the resource
+/// (or push to it) to observe packets on the thread that processes them, in
+/// arrival order, before any handler has changed the world.
+#[derive(Clone, Default, Resource)]
+pub struct GamePacketHooks(pub Vec<GamePacketHook>);
+
 pub fn process_packet(ecs: &mut World, player: Entity, packet: &ClientboundGamePacket) {
+    if let Some(hooks) = ecs.get_resource::<GamePacketHooks>() {
+        for hook in &hooks.0 {
+            hook(player, packet);
+        }
+    }
+
     let mut handler = GamePacketHandler { player, ecs };
 
     // the order of these doesn't matter, that's decided by the protocol library
