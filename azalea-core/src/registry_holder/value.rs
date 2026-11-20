@@ -94,9 +94,16 @@ impl LevelBasedValue {
             LevelBasedValue::Linear {
                 base,
                 per_level_above_first,
-            } => *base + *per_level_above_first * ((n - 1) as f32),
-            LevelBasedValue::LevelsSquared { added } => (n * n) as f32 + *added,
-            LevelBasedValue::Clamped { value, min, max } => value.calculate(n).clamp(*min, *max),
+                // int arithmetic wraps as in Java (levels come from the server,
+                // and overflow would panic in debug builds)
+            } => *base + *per_level_above_first * (n.wrapping_sub(1) as f32),
+            LevelBasedValue::LevelsSquared { added } => n.wrapping_mul(n) as f32 + *added,
+            // Mth.clamp, not f32::clamp: the bounds come from registry data,
+            // and f32::clamp panics if min > max or either is NaN
+            LevelBasedValue::Clamped { value, min, max } => {
+                let v = value.calculate(n);
+                if v < *min { *min } else { v.min(*max) }
+            }
             LevelBasedValue::Fraction {
                 numerator,
                 denominator,
@@ -109,7 +116,7 @@ impl LevelBasedValue {
                 }
             }
             LevelBasedValue::Lookup { values, fallback } => values
-                .get((n - 1) as usize)
+                .get(n.wrapping_sub(1) as usize)
                 .copied()
                 .unwrap_or_else(|| fallback.calculate(n)),
         }
@@ -174,5 +181,40 @@ impl LevelBasedValue {
             }
         };
         Ok(value)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::LevelBasedValue as V;
+
+    #[test]
+    fn server_values_and_levels_never_panic() {
+        // min > max and NaN bounds (f32::clamp panics on both)
+        let c = V::Clamped {
+            value: Box::new(V::Constant(5.)),
+            min: 10.,
+            max: 1.,
+        };
+        assert_eq!(c.calculate(1), 10.);
+        let c = V::Clamped {
+            value: Box::new(V::Constant(5.)),
+            min: f32::NAN,
+            max: f32::NAN,
+        };
+        c.calculate(1);
+        // levels that overflow i32 arithmetic
+        let l = V::Linear {
+            base: 1.,
+            per_level_above_first: 1.,
+        };
+        l.calculate(i32::MIN);
+        V::LevelsSquared { added: 0. }.calculate(i32::MAX);
+        let lookup = V::Lookup {
+            values: vec![1., 2.],
+            fallback: Box::new(V::Constant(9.)),
+        };
+        assert_eq!(lookup.calculate(i32::MIN), 9.);
+        assert_eq!(lookup.calculate(2), 2.);
     }
 }
