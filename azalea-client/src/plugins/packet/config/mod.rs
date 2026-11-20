@@ -56,9 +56,6 @@ pub fn process_packet(ecs: &mut World, player: Entity, packet: &ClientboundConfi
             select_known_packs,
             custom_report_details,
             server_links,
-            clear_dialog,
-            show_dialog,
-            code_of_conduct,
         ]
     );
 }
@@ -227,15 +224,5 @@ impl ConfigPacketHandler<'_> {
 
     pub fn custom_report_details(&mut self, p: &ClientboundCustomReportDetails) {
         debug!("Got custom report details packet {p:?}");
-    }
-
-    pub fn clear_dialog(&mut self, p: &ClientboundClearDialog) {
-        debug!("Got clear dialog packet {p:?}");
-    }
-    pub fn show_dialog(&mut self, p: &ClientboundShowDialog) {
-        debug!("Got show dialog packet {p:?}");
-    }
-    pub fn code_of_conduct(&mut self, p: &ClientboundCodeOfConduct) {
-        debug!("Got code of conduct packet {p:?}");
     }
 }

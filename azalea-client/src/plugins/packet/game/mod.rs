@@ -109,6 +109,7 @@ pub fn process_packet(ecs: &mut World, player: Entity, packet: &ClientboundGameP
             server_data,
             set_equipment,
             update_mob_effect,
+            add_experience_orb,
             award_stats,
             block_changed_ack,
             block_destruction,
@@ -125,7 +126,7 @@ pub fn process_packet(ecs: &mut World, player: Entity, packet: &ClientboundGameP
             delete_chat,
             explode,
             forget_level_chunk,
-            mount_screen_open,
+            horse_screen_open,
             map_item_data,
             merchant_offers,
             move_vehicle,
@@ -188,17 +189,6 @@ pub fn process_packet(ecs: &mut World, player: Entity, packet: &ClientboundGameP
             recipe_book_add,
             recipe_book_remove,
             recipe_book_settings,
-            test_instance_block_status,
-            waypoint,
-            clear_dialog,
-            show_dialog,
-            debug_block_value,
-            debug_chunk_value,
-            debug_entity_value,
-            debug_event,
-            game_test_highlight_pos,
-            low_disk_space_warning,
-            game_rule_values,
         ]
     );
 }
@@ -1107,6 +1097,8 @@ impl GamePacketHandler<'_> {
         });
     }
 
+    pub fn add_experience_orb(&mut self, _p: &ClientboundAddExperienceOrb) {}
+
     pub fn award_stats(&mut self, _p: &ClientboundAwardStats) {}
 
     pub fn block_changed_ack(&mut self, p: &ClientboundBlockChangedAck) {
@@ -1251,7 +1243,7 @@ impl GamePacketHandler<'_> {
         });
     }
 
-    pub fn mount_screen_open(&mut self, _p: &ClientboundMountScreenOpen) {}
+    pub fn horse_screen_open(&mut self, _p: &ClientboundHorseScreenOpen) {}
 
     pub fn map_item_data(&mut self, _p: &ClientboundMapItemData) {}
 
@@ -1623,40 +1615,6 @@ impl GamePacketHandler<'_> {
     pub fn recipe_book_add(&mut self, _p: &ClientboundRecipeBookAdd) {}
     pub fn recipe_book_remove(&mut self, _p: &ClientboundRecipeBookRemove) {}
     pub fn recipe_book_settings(&mut self, _p: &ClientboundRecipeBookSettings) {}
-    pub fn test_instance_block_status(&mut self, _p: &ClientboundTestInstanceBlockStatus) {}
-    pub fn waypoint(&mut self, _p: &ClientboundWaypoint) {}
-
-    pub fn clear_dialog(&mut self, p: &ClientboundClearDialog) {
-        debug!("Got clear dialog packet {p:?}");
-    }
-    pub fn show_dialog(&mut self, p: &ClientboundShowDialog) {
-        debug!("Got show dialog packet {p:?}");
-    }
-
-    pub fn debug_block_value(&mut self, p: &ClientboundDebugBlockValue) {
-        debug!("Got debug block value packet {p:?}");
-    }
-    pub fn debug_chunk_value(&mut self, p: &ClientboundDebugChunkValue) {
-        debug!("Got debug chunk value packet {p:?}");
-    }
-    pub fn debug_entity_value(&mut self, p: &ClientboundDebugEntityValue) {
-        debug!("Got debug entity value packet {p:?}");
-    }
-
-    pub fn debug_event(&mut self, p: &ClientboundDebugEvent) {
-        debug!("Got debug event packet {p:?}");
-    }
-    pub fn game_test_highlight_pos(&mut self, p: &ClientboundGameTestHighlightPos) {
-        debug!("Got game test highlight pos packet {p:?}");
-    }
-
-    pub fn low_disk_space_warning(&mut self, p: &ClientboundLowDiskSpaceWarning) {
-        debug!("Got low disk space warning packet {p:?}");
-    }
-
-    pub fn game_rule_values(&mut self, p: &ClientboundGameRuleValues) {
-        debug!("Got game rule values packet {p:?}");
-    }
 }
 
 struct MoveEntity {
