@@ -48,45 +48,121 @@ pub enum DecodeErrorKind {
     /// Not a decode error but a bug in our own code; it's counted here so
     /// the same zero check covers it.
     SendState,
+    /// A frame length prefix wider than 21 bits (3 bytes), as vanilla's
+    /// `Varint21FrameDecoder`. A frame error: the stream is lost.
+    FrameLength,
+    /// A compressed packet that declares more than 8 388 608 bytes, or
+    /// whose inflated size isn't the declared one (`CompressionDecoder`). A
+    /// frame error: the stream is lost.
+    DecompressedSize,
+    /// A string longer than its limit
+    /// ([`azalea_buf::limits::LimitKind::StringLength`]).
+    StringLength,
+    /// A collection length prefix that is negative, over its limit, or more
+    /// than the bytes left can hold
+    /// ([`azalea_buf::limits::LimitKind::CollectionLength`]).
+    CollectionLength,
+    /// A packet with more zero-size elements than the per-packet budget
+    /// ([`azalea_buf::limits::LimitKind::ElementBudget`]).
+    ElementBudget,
+    /// Network NBT nested deeper than 512
+    /// ([`azalea_buf::limits::LimitKind::NbtDepth`]).
+    NbtDepth,
+    /// Network NBT over the 2 097 152 byte accounting quota
+    /// ([`azalea_buf::limits::LimitKind::NbtSize`]).
+    NbtSize,
+    /// A self-containing type (item stacks in containers, slot displays)
+    /// nested deeper than 512
+    /// ([`azalea_buf::limits::LimitKind::NestingDepth`]).
+    NestingDepth,
+    /// A dimension type from registry data outside vanilla's bounds (height,
+    /// min_y, logical height); the entry is rejected before any chunk
+    /// storage is sized from it.
+    DimensionType,
 }
 
-const ALL_KINDS: [DecodeErrorKind; 10] = [
-    DecodeErrorKind::Frame,
-    DecodeErrorKind::UnknownPacketId,
-    DecodeErrorKind::PacketBody,
-    DecodeErrorKind::PacketHandler,
-    DecodeErrorKind::Registry,
-    DecodeErrorKind::Chunk,
-    DecodeErrorKind::HandlerState,
-    DecodeErrorKind::UnknownEntity,
-    DecodeErrorKind::EntityIndex,
-    DecodeErrorKind::SendState,
-];
+impl DecodeErrorKind {
+    /// Whether this kind means the byte stream itself is lost (bad length,
+    /// inflate failure or size mismatch), so the connection must be closed.
+    pub fn is_frame_error(self) -> bool {
+        matches!(
+            self,
+            DecodeErrorKind::Frame | DecodeErrorKind::FrameLength | DecodeErrorKind::DecompressedSize
+        )
+    }
+}
 
-static FRAME: AtomicU64 = AtomicU64::new(0);
-static UNKNOWN_PACKET_ID: AtomicU64 = AtomicU64::new(0);
-static PACKET_BODY: AtomicU64 = AtomicU64::new(0);
-static PACKET_HANDLER: AtomicU64 = AtomicU64::new(0);
-static REGISTRY: AtomicU64 = AtomicU64::new(0);
-static CHUNK: AtomicU64 = AtomicU64::new(0);
-static HANDLER_STATE: AtomicU64 = AtomicU64::new(0);
-static UNKNOWN_ENTITY: AtomicU64 = AtomicU64::new(0);
-static ENTITY_INDEX: AtomicU64 = AtomicU64::new(0);
-static SEND_STATE: AtomicU64 = AtomicU64::new(0);
+impl From<azalea_buf::limits::LimitKind> for DecodeErrorKind {
+    fn from(kind: azalea_buf::limits::LimitKind) -> Self {
+        use azalea_buf::limits::LimitKind;
+        match kind {
+            LimitKind::StringLength => DecodeErrorKind::StringLength,
+            LimitKind::CollectionLength => DecodeErrorKind::CollectionLength,
+            LimitKind::ElementBudget => DecodeErrorKind::ElementBudget,
+            LimitKind::NbtDepth => DecodeErrorKind::NbtDepth,
+            LimitKind::NbtSize => DecodeErrorKind::NbtSize,
+            LimitKind::NestingDepth => DecodeErrorKind::NestingDepth,
+        }
+    }
+}
+
+/// Every kind, and the name of its field in [`DecodeErrorCounts`].
+macro_rules! kinds {
+    ($($kind:ident => $field:ident),* $(,)?) => {
+        const ALL_KINDS: &[DecodeErrorKind] = &[$(DecodeErrorKind::$kind),*];
+
+        static COUNTERS: [AtomicU64; ALL_KINDS.len()] =
+            [const { AtomicU64::new(0) }; ALL_KINDS.len()];
+
+        /// The number of decode errors counted so far, by kind.
+        #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+        pub struct DecodeErrorCounts {
+            $(pub $field: u64,)*
+        }
+
+        impl DecodeErrorCounts {
+            pub fn get(&self, kind: DecodeErrorKind) -> u64 {
+                match kind {
+                    $(DecodeErrorKind::$kind => self.$field,)*
+                }
+            }
+        }
+
+        /// Get the number of decode errors counted so far in this process.
+        pub fn decode_errors() -> DecodeErrorCounts {
+            DecodeErrorCounts {
+                $($field: counter(DecodeErrorKind::$kind).load(Ordering::Relaxed),)*
+            }
+        }
+    };
+}
+
+kinds! {
+    Frame => frame,
+    UnknownPacketId => unknown_packet_id,
+    PacketBody => packet_body,
+    PacketHandler => packet_handler,
+    Registry => registry,
+    Chunk => chunk,
+    HandlerState => handler_state,
+    UnknownEntity => unknown_entity,
+    EntityIndex => entity_index,
+    SendState => send_state,
+    FrameLength => frame_length,
+    DecompressedSize => decompressed_size,
+    StringLength => string_length,
+    CollectionLength => collection_length,
+    ElementBudget => element_budget,
+    NbtDepth => nbt_depth,
+    NbtSize => nbt_size,
+    NestingDepth => nesting_depth,
+    DimensionType => dimension_type,
+}
 
 fn counter(kind: DecodeErrorKind) -> &'static AtomicU64 {
-    match kind {
-        DecodeErrorKind::Frame => &FRAME,
-        DecodeErrorKind::UnknownPacketId => &UNKNOWN_PACKET_ID,
-        DecodeErrorKind::PacketBody => &PACKET_BODY,
-        DecodeErrorKind::PacketHandler => &PACKET_HANDLER,
-        DecodeErrorKind::Registry => &REGISTRY,
-        DecodeErrorKind::Chunk => &CHUNK,
-        DecodeErrorKind::HandlerState => &HANDLER_STATE,
-        DecodeErrorKind::UnknownEntity => &UNKNOWN_ENTITY,
-        DecodeErrorKind::EntityIndex => &ENTITY_INDEX,
-        DecodeErrorKind::SendState => &SEND_STATE,
-    }
+    // network-safe: ALL_KINDS lists every variant once, in declaration
+    // order, and COUNTERS has one counter per entry
+    &COUNTERS[kind as usize]
 }
 
 /// Count one decode error of the given kind.
@@ -96,36 +172,7 @@ pub fn record_decode_error(kind: DecodeErrorKind) {
     counter(kind).fetch_add(1, Ordering::Relaxed);
 }
 
-/// The number of decode errors counted so far, by kind.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub struct DecodeErrorCounts {
-    pub frame: u64,
-    pub unknown_packet_id: u64,
-    pub packet_body: u64,
-    pub packet_handler: u64,
-    pub registry: u64,
-    pub chunk: u64,
-    pub handler_state: u64,
-    pub unknown_entity: u64,
-    pub entity_index: u64,
-    pub send_state: u64,
-}
 impl DecodeErrorCounts {
-    pub fn get(&self, kind: DecodeErrorKind) -> u64 {
-        match kind {
-            DecodeErrorKind::Frame => self.frame,
-            DecodeErrorKind::UnknownPacketId => self.unknown_packet_id,
-            DecodeErrorKind::PacketBody => self.packet_body,
-            DecodeErrorKind::PacketHandler => self.packet_handler,
-            DecodeErrorKind::Registry => self.registry,
-            DecodeErrorKind::Chunk => self.chunk,
-            DecodeErrorKind::HandlerState => self.handler_state,
-            DecodeErrorKind::UnknownEntity => self.unknown_entity,
-            DecodeErrorKind::EntityIndex => self.entity_index,
-            DecodeErrorKind::SendState => self.send_state,
-        }
-    }
-
     /// The sum of every counter.
     pub fn total(&self) -> u64 {
         ALL_KINDS.iter().map(|&k| self.get(k)).sum()
@@ -143,26 +190,30 @@ impl DecodeErrorCounts {
     }
 }
 
-/// Get the number of decode errors counted so far in this process.
-pub fn decode_errors() -> DecodeErrorCounts {
-    let load = |kind| counter(kind).load(Ordering::Relaxed);
-    DecodeErrorCounts {
-        frame: load(DecodeErrorKind::Frame),
-        unknown_packet_id: load(DecodeErrorKind::UnknownPacketId),
-        packet_body: load(DecodeErrorKind::PacketBody),
-        packet_handler: load(DecodeErrorKind::PacketHandler),
-        registry: load(DecodeErrorKind::Registry),
-        chunk: load(DecodeErrorKind::Chunk),
-        handler_state: load(DecodeErrorKind::HandlerState),
-        unknown_entity: load(DecodeErrorKind::UnknownEntity),
-        entity_index: load(DecodeErrorKind::EntityIndex),
-        send_state: load(DecodeErrorKind::SendState),
+/// Set every counter back to 0.
+pub fn reset_decode_errors() {
+    for c in &COUNTERS {
+        c.store(0, Ordering::Relaxed);
     }
 }
 
-/// Set every counter back to 0.
-pub fn reset_decode_errors() {
-    for kind in ALL_KINDS {
-        counter(kind).store(0, Ordering::Relaxed);
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn kinds_are_in_declaration_order() {
+        for (i, &kind) in ALL_KINDS.iter().enumerate() {
+            assert_eq!(kind as usize, i, "{kind:?}");
+        }
+        // and each kind's field is its own
+        let before = decode_errors();
+        for &kind in ALL_KINDS {
+            record_decode_error(kind);
+        }
+        let after = decode_errors();
+        for &kind in ALL_KINDS {
+            assert!(after.get(kind) > before.get(kind), "{kind:?}");
+        }
     }
 }

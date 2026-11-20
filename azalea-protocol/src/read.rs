@@ -153,17 +153,27 @@ fn frame_splitter(buffer: &mut Cursor<Vec<u8>>) -> Result<Option<Box<[u8]>>, Fra
 pub fn deserialize_packet<P: ProtocolPacket + Debug>(
     stream: &mut Cursor<&[u8]>,
 ) -> Result<P, Box<ReadPacketError>> {
-    // Packet ID
-    let res = u32::azalea_read_var(stream)
-        .map_err(|e| Box::new(ReadPacketError::ReadPacketId { source: e }))
-        .and_then(|packet_id| P::read(packet_id, stream));
+    azalea_buf::limits::take_limit_hit();
+    let res = azalea_buf::limits::with_element_budget(|| {
+        // Packet ID
+        u32::azalea_read_var(stream)
+            .map_err(|e| Box::new(ReadPacketError::ReadPacketId { source: e }))
+            .and_then(|packet_id| P::read(packet_id, stream))
+    });
+    // a limit that tripped is counted as its own kind, even if a reader on
+    // the way up replaced the error (or, if it recovered, the packet still
+    // lost data)
+    let limit = azalea_buf::limits::take_limit_hit();
     if let Err(err) = &res {
         // decode error hooks: unknown packet id, and packet id/body parse
         // failures
-        record_decode_error(match **err {
-            ReadPacketError::UnknownPacketId { .. } => DecodeErrorKind::UnknownPacketId,
-            _ => DecodeErrorKind::PacketBody,
+        record_decode_error(match (limit, &**err) {
+            (Some(limit), _) => limit.into(),
+            (None, ReadPacketError::UnknownPacketId { .. }) => DecodeErrorKind::UnknownPacketId,
+            (None, _) => DecodeErrorKind::PacketBody,
         });
+    } else if let Some(limit) = limit {
+        record_decode_error(limit.into());
     }
     res
 }
