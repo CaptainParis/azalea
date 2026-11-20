@@ -6,8 +6,7 @@ use azalea_entity::{PlayerAbilities, inventory::Inventory as Inv};
 use azalea_inventory::operations::ClickOperation;
 pub use azalea_inventory::*;
 use azalea_protocol::packets::game::{
-    s_container_click::ServerboundContainerClick,
-    s_container_close::ServerboundContainerClose,
+    s_container_click::ServerboundContainerClick, s_container_close::ServerboundContainerClose,
     s_set_carried_item::ServerboundSetCarriedItem,
 };
 use azalea_registry::builtin::MenuKind;
@@ -17,8 +16,9 @@ use indexmap::IndexMap;
 use tracing::{error, warn};
 
 use crate::{
+    bad_packet::InventoryUnknown,
     inventory::equipment_effects::{collect_equipment_changes, handle_equipment_changes},
-    bad_packet::InventoryUnknown, packet::game::SendGamePacketEvent,
+    packet::game::SendGamePacketEvent,
 };
 
 // TODO: when this is removed, remove the Inv alias above (which just exists to
@@ -193,7 +193,12 @@ impl ContainerClickEvent {
 pub fn handle_container_click_event(
     container_click: On<ContainerClickEvent>,
     mut commands: Commands,
-    mut query: Query<(Entity, &mut Inv, Option<&PlayerAbilities>, Has<InventoryUnknown>)>,
+    mut query: Query<(
+        Entity,
+        &mut Inv,
+        Option<&PlayerAbilities>,
+        Has<InventoryUnknown>,
+    )>,
 ) {
     let Ok((entity, mut inventory, player_abilities, unknown)) =
         query.get_mut(container_click.entity)

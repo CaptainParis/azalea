@@ -95,7 +95,10 @@ fn bad_container_packet_resyncs_the_inventory() {
     simulation.receive_raw_packet(bad_slot_packet());
     simulation.tick();
 
-    assert_eq!(decode_errors().inventory_unknown, before.inventory_unknown + 1);
+    assert_eq!(
+        decode_errors().inventory_unknown,
+        before.inventory_unknown + 1
+    );
     assert!(simulation.has_component::<InventoryUnknown>());
     {
         let events = events.lock();
@@ -166,7 +169,10 @@ fn bad_container_packet_resyncs_the_inventory() {
         inv.inventory_menu.slots()[9],
         ItemStack::new(ItemKind::Stick, 2)
     );
-    assert_eq!(decode_errors().inventory_resync_failed, before.inventory_resync_failed);
+    assert_eq!(
+        decode_errors().inventory_resync_failed,
+        before.inventory_resync_failed
+    );
     assert_eq!(decode_errors().policy_close, before.policy_close);
 }
 
@@ -205,7 +211,10 @@ fn inventory_resync_retries_once_then_closes() {
     simulation.tick();
     assert!(clicks(&sent).is_empty(), "no third click");
     let after = decode_errors();
-    assert_eq!(after.inventory_resync_failed, before.inventory_resync_failed + 1);
+    assert_eq!(
+        after.inventory_resync_failed,
+        before.inventory_resync_failed + 1
+    );
     assert_eq!(after.policy_close, before.policy_close + 1);
     let disconnects = disconnects.lock();
     assert_eq!(disconnects.len(), 1, "{disconnects:?}");

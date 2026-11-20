@@ -196,11 +196,10 @@ pub mod owner {
         pin::Pin,
         sync::OnceLock,
         task::{Context, Poll},
+        time::Duration,
     };
 
     use bevy_tasks::{AsyncComputeTaskPool, IoTaskPool, Task};
-
-    use std::time::Duration;
 
     /// Time cap of the TCP connect and handshake task (WP3's `Connecting`).
     pub const CONNECT_CAP: Duration = Duration::from_secs(30);

@@ -18,7 +18,12 @@ use azalea_protocol::{
 };
 use azalea_world::WorldName;
 
-fn closes(simulation: &mut Simulation, raw: Box<[u8]>, name: Option<&str>, class: Option<PacketClass>) {
+fn closes(
+    simulation: &mut Simulation,
+    raw: Box<[u8]>,
+    name: Option<&str>,
+    class: Option<PacketClass>,
+) {
     let events = simulation.record_messages::<BadPacketEvent>();
     let alerts = simulation.record_messages::<BadPacketAlert>();
     let disconnects = simulation.record_disconnects();
@@ -41,7 +46,10 @@ fn closes(simulation: &mut Simulation, raw: Box<[u8]>, name: Option<&str>, class
     let disconnects = disconnects.lock();
     assert_eq!(disconnects.len(), 1, "{disconnects:?}");
     let reason = disconnects[0].as_deref().unwrap_or_default();
-    assert!(reason.contains("no safe repair") || reason.contains("own entity"), "{reason}");
+    assert!(
+        reason.contains("no safe repair") || reason.contains("own entity"),
+        "{reason}"
+    );
     // disconnected: the client's world is gone
     assert!(!simulation.has_component::<WorldName>());
 }
@@ -64,7 +72,12 @@ fn bad_teleport_closes_the_connection() {
         },
         3,
     );
-    closes(&mut simulation, raw, Some("player_position"), Some(PacketClass::Critical));
+    closes(
+        &mut simulation,
+        raw,
+        Some("player_position"),
+        Some(PacketClass::Critical),
+    );
 }
 
 #[test]
@@ -111,7 +124,12 @@ fn bad_health_closes_the_connection() {
         },
         2,
     );
-    closes(&mut simulation, raw, Some("set_health"), Some(PacketClass::Critical));
+    closes(
+        &mut simulation,
+        raw,
+        Some("set_health"),
+        Some(PacketClass::Critical),
+    );
 }
 
 #[test]
@@ -121,7 +139,12 @@ fn unknown_packet_id_closes_the_connection() {
     simulation.receive_packet(default_login_packet());
     simulation.tick();
     // no clientbound game packet has id 0x7f00
-    closes(&mut simulation, vec![0x80, 0xfe, 0x01, 1, 2].into(), None, None);
+    closes(
+        &mut simulation,
+        vec![0x80, 0xfe, 0x01, 1, 2].into(),
+        None,
+        None,
+    );
 }
 
 #[test]

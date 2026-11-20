@@ -1423,7 +1423,8 @@ impl GamePacketHandler<'_> {
             |mut query| {
                 let Ok((local_player, unknown)) = query.get_mut(self.player) else {
                     warn!("Got forget_level_chunk packet but our player is missing components");
-                    // decode error hook: our own player's components are missing
+                    // decode error hook: our own player's components are
+                    // missing
                     record_decode_error(DecodeErrorKind::HandlerState);
                     return;
                 };

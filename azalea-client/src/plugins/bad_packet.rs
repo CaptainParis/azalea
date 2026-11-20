@@ -5,25 +5,27 @@
 //!
 //! - frame errors (bad length, inflate failure, size mismatch): the stream is
 //!   lost, the connection is closed ([`close_connection`]);
-//! - state-free packets (sounds, particles, chat display, animations,
-//!   titles, ...): dropped, counted, logged once per packet id per minute;
+//! - state-free packets (sounds, particles, chat display, animations, titles,
+//!   ...): dropped, counted, logged once per packet id per minute;
 //! - inventory and container packets: the inventory is marked unknown
-//!   ([`InventoryUnknown`]) and resynced with a click on slot -1, mode
-//!   PICKUP, button 0, carrying a stale state id, for the container we
-//!   believe is open. In 1.21.4 `doClick` ignores negative slots other than
-//!   -999, and the state id mismatch makes `handleContainerClick` call
-//!   `broadcastFullState`, which resends the whole menu and the carried item.
-//!   Retried once after 2 s; still unknown after 5 s closes the connection.
-//!   Ordinary clicks wait for the resync ([`PendingClicks`]); reflex clicks
+//!   ([`InventoryUnknown`]) and resynced with a click on slot -1, mode PICKUP,
+//!   button 0, carrying a stale state id, for the container we believe is open.
+//!   In 1.21.4 `doClick` ignores negative slots other than -999, and the state
+//!   id mismatch makes `handleContainerClick` call `broadcastFullState`, which
+//!   resends the whole menu and the carried item. Retried once after 2 s; still
+//!   unknown after 5 s closes the connection. Ordinary clicks wait for the
+//!   resync ([`PendingClicks`]); reflex clicks
 //!   ([`ContainerClickEvent::reflex`]) never wait;
-//! - packets about other entities: the entity keeps its last good state and
-//!   is marked [`StaleEntity`] until the server removes it or its chunk
-//!   unloads;
+//! - packets about other entities: the entity keeps its last good state and is
+//!   marked [`StaleEntity`] until the server removes it or its chunk unloads. A
+//!   spawn that can't be decoded spawns a [`PlaceholderEntity`] from the fields
+//!   that can be read (id, uuid, type, position), marked stale and alerted at
+//!   once;
 //! - chunk and block packets: the chunk is unknown, treated as unloaded
 //!   ([`UnknownChunks`]);
 //! - everything with no safe repair (login, respawn, teleport, start
-//!   configuration, our own entity, keep-alive, configuration and login
-//!   states, unknown ids): the connection is closed and an alert raised.
+//!   configuration, our own entity, keep-alive, configuration and login states,
+//!   unknown ids): the connection is closed and an alert raised.
 //!
 //! Every outcome is counted ([`DecodeErrorKind`]) and sent as a
 //! [`BadPacketEvent`], which carries the raw packet bytes (for a proxy to
@@ -43,26 +45,32 @@ use std::{
 use azalea_buf::{AzBuf, AzBufVar};
 use azalea_core::{
     decode_errors::{DecodeErrorKind, record_decode_error},
+    delta::QuantizedVelocity,
     entity_id::MinecraftEntityId,
-    position::{BlockPos, ChunkPos, ChunkSectionPos},
+    position::{BlockPos, ChunkPos, ChunkSectionPos, Vec3},
 };
 use azalea_entity::{InLoadedChunk, indexing::EntityIdIndex, inventory::Inventory};
 use azalea_inventory::operations::{ClickOperation, ClickType};
 use azalea_protocol::{
-    packets::{ConnectionProtocol, game::s_container_click::ServerboundContainerClick},
+    packets::{
+        ConnectionProtocol,
+        game::{ClientboundAddEntity, s_container_click::ServerboundContainerClick},
+    },
     read::ReadPacketError,
 };
+use azalea_registry::builtin::EntityKind;
 use bevy_app::{App, Plugin, Update};
 use bevy_ecs::prelude::*;
 use indexmap::IndexMap;
 use tracing::{debug, error, warn};
+use uuid::Uuid;
 
 use crate::{
     chunks::handle_receive_chunk_event,
     connection::{ConnectionSocket, RawConnection},
     inventory::ContainerClickEvent,
     local_player::WorldHolder,
-    packet::game::SendGamePacketEvent,
+    packet::game::{GamePacketHandler, SendGamePacketEvent},
 };
 
 /// How a clientbound game packet that couldn't be decoded is handled.
@@ -87,50 +95,144 @@ pub fn classify_game(name: &str) -> Option<PacketClass> {
     use PacketClass::*;
     Some(match name {
         // display only, or bookkeeping nothing in the model reads
-        "bundle_delimiter" | "animate" | "award_stats" | "block_destruction" | "block_event"
-        | "boss_event" | "change_difficulty" | "clear_titles" | "command_suggestions"
-        | "commands" | "cooldown" | "custom_chat_completions" | "custom_payload"
-        | "damage_event" | "debug_sample" | "delete_chat" | "disguised_chat"
-        | "hurt_animation" | "initialize_border" | "level_event" | "level_particles"
-        | "light_update" | "map_item_data" | "merchant_offers" | "open_book"
-        | "open_sign_editor" | "place_ghost_recipe" | "player_chat" | "player_combat_end"
-        | "player_combat_enter" | "player_info_remove" | "player_info_update"
-        | "pong_response" | "recipe_book_add" | "recipe_book_remove"
-        | "recipe_book_settings" | "reset_score" | "resource_pack_pop"
-        | "select_advancements_tab" | "server_data" | "set_action_bar_text"
-        | "set_border_center" | "set_border_lerp_size" | "set_border_size"
-        | "set_border_warning_delay" | "set_border_warning_distance" | "set_camera"
-        | "set_default_spawn_position" | "set_display_objective" | "set_objective"
-        | "set_player_team" | "set_score" | "set_simulation_distance" | "set_subtitle_text"
-        | "set_time" | "set_title_text" | "set_titles_animation" | "sound_entity" | "sound"
-        | "stop_sound" | "store_cookie" | "system_chat" | "tab_list" | "tag_query"
-        | "update_advancements" | "update_recipes" | "custom_report_details"
+        "bundle_delimiter"
+        | "animate"
+        | "award_stats"
+        | "block_destruction"
+        | "block_event"
+        | "boss_event"
+        | "change_difficulty"
+        | "clear_titles"
+        | "command_suggestions"
+        | "commands"
+        | "cooldown"
+        | "custom_chat_completions"
+        | "custom_payload"
+        | "damage_event"
+        | "debug_sample"
+        | "delete_chat"
+        | "disguised_chat"
+        | "hurt_animation"
+        | "initialize_border"
+        | "level_event"
+        | "level_particles"
+        | "light_update"
+        | "map_item_data"
+        | "merchant_offers"
+        | "open_book"
+        | "open_sign_editor"
+        | "place_ghost_recipe"
+        | "player_chat"
+        | "player_combat_end"
+        | "player_combat_enter"
+        | "player_info_remove"
+        | "player_info_update"
+        | "pong_response"
+        | "recipe_book_add"
+        | "recipe_book_remove"
+        | "recipe_book_settings"
+        | "reset_score"
+        | "resource_pack_pop"
+        | "select_advancements_tab"
+        | "server_data"
+        | "set_action_bar_text"
+        | "set_border_center"
+        | "set_border_lerp_size"
+        | "set_border_size"
+        | "set_border_warning_delay"
+        | "set_border_warning_distance"
+        | "set_camera"
+        | "set_default_spawn_position"
+        | "set_display_objective"
+        | "set_objective"
+        | "set_player_team"
+        | "set_score"
+        | "set_simulation_distance"
+        | "set_subtitle_text"
+        | "set_time"
+        | "set_title_text"
+        | "set_titles_animation"
+        | "sound_entity"
+        | "sound"
+        | "stop_sound"
+        | "store_cookie"
+        | "system_chat"
+        | "tab_list"
+        | "tag_query"
+        | "update_advancements"
+        | "update_recipes"
+        | "custom_report_details"
         | "server_links" => StateFree,
 
-        "container_close" | "container_set_content" | "container_set_data"
-        | "container_set_slot" | "open_screen" | "horse_screen_open" | "set_cursor_item"
+        "container_close"
+        | "container_set_content"
+        | "container_set_data"
+        | "container_set_slot"
+        | "open_screen"
+        | "horse_screen_open"
+        | "set_cursor_item"
         | "set_player_inventory" => Inventory,
 
-        "add_entity" | "add_experience_orb" | "entity_event" | "entity_position_sync"
-        | "move_entity_pos" | "move_entity_pos_rot" | "move_entity_rot"
-        | "move_minecart_along_track" | "projectile_power" | "remove_entities"
-        | "rotate_head" | "set_entity_data" | "set_entity_link" | "set_entity_motion"
-        | "set_equipment" | "set_passengers" | "take_item_entity" | "teleport_entity"
-        | "update_attributes" | "update_mob_effect" | "remove_mob_effect" => Entity,
+        "add_entity"
+        | "add_experience_orb"
+        | "entity_event"
+        | "entity_position_sync"
+        | "move_entity_pos"
+        | "move_entity_pos_rot"
+        | "move_entity_rot"
+        | "move_minecart_along_track"
+        | "projectile_power"
+        | "remove_entities"
+        | "rotate_head"
+        | "set_entity_data"
+        | "set_entity_link"
+        | "set_entity_motion"
+        | "set_equipment"
+        | "set_passengers"
+        | "take_item_entity"
+        | "teleport_entity"
+        | "update_attributes"
+        | "update_mob_effect"
+        | "remove_mob_effect" => Entity,
 
-        "block_entity_data" | "block_update" | "chunks_biomes" | "forget_level_chunk"
-        | "level_chunk_with_light" | "section_blocks_update" => Chunk,
+        "block_entity_data"
+        | "block_update"
+        | "chunks_biomes"
+        | "forget_level_chunk"
+        | "level_chunk_with_light"
+        | "section_blocks_update" => Chunk,
 
         // login, respawn, teleport, start configuration, our own player, and
         // packets the server waits for an answer to or that size the world
         // view
-        "login" | "respawn" | "player_position" | "player_rotation" | "player_look_at"
-        | "start_configuration" | "set_health" | "set_experience" | "player_abilities"
-        | "game_event" | "set_held_slot" | "explode" | "player_combat_kill" | "keep_alive"
-        | "ping" | "disconnect" | "transfer" | "cookie_request" | "resource_pack_push"
-        | "chunk_batch_start" | "chunk_batch_finished" | "set_chunk_cache_center"
-        | "set_chunk_cache_radius" | "update_tags" | "block_changed_ack"
-        | "ticking_state" | "ticking_step" | "move_vehicle" => Critical,
+        "login"
+        | "respawn"
+        | "player_position"
+        | "player_rotation"
+        | "player_look_at"
+        | "start_configuration"
+        | "set_health"
+        | "set_experience"
+        | "player_abilities"
+        | "game_event"
+        | "set_held_slot"
+        | "explode"
+        | "player_combat_kill"
+        | "keep_alive"
+        | "ping"
+        | "disconnect"
+        | "transfer"
+        | "cookie_request"
+        | "resource_pack_push"
+        | "chunk_batch_start"
+        | "chunk_batch_finished"
+        | "set_chunk_cache_center"
+        | "set_chunk_cache_radius"
+        | "update_tags"
+        | "block_changed_ack"
+        | "ticking_state"
+        | "ticking_step"
+        | "move_vehicle" => Critical,
 
         _ => return None,
     })
@@ -147,6 +249,13 @@ pub enum BadPacketAction {
     /// These entities keep their last good state, marked stale. Empty if the
     /// entity id couldn't be read or isn't in our index.
     EntityStale { entities: Vec<MinecraftEntityId> },
+    /// An entity spawn couldn't be decoded: a placeholder entity was spawned
+    /// from the fields that could be read, marked [`StaleEntity`] and
+    /// [`PlaceholderEntity`].
+    PlaceholderSpawned {
+        id: MinecraftEntityId,
+        read: PlaceholderEntity,
+    },
     /// These chunks are unknown (unloaded).
     ChunkUnknown { chunks: Vec<ChunkPos> },
     /// The connection was closed for a reconnect.
@@ -179,6 +288,9 @@ pub enum AlertReason {
     Closed,
     /// The inventory resync didn't arrive in time: the connection was closed.
     ResyncFailed,
+    /// A part of the model was lost (an entity spawn, the tab list). Raised
+    /// the first time, not only when it repeats.
+    ModelGap,
 }
 
 /// Something a human should look at (consumed by metrics). Raised for every
@@ -261,6 +373,21 @@ pub struct PendingClick {
 pub struct StaleEntity {
     pub since: Instant,
     pub packet: String,
+}
+
+/// An entity spawned by the bad packet policy from the readable start of an
+/// `add_entity` packet that couldn't be decoded whole (it also has
+/// [`StaleEntity`]). Fields that couldn't be read have placeholder values: a
+/// `marker` type (vanilla servers never send markers, so it can't be a real
+/// one), a uuid made from the entity id, the origin as position, zero
+/// rotations, data and velocity. Removed with the entity.
+#[derive(Clone, Component, Debug, Eq, PartialEq)]
+pub struct PlaceholderEntity {
+    pub uuid_known: bool,
+    pub kind_known: bool,
+    pub position_known: bool,
+    /// Rotations, data and velocity.
+    pub rest_known: bool,
 }
 
 /// Chunks of this client that are unknown because a chunk or block packet
@@ -411,6 +538,8 @@ pub(crate) fn handle_bad_packet(
                 let reason = format!("bad {what} about our own entity: {err}");
                 close_connection(ecs, entity, reason.clone());
                 BadPacketAction::Closed { reason }
+            } else if packet_name.as_deref() == Some("add_entity") {
+                spawn_placeholder(ecs, entity, body)
             } else {
                 mark_entities_stale(ecs, entity, &ids, packet_name.as_deref().unwrap_or("?"))
             }
@@ -432,7 +561,16 @@ pub(crate) fn handle_bad_packet(
         }
     };
 
-    let alert = matches!(action, BadPacketAction::Closed { .. }).then_some(AlertReason::Closed);
+    let alert = match &action {
+        BadPacketAction::Closed { .. } => Some(AlertReason::Closed),
+        // a lost spawn is a hole in the model: alerted the first time, not
+        // only when it repeats
+        BadPacketAction::PlaceholderSpawned { .. } => Some(AlertReason::ModelGap),
+        BadPacketAction::EntityStale { .. } if packet_name.as_deref() == Some("add_entity") => {
+            Some(AlertReason::ModelGap)
+        }
+        _ => None,
+    };
     send(
         ecs,
         BadPacketEvent {
@@ -609,9 +747,7 @@ fn inventory_resync_timers(
     for (entity, unknown, pending) in &mut query {
         let elapsed = unknown.since.elapsed();
         if let Some(mut pending) = pending {
-            pending
-                .0
-                .retain(|c| c.at.elapsed() < config.resync_give_up);
+            pending.0.retain(|c| c.at.elapsed() < config.resync_give_up);
         }
         if elapsed >= config.resync_give_up {
             let clicks = unknown.clicks_sent;
@@ -630,8 +766,7 @@ fn resync_failed(ecs: &mut World, entity: Entity, elapsed: Duration, clicks: u8)
         .remove::<(InventoryUnknown, PendingClicks)>();
     // decode error hook: the resync didn't come
     record_decode_error(DecodeErrorKind::InventoryResyncFailed);
-    let reason =
-        format!("inventory still unknown after {elapsed:?} and {clicks} resync clicks");
+    let reason = format!("inventory still unknown after {elapsed:?} and {clicks} resync clicks");
     close_connection(ecs, entity, reason.clone());
     let state = ecs
         .get::<RawConnection>(entity)
@@ -747,6 +882,79 @@ fn mark_entities_stale(
     }
 }
 
+/// An `add_entity` that couldn't be decoded: read its body field by field
+/// (id, uuid, type, position, then the rest), and spawn the entity from what
+/// could be read, marked stale, so that later packets for its id apply to
+/// something and the hole in the model is visible. Nothing is spawned if not
+/// even the id can be read.
+fn spawn_placeholder(ecs: &mut World, player: Entity, body: &[u8]) -> BadPacketAction {
+    // decode error hook: a lost spawn, the entity is a placeholder (or
+    // missing if its id can't be read)
+    record_decode_error(DecodeErrorKind::StaleEntity);
+    let mut buf = Cursor::new(body);
+    let Ok(id) = i32::azalea_read_var(&mut buf).map(MinecraftEntityId) else {
+        return BadPacketAction::EntityStale { entities: vec![] };
+    };
+    let uuid = Uuid::azalea_read(&mut buf).ok();
+    let kind = uuid.and(EntityKind::azalea_read(&mut buf).ok());
+    let position = kind.and(Vec3::azalea_read(&mut buf).ok());
+    let rest = position.and_then(|_| {
+        Some((
+            i8::azalea_read(&mut buf).ok()?,
+            i8::azalea_read(&mut buf).ok()?,
+            i8::azalea_read(&mut buf).ok()?,
+            i32::azalea_read_var(&mut buf).ok()?,
+            QuantizedVelocity::azalea_read(&mut buf).ok()?,
+        ))
+    });
+    let read = PlaceholderEntity {
+        uuid_known: uuid.is_some(),
+        kind_known: kind.is_some(),
+        position_known: position.is_some(),
+        rest_known: rest.is_some(),
+    };
+    let (x_rot, y_rot, y_head_rot, data, movement) = rest.unwrap_or_default();
+    let packet = ClientboundAddEntity {
+        id,
+        // not a real player's uuid (version 0), unique per entity id
+        uuid: uuid.unwrap_or(Uuid::from_u64_pair(
+            0x6875_6e74_0000_0000,
+            id.0 as u32 as u64,
+        )),
+        entity_type: kind.unwrap_or(EntityKind::Marker),
+        position: position.unwrap_or_default(),
+        x_rot,
+        y_rot,
+        y_head_rot,
+        data,
+        movement,
+    };
+
+    let existed = ecs
+        .get::<EntityIdIndex>(player)
+        .and_then(|index| index.get_by_minecraft_entity(id))
+        .is_some();
+    GamePacketHandler { ecs, player }.add_entity(&packet);
+    // decode error hook: counted as its own outcome too
+    record_decode_error(DecodeErrorKind::PlaceholderEntity);
+    let spawned = ecs
+        .get::<EntityIdIndex>(player)
+        .and_then(|index| index.get_by_minecraft_entity(id));
+    if let Some(e) = spawned
+        && !existed
+        && let Ok(mut e) = ecs.get_entity_mut(e)
+    {
+        e.insert((
+            StaleEntity {
+                since: Instant::now(),
+                packet: "add_entity".to_owned(),
+            },
+            read.clone(),
+        ));
+    }
+    BadPacketAction::PlaceholderSpawned { id, read }
+}
+
 /// Called by the `remove_entities` handler.
 pub(crate) fn entity_removed(ecs: &mut World, entity: Entity) {
     if let Ok(mut e) = ecs.get_entity_mut(entity) {
@@ -754,11 +962,23 @@ pub(crate) fn entity_removed(ecs: &mut World, entity: Entity) {
     }
 }
 
+/// A stale entity whose chunk unloads isn't stale anymore (the server sends
+/// it again, whole, if the chunk comes back). Only entities that were in a
+/// loaded chunk and left it: a new placeholder isn't in one yet.
 fn clear_stale_entities_out_of_loaded_chunks(
     mut commands: Commands,
-    query: Query<Entity, (With<StaleEntity>, Without<InLoadedChunk>)>,
+    mut left_loaded_chunks: RemovedComponents<InLoadedChunk>,
+    query: Query<Option<&PlaceholderEntity>, With<StaleEntity>>,
 ) {
-    for entity in &query {
+    for entity in left_loaded_chunks.read() {
+        let Ok(placeholder) = query.get(entity) else {
+            continue;
+        };
+        // a placeholder whose position couldn't be read is at the origin, so
+        // the chunk it's in says nothing about it
+        if placeholder.is_some_and(|p| !p.position_known) {
+            continue;
+        }
         commands.entity(entity).remove::<StaleEntity>();
     }
 }
@@ -838,9 +1058,7 @@ pub(crate) fn chunk_known(unknown: Option<Mut<UnknownChunks>>, pos: &ChunkPos) {
     }
 }
 
-fn unload_pending_unknown_chunks(
-    mut query: Query<(&WorldHolder, &mut UnknownChunks)>,
-) {
+fn unload_pending_unknown_chunks(mut query: Query<(&WorldHolder, &mut UnknownChunks)>) {
     for (world_holder, mut unknown) in &mut query {
         if unknown.pending.is_empty() {
             continue;

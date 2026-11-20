@@ -130,7 +130,9 @@ pub fn request_certs_if_needed(
             let task = crate::task_pool::owner::spawn_io(async_compat::Compat::new(async move {
                 tokio::time::timeout(cap, azalea_auth::certs::fetch_certificates(&access_token))
                     .await
-                    .unwrap_or(Err(azalea_auth::certs::FetchCertificatesError::TimedOut(cap)))
+                    .unwrap_or(Err(azalea_auth::certs::FetchCertificatesError::TimedOut(
+                        cap,
+                    )))
             }));
             commands
                 .entity(entity)
