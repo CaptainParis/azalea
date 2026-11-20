@@ -124,7 +124,7 @@ use azalea_core::{
     direction::Direction,
     position::{BlockPos, Vec3f32},
 };
-use azalea_inventory::{ItemStack, components};
+use azalea_inventory::ItemStack;
 use azalea_registry::{DataRegistry, builtin::EntityKind};
 use bevy_ecs::{bundle::Bundle, component::Component};
 use derive_more::{Deref, DerefMut};
@@ -132,11 +132,10 @@ use thiserror::Error;
 use uuid::Uuid;
 
 use super::{
-    ArmadilloStateKind, CopperGolemStateKind, EntityDataItem, EntityDataValue, OptionalUnsignedInt,
-    PaintingVariantHolder, Pose, Quaternion, Rotations, SnifferStateKind, VillagerData,
-    WeatheringCopperStateKind, WolfVariantHolder,
+    ArmadilloStateKind, EntityDataItem, EntityDataValue, OptionalUnsignedInt, PaintingVariantHolder,
+    Pose, Quaternion, Rotations, SnifferStateKind, VillagerData, WolfVariantHolder,
 };
-use crate::{HumanoidArm, particle::Particle};
+use crate::particle::Particle;
 
 #[derive(Error, Debug)]
 pub enum UpdateMetadataError {
