@@ -72,8 +72,9 @@ impl Plugin for MovementPlugin {
                         .in_set(PhysicsSystems)
                         .before(ai_step)
                         .before(azalea_physics::fluids::update_in_water_state_and_do_fluid_pushing),
-                    send_player_input_packet,
                     update_pose.before(EntityGeometryUpdateSystems),
+                    send_shift_key_state,
+                    send_player_input_packet,
                     send_sprinting_if_needed
                         .after(azalea_entity::update_in_loaded_chunk)
                         .after(travel)
@@ -204,6 +205,38 @@ pub fn send_position(
                 sent_by: entity,
                 packet,
             });
+        }
+    }
+}
+
+/// Tell the server when we start or stop pressing the shift key.
+///
+/// The 1.21.4 server only learns that we're sneaking from this packet
+/// (`ServerGamePacketListenerImpl.handlePlayerCommand` -> `setShiftKeyDown`),
+/// not from [`ServerboundPlayerInput`]. Like `LocalPlayer.sendShiftKeyState`,
+/// this runs every tick before the player input and position are sent.
+pub fn send_shift_key_state(
+    mut query: Query<(Entity, &MinecraftEntityId, &mut ClientMovementState), With<HasClientLoaded>>,
+    mut commands: Commands,
+) {
+    for (entity, minecraft_entity_id, mut physics_state) in query.iter_mut() {
+        // LocalPlayer.isShiftKeyDown is the current input's shift key
+        let shift_key_down = physics_state.trying_to_crouch;
+        if shift_key_down != physics_state.was_shift_key_down {
+            let action = if shift_key_down {
+                s_player_command::Action::PressShiftKey
+            } else {
+                s_player_command::Action::ReleaseShiftKey
+            };
+            commands.trigger(SendGamePacketEvent::new(
+                entity,
+                ServerboundPlayerCommand {
+                    id: *minecraft_entity_id,
+                    action,
+                    data: 0,
+                },
+            ));
+            physics_state.was_shift_key_down = shift_key_down;
         }
     }
 }
@@ -399,6 +432,18 @@ pub fn local_player_ai_step(
 
         let moving_slowly = is_moving_slowly(&crouching, fall_flying, pose, is_in_water);
 
+        // 1.21.4 LocalPlayer.shouldStopSprinting (checked before the impulses
+        // are scaled). sneaking, gliding or using an item cancels the sprint.
+        let is_riding_camel = false;
+        let should_stop_sprinting = is_fall_flying
+            || has_blindness
+            || moving_slowly
+            || (is_passenger && !is_riding_camel)
+            || (using_item && !is_passenger && !is_underwater);
+        if should_stop_sprinting && **sprinting {
+            set_sprinting(false, &mut sprinting, &mut attributes);
+        }
+
         // 1.21.4 LocalPlayer.aiStep scales the impulses in place, before
         // checking whether we can start sprinting
         if using_item && !is_passenger {
@@ -411,32 +456,36 @@ pub fn local_player_ai_step(
 
         let has_enough_impulse = has_enough_impulse_to_start_sprinting(&physics_state);
 
+        // TODO: passengers
+        let vehicle_can_sprint = false;
         // LocalPlayer.canStartSprinting
         let can_start_sprinting = !**sprinting
             && has_enough_impulse
             && has_enough_food_to_sprint
             && !using_item
             && !has_blindness
-            && (!is_passenger || is_underwater)
-            && (!is_fall_flying || is_underwater)
-            && (!moving_slowly || is_underwater)
-            && (!is_in_water || is_underwater);
-        if trying_to_sprint && can_start_sprinting {
+            && (!is_passenger || vehicle_can_sprint)
+            && !is_fall_flying
+            && (!moving_slowly || is_underwater);
+        // the sprint key is down. vanilla's double-tap-forward sprint isn't
+        // implemented.
+        if trying_to_sprint && (!is_in_water || is_underwater) && can_start_sprinting {
             set_sprinting(true, &mut sprinting, &mut attributes);
         }
 
         if **sprinting {
-            // TODO: swimming
-
-            let vehicle_can_sprint = false;
-            // shouldStopRunSprinting
-            let should_stop_sprinting = has_blindness
-                || (is_passenger && !vehicle_can_sprint)
-                || !has_enough_impulse
-                || !has_enough_food_to_sprint
+            let has_forward_impulse = physics_state.move_vector.y > 1.0e-5;
+            let stop_from_input = !has_forward_impulse || !has_enough_food_to_sprint;
+            let should_stop_sprinting = stop_from_input
                 || (physics.horizontal_collision && !physics.minor_horizontal_collision)
                 || (is_in_water && !is_underwater);
-            if should_stop_sprinting {
+            if is_swimming {
+                if (!physics.on_ground() && !physics_state.trying_to_crouch && stop_from_input)
+                    || !is_in_water
+                {
+                    set_sprinting(false, &mut sprinting, &mut attributes);
+                }
+            } else if should_stop_sprinting {
                 set_sprinting(false, &mut sprinting, &mut attributes);
             }
         }

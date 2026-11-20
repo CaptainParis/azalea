@@ -12,6 +12,9 @@ pub struct ClientMovementState {
     /// player moved enough. This is that tick counter.
     pub position_remainder: u32,
     pub was_sprinting: bool,
+    /// Whether the shift key was down the last time we told the server about
+    /// it with a `PRESS_SHIFT_KEY`/`RELEASE_SHIFT_KEY` player command.
+    pub was_shift_key_down: bool,
     // Whether we're going to try to start sprinting this tick. Equivalent to
     // holding down ctrl for a tick.
     pub trying_to_sprint: bool,

@@ -7,7 +7,7 @@ use azalea_protocol::{
         ConnectionProtocol,
         game::{
             ClientboundBlockUpdate, ClientboundPlayerPosition, ServerboundGamePacket,
-            ServerboundPlayerInput,
+            ServerboundPlayerInput, s_player_command,
         },
     },
 };
@@ -51,6 +51,15 @@ fn test_correct_sneak_movement() {
 
     simulation.with_component_mut::<ClientMovementState>(|p| p.trying_to_crouch = true);
     simulation.tick();
+    // 1.21.4 LocalPlayer.tick: sendShiftKeyState comes before the player
+    // input packet
+    sent_packets.expect("PlayerCommand(PressShiftKey)", |p| {
+        matches!(
+            p,
+            ServerboundGamePacket::PlayerCommand(p)
+            if p.action == s_player_command::Action::PressShiftKey
+        )
+    });
     sent_packets.expect("PlayerInput", |p| {
         matches!(
             p,
@@ -108,4 +117,22 @@ fn test_correct_sneak_movement() {
     });
     sent_packets.expect_tick_end();
     sent_packets.expect_empty();
+
+    simulation.with_component_mut::<ClientMovementState>(|p| p.trying_to_crouch = false);
+    simulation.tick();
+    sent_packets.expect("PlayerCommand(ReleaseShiftKey)", |p| {
+        matches!(
+            p,
+            ServerboundGamePacket::PlayerCommand(p)
+            if p.action == s_player_command::Action::ReleaseShiftKey
+        )
+    });
+    sent_packets.expect("PlayerInput", |p| {
+        matches!(
+            p,
+            ServerboundGamePacket::PlayerInput(p)
+            if *p == ServerboundPlayerInput { forward: true, ..Default::default() }
+        )
+    });
+    sent_packets.clear();
 }

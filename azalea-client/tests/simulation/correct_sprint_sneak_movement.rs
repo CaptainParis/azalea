@@ -90,6 +90,15 @@ fn test_correct_sprint_sneak_movement() {
     simulation.with_component_mut::<ClientMovementState>(|p| p.trying_to_crouch = true);
 
     simulation.tick();
+    // 1.21.4 LocalPlayer.tick: sendShiftKeyState comes before the player
+    // input packet
+    sent_packets.expect("PlayerCommand(PressShiftKey)", |p| {
+        matches!(
+            p,
+            ServerboundGamePacket::PlayerCommand(p)
+            if p.action == s_player_command::Action::PressShiftKey
+        )
+    });
     sent_packets.expect("PlayerInput", |p| {
         matches!(
             p,
