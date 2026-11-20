@@ -4,7 +4,9 @@
 //! connection the same way (the supervisor reconnects); a chat whose
 //! references are all cached is tracked as before.
 
-use azalea_client::{packet::game::UNCACHED_SIGNATURE_CLOSE, secure_chat::SecureChatState, test_utils::prelude::*};
+use azalea_client::{
+    packet::game::UNCACHED_SIGNATURE_CLOSE, secure_chat::SecureChatState, test_utils::prelude::*,
+};
 use azalea_crypto::signing::MessageSignature;
 use azalea_protocol::packets::{
     ConnectionProtocol,
@@ -70,7 +72,11 @@ fn uncached_packed_signature_closes_like_vanilla() {
     assert_eq!(tracked(&simulation), 2, "not tracked");
     let d = disconnects.lock().clone();
     assert_eq!(d.len(), 1, "{d:?}");
-    assert!(d[0].as_deref().is_some_and(|r| r.contains("invalid_packet")), "{d:?}");
+    assert!(
+        d[0].as_deref()
+            .is_some_and(|r| r.contains("invalid_packet")),
+        "{d:?}"
+    );
     assert!(UNCACHED_SIGNATURE_CLOSE.starts_with("multiplayer.disconnect.invalid_packet"));
 }
 
@@ -83,10 +89,14 @@ fn uncached_delete_closes_like_vanilla() {
     let disconnects = simulation.record_disconnects();
     simulation.receive_packet(chat(1, vec![]));
     simulation.tick();
-    simulation.receive_packet(ClientboundDeleteChat { signature: PackedMessageSignature::Id(0) });
+    simulation.receive_packet(ClientboundDeleteChat {
+        signature: PackedMessageSignature::Id(0),
+    });
     simulation.tick();
     assert!(disconnects.lock().is_empty(), "a cached delete is fine");
-    simulation.receive_packet(ClientboundDeleteChat { signature: PackedMessageSignature::Id(90) });
+    simulation.receive_packet(ClientboundDeleteChat {
+        signature: PackedMessageSignature::Id(90),
+    });
     simulation.tick();
     simulation.tick();
     assert_eq!(disconnects.lock().len(), 1);
