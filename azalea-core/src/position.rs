@@ -588,7 +588,9 @@ impl Add<ChunkBlockPos> for ChunkPos {
 impl From<ChunkPos> for u64 {
     #[inline]
     fn from(pos: ChunkPos) -> Self {
-        (pos.x as u64) | ((pos.z as u64) << 32)
+        // ChunkPos.asLong: both halves masked to 32 bits, so a negative x does
+        // not sign-extend into z
+        u64::from(pos.x as u32) | (u64::from(pos.z as u32) << 32)
     }
 }
 impl From<u64> for ChunkPos {
@@ -1166,5 +1168,16 @@ mod tests {
         let mut buf = Cursor::new(&buf[..]);
         let chunk_pos = ChunkPos::from(u64::azalea_read(&mut buf).unwrap());
         assert_eq!(chunk_pos, ChunkPos::new(2, -1));
+    }
+
+    #[test]
+    fn test_chunk_pos_negative_x_round_trip() {
+        // vanilla ChunkPos.asLong(-9, -5)
+        let long = (-9i64 & 0xFFFF_FFFF) | ((-5i64 & 0xFFFF_FFFF) << 32);
+        assert_eq!(u64::from(ChunkPos::new(-9, -5)), long as u64);
+        let mut buf = Vec::new();
+        ChunkPos::new(-9, 3).azalea_write(&mut buf).unwrap();
+        let chunk_pos = ChunkPos::azalea_read(&mut Cursor::new(&buf[..])).unwrap();
+        assert_eq!(chunk_pos, ChunkPos::new(-9, 3));
     }
 }
