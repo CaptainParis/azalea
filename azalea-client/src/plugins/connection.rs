@@ -34,7 +34,10 @@ use tracing::{debug, error, info, trace, warn};
 use super::packet::{
     config::ReceiveConfigPacketEvent, game::ReceiveGamePacketEvent, login::ReceiveLoginPacketEvent,
 };
-use crate::packet::{config, game, login};
+use crate::{
+    bad_packet,
+    packet::{config, game, login},
+};
 
 pub struct ConnectionPlugin;
 impl Plugin for ConnectionPlugin {
@@ -72,36 +75,46 @@ pub fn read_packets(ecs: &mut World) {
     // RawConnection::injected_clientbound_packets for more info
     for (entity, raw_packets) in entities_with_injected_packets {
         for raw_packet in raw_packets {
-            let conn = conn_query.get(ecs, entity).unwrap();
+            let Ok(conn) = conn_query.get(ecs, entity) else {
+                break;
+            };
+            if !conn.is_alive {
+                // closed by the bad packet policy
+                break;
+            }
             let state = conn.state;
 
             trace!("Received injected packet with bytes: {raw_packet:?}");
-            if let Err(e) =
-                handle_raw_packet(ecs, &raw_packet, entity, state, &mut queued_packet_events)
-            {
-                error!("Error reading injected packet: {e}");
-            }
+            read_one_packet(
+                ecs,
+                Arc::from(raw_packet),
+                entity,
+                state,
+                &mut queued_packet_events,
+            );
         }
     }
 
     for entity in entities_handling_packets {
         loop {
-            let mut conn = conn_query.get_mut(ecs, entity).unwrap();
-            let net_conn = conn.net_conn().unwrap();
-            let read_res = net_conn.reader.try_read();
+            let Ok(mut conn) = conn_query.get_mut(ecs, entity) else {
+                break;
+            };
             let state = conn.state;
+            let Some(net_conn) = conn.net_conn() else {
+                // closed (by the bad packet policy, or a handler)
+                break;
+            };
+            let read_res = net_conn.reader.try_read();
             match read_res {
                 Ok(Some(raw_packet)) => {
-                    let raw_packet = Arc::<[u8]>::from(raw_packet);
-                    if let Err(e) = handle_raw_packet(
+                    read_one_packet(
                         ecs,
-                        &raw_packet,
+                        Arc::from(raw_packet),
                         entity,
                         state,
                         &mut queued_packet_events,
-                    ) {
-                        error!("Error reading packet: {e}");
-                    }
+                    );
                 }
                 Ok(None) => {
                     // no packets available
@@ -110,15 +123,17 @@ pub fn read_packets(ecs: &mut World) {
                 Err(err) => {
                     log_for_error(&err);
 
-                    if matches!(
-                        &*err,
-                        ReadPacketError::IoError { .. } | ReadPacketError::ConnectionClosed
-                    ) {
-                        info!("Server closed connection");
-                        // ungraceful disconnect :(
-                        conn.network = None;
-                        // setting this will make us send a DisconnectEvent
-                        conn.is_alive = false;
+                    match &*err {
+                        ReadPacketError::IoError { .. } | ReadPacketError::ConnectionClosed => {
+                            info!("Server closed connection");
+                            // ungraceful disconnect :(
+                            conn.network = None;
+                            // setting this will make us send a DisconnectEvent
+                            conn.is_alive = false;
+                        }
+                        // bad length, inflate failure, size mismatch: the
+                        // byte stream is lost (counted by the reader)
+                        _ => bad_packet::handle_frame_error(ecs, entity, &err),
                     }
 
                     break;
@@ -128,6 +143,21 @@ pub fn read_packets(ecs: &mut World) {
     }
 
     queued_packet_events.write_messages(ecs);
+}
+
+/// Decode and handle one raw packet (after the test hooks); a packet that
+/// can't be decoded goes to the bad packet policy.
+fn read_one_packet(
+    ecs: &mut World,
+    raw_packet: Arc<[u8]>,
+    entity: Entity,
+    state: ConnectionProtocol,
+    queued_packet_events: &mut QueuedPacketEvents,
+) {
+    let raw_packet = bad_packet::apply_raw_packet_hooks(ecs, entity, state, raw_packet);
+    if let Err(e) = handle_raw_packet(ecs, &raw_packet, entity, state, queued_packet_events) {
+        bad_packet::handle_bad_packet(ecs, entity, state, raw_packet, &e);
+    }
 }
 
 fn poll_all_writer_tasks(mut conn_query: Query<&mut RawConnection>) {
@@ -249,8 +279,8 @@ impl RawConnection {
     }
 
     /// Close the connection from our side: the network halves are dropped
-    /// and a `DisconnectEvent` with `reason` follows. Shut down the
-    /// [`ConnectionSocket`] too to end it for the server at once.
+    /// and a `DisconnectEvent` with `reason` follows. Use
+    /// [`bad_packet::close_connection`] to also shut down the socket at once.
     pub fn close(&mut self, reason: String) {
         self.network = None;
         self.is_alive = false;

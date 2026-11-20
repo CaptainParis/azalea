@@ -31,7 +31,7 @@ pub use events::*;
 use tracing::{debug, error, warn};
 
 use crate::{
-    ClientInformation,
+    ClientInformation, bad_packet,
     block_update::QueuedServerBlockUpdates,
     chunks,
     client_chat::{ChatPacket, ChatReceivedEvent},
@@ -1058,6 +1058,7 @@ impl GamePacketHandler<'_> {
 
     pub fn remove_entities(&mut self, p: &ClientboundRemoveEntities) {
         debug!("Got remove entities packet {p:?}");
+        let mut removed = Vec::new();
 
         as_system::<(Query<&mut EntityIdIndex>, Query<&mut LoadedBy>)>(
             self.ecs,
@@ -1096,9 +1097,13 @@ impl GamePacketHandler<'_> {
                     // client
 
                     loaded_by.remove(&self.player);
+                    removed.push(entity);
                 }
             },
         );
+        for entity in removed {
+            bad_packet::entity_removed(self.ecs, entity);
+        }
     }
     pub fn player_chat(&mut self, p: &ClientboundPlayerChat) {
         debug!("Got player chat packet {p:?}");
@@ -1323,6 +1328,8 @@ impl GamePacketHandler<'_> {
                 });
             }
         });
+        // the full content of the open container ends an inventory resync
+        bad_packet::container_content_received(self.ecs, self.player, p.container_id);
     }
 
     pub fn container_set_data(&mut self, p: &ClientboundContainerSetData) {
@@ -1411,18 +1418,22 @@ impl GamePacketHandler<'_> {
     pub fn forget_level_chunk(&mut self, p: &ClientboundForgetLevelChunk) {
         debug!("Got forget level chunk packet {p:?}");
 
-        as_system::<Query<&WorldHolder>>(self.ecs, |mut query| {
-            let Ok(local_player) = query.get_mut(self.player) else {
-                warn!("Got forget_level_chunk packet but our player is missing components");
-                // decode error hook: our own player's components are missing
-                record_decode_error(DecodeErrorKind::HandlerState);
-                return;
-            };
+        as_system::<Query<(&WorldHolder, Option<&mut bad_packet::UnknownChunks>)>>(
+            self.ecs,
+            |mut query| {
+                let Ok((local_player, unknown)) = query.get_mut(self.player) else {
+                    warn!("Got forget_level_chunk packet but our player is missing components");
+                    // decode error hook: our own player's components are missing
+                    record_decode_error(DecodeErrorKind::HandlerState);
+                    return;
+                };
 
-            let mut partial_world = local_player.partial.write();
+                let mut partial_world = local_player.partial.write();
 
-            partial_world.chunks.limited_set(&p.pos, None);
-        });
+                partial_world.chunks.limited_set(&p.pos, None);
+                bad_packet::chunk_known(unknown, &p.pos);
+            },
+        );
     }
 
     pub fn horse_screen_open(&mut self, _p: &ClientboundHorseScreenOpen) {}

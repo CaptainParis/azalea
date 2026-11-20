@@ -291,12 +291,22 @@ impl ContainerHandleRef {
     /// Simulate a click in the container and send the packet to perform the
     /// action.
     pub fn click(&self, operation: impl Into<ClickOperation>) {
-        let operation = operation.into();
-        self.client.ecs.write().trigger(ContainerClickEvent {
-            entity: self.client.entity,
-            window_id: self.id,
+        self.client.ecs.write().trigger(ContainerClickEvent::new(
+            self.client.entity,
+            self.id,
             operation,
-        });
+        ));
+    }
+
+    /// Like [`Self::click`], but for a survival reflex (for example a totem
+    /// swap): it runs at once even while the inventory is unknown after a bad
+    /// packet, instead of waiting for the resync.
+    pub fn reflex_click(&self, operation: impl Into<ClickOperation>) {
+        self.client.ecs.write().trigger(ContainerClickEvent::reflex(
+            self.client.entity,
+            self.id,
+            operation,
+        ));
     }
 }
 

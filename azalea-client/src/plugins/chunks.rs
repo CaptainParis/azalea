@@ -18,10 +18,12 @@ use azalea_protocol::packets::game::{
 use azalea_registry::identifier::Identifier;
 use bevy_app::{App, Plugin, Update};
 use bevy_ecs::prelude::*;
-use tracing::{error, trace};
+use tracing::{error, trace, warn};
 
 use crate::{
-    inventory::InventorySystems, local_player::WorldHolder, packet::game::SendGamePacketEvent,
+    inventory::InventorySystems,
+    local_player::WorldHolder,
+    bad_packet::UnknownChunks, packet::game::SendGamePacketEvent,
     respawn::perform_respawn,
 };
 
@@ -69,13 +71,21 @@ pub struct ChunkBatchFinishedEvent {
 }
 
 pub fn handle_receive_chunk_event(
+    mut commands: Commands,
     mut events: MessageReader<ReceiveChunkEvent>,
-    mut query: Query<&WorldHolder>,
+    mut query: Query<(&WorldHolder, Option<&mut UnknownChunks>)>,
 ) {
     for event in events.read() {
         let pos = ChunkPos::new(event.packet.x, event.packet.z);
 
-        let local_player = query.get_mut(event.entity).unwrap();
+        let Ok((local_player, mut unknown)) = query.get_mut(event.entity) else {
+            warn!("Got a chunk but our player is missing components");
+            // decode error hook: our own player's components are missing
+            record_decode_error(DecodeErrorKind::HandlerState);
+            continue;
+        };
+        // sent again: known
+        crate::bad_packet::chunk_known(unknown.as_mut().map(|u| u.reborrow()), &pos);
 
         let mut world = local_player.shared.write();
         let mut partial_world = local_player.partial.write();
@@ -115,8 +125,22 @@ pub fn handle_receive_chunk_event(
                 "Couldn't set chunk data: {e}. World height: {}",
                 world.chunks.height()
             );
-            // decode error hook: chunks that fail to parse are skipped
+            // decode error hook: chunks that fail to parse are unknown
+            // (treated as unloaded, bad packet policy)
             record_decode_error(DecodeErrorKind::Chunk);
+            record_decode_error(DecodeErrorKind::ChunkUnknown);
+            partial_world.chunks.limited_set(&pos, None);
+            match unknown {
+                Some(mut u) => {
+                    u.chunks.insert(pos);
+                }
+                None => {
+                    commands.entity(event.entity).insert(UnknownChunks {
+                        chunks: [pos].into(),
+                        ..Default::default()
+                    });
+                }
+            }
         }
     }
 }

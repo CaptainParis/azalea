@@ -34,6 +34,8 @@ const SCANNED: &[&str] = &[
     "../azalea-entity/src",
     "../azalea-inventory/src",
     "src/plugins/packet",
+    // the bad packet policy runs on every packet that failed to decode
+    "src/plugins/bad_packet.rs",
 ];
 
 fn rust_files(path: &Path, out: &mut Vec<PathBuf>) {

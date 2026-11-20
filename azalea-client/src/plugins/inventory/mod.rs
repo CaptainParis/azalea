@@ -18,7 +18,7 @@ use tracing::{error, warn};
 
 use crate::{
     inventory::equipment_effects::{collect_equipment_changes, handle_equipment_changes},
-    packet::game::SendGamePacketEvent,
+    bad_packet::InventoryUnknown, packet::game::SendGamePacketEvent,
 };
 
 // TODO: when this is removed, remove the Inv alias above (which just exists to
@@ -166,13 +166,49 @@ pub struct ContainerClickEvent {
     pub entity: Entity,
     pub window_id: i32,
     pub operation: ClickOperation,
+    /// A survival reflex (for example a totem swap): it runs even while the
+    /// inventory is unknown after a bad packet, and its result resyncs the
+    /// state. Ordinary clicks (`false`) wait for the resync, see
+    /// [`PendingClicks`](crate::bad_packet::PendingClicks).
+    pub reflex: bool,
+}
+impl ContainerClickEvent {
+    /// An ordinary click.
+    pub fn new(entity: Entity, window_id: i32, operation: impl Into<ClickOperation>) -> Self {
+        Self {
+            entity,
+            window_id,
+            operation: operation.into(),
+            reflex: false,
+        }
+    }
+    /// A reflex click: never waits for an inventory resync.
+    pub fn reflex(entity: Entity, window_id: i32, operation: impl Into<ClickOperation>) -> Self {
+        Self {
+            reflex: true,
+            ..Self::new(entity, window_id, operation)
+        }
+    }
 }
 pub fn handle_container_click_event(
     container_click: On<ContainerClickEvent>,
     mut commands: Commands,
-    mut query: Query<(Entity, &mut Inv, Option<&PlayerAbilities>)>,
+    mut query: Query<(Entity, &mut Inv, Option<&PlayerAbilities>, Has<InventoryUnknown>)>,
 ) {
-    let (entity, mut inventory, player_abilities) = query.get_mut(container_click.entity).unwrap();
+    let Ok((entity, mut inventory, player_abilities, unknown)) =
+        query.get_mut(container_click.entity)
+    else {
+        warn!("Tried to click a container, but the client has no inventory");
+        return;
+    };
+    if unknown && !container_click.reflex {
+        // waits for the inventory resync (bad packet policy)
+        let (window_id, operation) = (container_click.window_id, container_click.operation.clone());
+        commands.queue(move |ecs: &mut World| {
+            crate::bad_packet::defer_click(ecs, entity, window_id, operation);
+        });
+        return;
+    }
     if inventory.id != container_click.window_id {
         error!(
             "Tried to click container with ID {}, but the current container ID is {}. Click packet won't be sent.",

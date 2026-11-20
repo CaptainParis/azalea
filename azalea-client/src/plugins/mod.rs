@@ -1,6 +1,7 @@
 use bevy_app::{PluginGroup, PluginGroupBuilder};
 
 pub mod attack;
+pub mod bad_packet;
 pub mod block_update;
 pub mod brand;
 #[cfg(feature = "online-mode")]

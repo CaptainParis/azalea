@@ -31,7 +31,7 @@ pub fn death_event_on_0_health(
 
 impl Plugin for PacketPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
+        app.add_plugins(crate::bad_packet::BadPacketPlugin).add_systems(
             Update,
             relative_updates::debug_detect_updates_received_on_local_entities,
         )
