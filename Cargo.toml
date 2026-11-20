@@ -18,6 +18,7 @@ members = [
     "azalea-registry",
     "azalea-world",
 ]
+exclude = ["vendor/simdnbt"]
 resolver = "3"
 
 # --- Workspace Settings ---
@@ -141,3 +142,8 @@ opt-level = 3
 opt-level = 3
 [profile.dev.package.flate2]
 opt-level = 3
+
+# simdnbt with its borrow parser accepting 512 levels of NBT, as vanilla
+# (see vendor/simdnbt/Cargo.toml)
+[patch.crates-io]
+simdnbt = { path = "vendor/simdnbt" }
