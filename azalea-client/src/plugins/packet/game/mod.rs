@@ -253,6 +253,13 @@ impl GamePacketHandler<'_> {
                     let Some((_dimension_type, dimension_data)) =
                         p.common.dimension_type(client_registries)
                     else {
+                        warn!(
+                            "Got login packet with a dimension type that isn't in our registries: {:?}",
+                            p.common.dimension_type
+                        );
+                        // decode error hook: unknown registry id, the packet
+                        // is dropped
+                        record_decode_error(DecodeErrorKind::PacketHandler);
                         return;
                     };
 
@@ -1434,6 +1441,13 @@ impl GamePacketHandler<'_> {
                     let Some((_dimension_type, dimension_data)) =
                         p.common.dimension_type(client_registries)
                     else {
+                        warn!(
+                            "Got respawn packet with a dimension type that isn't in our registries: {:?}",
+                            p.common.dimension_type
+                        );
+                        // decode error hook: unknown registry id, the packet
+                        // is dropped
+                        record_decode_error(DecodeErrorKind::PacketHandler);
                         return;
                     };
 
