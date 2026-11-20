@@ -310,6 +310,13 @@ impl GamePacketHandler<'_> {
                     .entity(self.player)
                     .remove::<bad_packet::TabListStale>();
 
+                // vanilla handleLogin: a new chat session (sent again with the
+                // same key once the client is in game)
+                #[cfg(feature = "online-mode")]
+                commands
+                    .entity(self.player)
+                    .remove::<crate::chat_signing::ChatSigningSession>();
+
                 if let Some(mut world_name) = world_name {
                     *world_name = new_world_name.clone();
                 } else {

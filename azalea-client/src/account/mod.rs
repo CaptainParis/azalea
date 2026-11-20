@@ -47,7 +47,7 @@ impl Account {
     }
 }
 
-pub(crate) type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
+pub type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 
 /// A trait that all types of accounts implement.
 ///
@@ -102,6 +102,27 @@ pub trait AccountTrait: Send + Sync + Debug {
     #[cfg(feature = "online-mode")]
     fn set_certs(&self, certs: azalea_auth::certs::Certificates) {
         let _ = certs;
+    }
+
+    /// Fetch fresh chat signing certificates (profile keys) for this account.
+    ///
+    /// The default asks `api.minecraftservices.com` with
+    /// [`AccountTrait::access_token`]; accounts with their own auth flow
+    /// (other endpoints, background renewal) override it.
+    #[cfg(feature = "online-mode")]
+    fn fetch_certificates(
+        &self,
+    ) -> BoxFuture<'_, Result<azalea_auth::certs::Certificates, azalea_auth::certs::FetchCertificatesError>>
+    {
+        let token = self.access_token();
+        Box::pin(async move {
+            match token {
+                Some(t) => azalea_auth::certs::fetch_certificates(&t).await,
+                None => Err(azalea_auth::certs::FetchCertificatesError::Decode(
+                    "offline account has no access token".into(),
+                )),
+            }
+        })
     }
 
     /// Typically used to tell Mojang's sessionserver that we are going to join

@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use rsa::RsaPrivateKey;
+pub use rsa::RsaPrivateKey;
 use serde::Deserialize;
 use thiserror::Error;
 use tracing::trace;

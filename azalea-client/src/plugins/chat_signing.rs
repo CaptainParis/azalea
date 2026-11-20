@@ -54,6 +54,12 @@ pub struct OnlyRefreshCertsAfter {
 pub struct ChatSigningSession {
     pub session_id: Uuid,
     pub messages_sent: u32,
+    /// The key this session was announced with (a different key in the
+    /// account starts a new session).
+    pub public_key_der: Vec<u8>,
+    /// Its private key: messages are signed with the session's key, not with
+    /// a key the account renewed but hasn't announced yet.
+    pub private_key: azalea_auth::certs::RsaPrivateKey,
 }
 
 pub fn poll_request_certs_task(
@@ -73,15 +79,36 @@ pub fn poll_request_certs_task(
                     account.set_certs(certs);
                 }
                 Err(err) => {
-                    error!("Error requesting certs: {err:?}. Retrying in an hour.");
+                    // an hour, or sooner if the current key runs out first
+                    let wait = Duration::from_secs(60 * 60);
+                    error!("Error requesting certs: {err:?}. Retrying in {wait:?}.");
 
                     commands.entity(entity).insert(OnlyRefreshCertsAfter {
-                        refresh_at: Instant::now() + Duration::from_secs(60 * 60),
+                        refresh_at: Instant::now() + wait,
                     });
                 }
             }
         }
     }
+}
+
+/// How long before the certificates expire the client renews them (WP3: 6 h,
+/// so a 36 h queue plus an 8 h session never chats on an expired key).
+/// Insert it on a client to change it.
+#[derive(Clone, Component, Copy, Debug)]
+pub struct CertRefreshMargin(pub Duration);
+impl Default for CertRefreshMargin {
+    fn default() -> Self {
+        Self(Duration::from_secs(6 * 3600))
+    }
+}
+
+fn due(certs: &Certificates, margin: Duration) -> bool {
+    let margin = chrono::Duration::from_std(margin).unwrap_or(chrono::Duration::MAX);
+    certs
+        .expires_at
+        .checked_sub_signed(margin)
+        .is_none_or(|t| Utc::now() >= t)
 }
 
 #[allow(clippy::type_complexity)]
@@ -93,50 +120,50 @@ pub fn request_certs_if_needed(
             &Account,
             Option<&OnlyRefreshCertsAfter>,
             Option<&ChatSigningSession>,
+            Option<&CertRefreshMargin>,
         ),
         (
             Without<RequestCertsTask>,
+            Without<QueuedCertsToSend>,
             With<InGameState>,
             With<IsAuthenticated>,
         ),
     >,
 ) {
-    for (entity, account, only_refresh_certs_after, chat_signing_session) in query.iter_mut() {
+    for (entity, account, only_refresh_certs_after, chat_signing_session, margin) in
+        query.iter_mut()
+    {
+        let margin = margin.copied().unwrap_or_default().0;
+        if let Some(certs) = account.certs()
+            && !due(&certs, margin)
+        {
+            // valid certs: send them if this connection has no chat session
+            // yet, or if the account's key changed (renewed elsewhere): a new
+            // chat session with the new key, as vanilla's setKeyPair
+            let send = chat_signing_session.is_none_or(|s| s.public_key_der != certs.public_key_der);
+            if send {
+                commands.entity(entity).insert(QueuedCertsToSend { certs });
+            }
+            continue;
+        }
         if let Some(only_refresh_certs_after) = only_refresh_certs_after
             && only_refresh_certs_after.refresh_at > Instant::now()
         {
             continue;
         }
 
-        let certs = account.certs();
-        let should_refresh = if let Some(certs) = certs {
-            // certs were already requested and we're waiting for them to
-            // refresh
-
-            // but maybe they weren't sent yet, in which case we still want to
-            // send the certs
-            if chat_signing_session.is_none() {
-                true
-            } else {
-                Utc::now() > certs.expires_at
-            }
-        } else {
-            true
-        };
-
-        if should_refresh && let Some(access_token) = account.access_token() {
-            debug!("Started task to fetch certs");
-            let cap = crate::task_pool::owner::CERTS_CAP;
-            let task = crate::task_pool::owner::spawn_io(async_compat::Compat::new(async move {
-                tokio::time::timeout(cap, azalea_auth::certs::fetch_certificates(&access_token))
-                    .await
-                    .unwrap_or(Err(azalea_auth::certs::FetchCertificatesError::TimedOut(cap)))
-            }));
-            commands
-                .entity(entity)
-                .insert(RequestCertsTask(task))
-                .remove::<OnlyRefreshCertsAfter>();
-        }
+        debug!("Started task to fetch certs");
+        let cap = crate::task_pool::owner::CERTS_CAP;
+        let account = account.clone();
+        let task = crate::task_pool::owner::spawn_io(async_compat::Compat::new(async move {
+            tokio::time::timeout(cap, account.fetch_certificates())
+                .await
+                .unwrap_or(Err(azalea_auth::certs::FetchCertificatesError::TimedOut(cap)))
+        }));
+        commands
+            .entity(entity)
+            .insert(RequestCertsTask(task))
+            .remove::<OnlyRefreshCertsAfter>();
     }
 }
 
@@ -179,6 +206,8 @@ pub fn handle_queued_certs_to_send(
             .insert(ChatSigningSession {
                 session_id,
                 messages_sent: 0,
+                public_key_der: certs.public_key_der.clone(),
+                private_key: certs.private_key.clone(),
             });
     }
 }

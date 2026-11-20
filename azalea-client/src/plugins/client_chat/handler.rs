@@ -102,12 +102,6 @@ pub fn create_signature(
 ) -> azalea_crypto::signing::MessageSignature {
     use azalea_crypto::signing::SignChatMessageOptions;
 
-    let certs = account
-        .certs()
-        // network-safe: called only for a client with a ChatSigningSession, which
-        // chat_signing.rs inserts after the certs were fetched; no packet clears them
-        .expect("certs shouldn't be set back to None");
-
     let signature = azalea_crypto::signing::sign_chat_message(&SignChatMessageOptions {
         account_uuid: account.uuid(),
         chat_session_uuid: chat_session.session_id,
@@ -115,7 +109,7 @@ pub fn create_signature(
         salt,
         timestamp,
         message: message.to_owned(),
-        private_key: certs.private_key.clone(),
+        private_key: chat_session.private_key.clone(),
         last_seen: Vec::new(),
     });
 
