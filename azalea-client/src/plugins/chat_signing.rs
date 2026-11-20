@@ -60,7 +60,17 @@ pub struct ChatSigningSession {
     /// Its private key: messages are signed with the session's key, not with
     /// a key the account renewed but hasn't announced yet.
     pub private_key: azalea_auth::certs::RsaPrivateKey,
+    /// When the session was sent. Signed chat waits [`SESSION_SETTLE`] after
+    /// it: Paper applies the update on its main thread but decodes chat on
+    /// its network threads, so a message signed with a session the server
+    /// hasn't applied yet is refused and breaks the chain until the next
+    /// session.
+    pub announced_at: Instant,
 }
+
+/// How long signed chat waits after a chat session update (see
+/// [`ChatSigningSession::announced_at`]).
+pub const SESSION_SETTLE: Duration = Duration::from_millis(1500);
 
 pub fn poll_request_certs_task(
     mut commands: Commands,
@@ -214,6 +224,7 @@ pub fn handle_queued_certs_to_send(
                 messages_sent: 0,
                 public_key_der: certs.public_key_der.clone(),
                 private_key: certs.private_key.clone(),
+                announced_at: Instant::now(),
             });
     }
 }

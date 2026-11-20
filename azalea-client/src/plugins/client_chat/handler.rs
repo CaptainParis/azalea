@@ -59,8 +59,61 @@ pub fn handle_send_chat_kind_event(
         &mut ChatSigningSession,
         Option<&CommandTree>,
     )>,
+    #[cfg(feature = "online-mode")] mut held: Local<
+        std::collections::HashMap<Entity, std::collections::VecDeque<(String, ChatKind)>>,
+    >,
 ) {
-    for event in events.read() {
+    // Signed chat right after a chat session update waits until the server
+    // has surely applied it (`SESSION_SETTLE`); order is kept per client.
+    let mut todo: Vec<(Entity, String, ChatKind)> = Vec::new();
+    #[cfg(feature = "online-mode")]
+    {
+        let settled = |e: Entity,
+                       signing: &Query<(
+            &Account,
+            &mut ChatSigningSession,
+            Option<&CommandTree>,
+        )>| {
+            signing.get(e).is_ok_and(|(_, s, _)| {
+                s.announced_at.elapsed() >= crate::chat_signing::SESSION_SETTLE
+            })
+        };
+        let ready: Vec<Entity> = held
+            .iter()
+            .filter(|(e, q)| !q.is_empty() && settled(**e, &signing))
+            .map(|(e, _)| *e)
+            .collect();
+        for e in ready {
+            if let Some(q) = held.remove(&e) {
+                todo.extend(q.into_iter().map(|(c, k)| (e, c, k)));
+            }
+        }
+        for event in events.read() {
+            let unsettled = signing.get(event.entity).is_ok_and(|(_, s, _)| {
+                s.announced_at.elapsed() < crate::chat_signing::SESSION_SETTLE
+            });
+            let queue = held.entry(event.entity).or_default();
+            if unsettled || !queue.is_empty() {
+                // bounded: a client that never settles keeps its last 64
+                if queue.len() >= 64 {
+                    queue.pop_front();
+                }
+                queue.push_back((event.content.clone(), event.kind));
+            } else {
+                todo.push((event.entity, event.content.clone(), event.kind));
+            }
+        }
+        held.retain(|_, q| !q.is_empty());
+    }
+    #[cfg(not(feature = "online-mode"))]
+    todo.extend(events.read().map(|e| (e.entity, e.content.clone(), e.kind)));
+
+    for (entity, raw, kind) in todo {
+        let event = SendChatKindEvent {
+            entity,
+            content: raw,
+            kind,
+        };
         let content = event
             .content
             .chars()

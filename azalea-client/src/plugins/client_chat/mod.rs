@@ -245,6 +245,7 @@ pub fn handle_send_chat_event(
 }
 
 /// A kind of chat packet, either a chat message or a command.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ChatKind {
     Message,
     Command,
