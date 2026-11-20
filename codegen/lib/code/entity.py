@@ -133,7 +133,8 @@ use uuid::Uuid;
 
 use super::{
     ArmadilloStateKind, CopperGolemStateKind, EntityDataItem, EntityDataValue, OptionalUnsignedInt,
-    Pose, Quaternion, Rotations, SnifferStateKind, VillagerData, WeatheringCopperStateKind,
+    PaintingVariantHolder, Pose, Quaternion, Rotations, SnifferStateKind, VillagerData,
+    WeatheringCopperStateKind, WolfVariantHolder,
 };
 use crate::{HumanoidArm, particle::Particle};
 
@@ -525,6 +526,7 @@ impl From<EntityDataValue> for UpdateMetadataError {
                     )["type_id"]
                     metadata_type_data = metadata_types[type_id]
                     type_name = metadata_type_data["name"]
+                    rust_type = metadata_type_data["type"]
 
                     name = maybe_rename_field(name_or_bitfield, index)
 
@@ -542,6 +544,16 @@ impl From<EntityDataValue> for UpdateMetadataError {
                         #     default = 'azalea_registry::data::PaintingVariant::Kebab'
                         # elif type_name == 'FrogVariant':
                         #     default = 'azalea_registry::data::FrogVariant::Temperate'
+                        elif rust_type.startswith("azalea_registry::builtin::"):
+                            # the default variant for builtin registries that
+                            # are used in entity metadata
+                            default_variant = {
+                                "CatVariant": "Black",
+                                "FrogVariant": "Temperate",
+                            }[type_name]
+                            default = f"{rust_type}::{default_variant}"
+                        elif rust_type.endswith("VariantHolder"):
+                            default = f"azalea_registry::Holder::Reference(azalea_registry::data::{type_name}::new_raw(0))"
                         elif type_name.endswith("Variant"):
                             default = f"azalea_registry::data::{type_name}::new_raw(0)"
                         elif type_name == "VillagerData":
@@ -566,7 +578,10 @@ impl From<EntityDataValue> for UpdateMetadataError {
                                 if default != "Empty"
                                 else "None"
                             )
-                        elif type_name == "OptionalLivingEntityReference":
+                        elif type_name in (
+                            "OptionalLivingEntityReference",
+                            "OptionalUuid",
+                        ):
                             default = (
                                 f"Some(uuid::uuid!({default}))"
                                 if default != "Empty"
@@ -606,6 +621,9 @@ impl From<EntityDataValue> for UpdateMetadataError {
                                 if default != "Empty"
                                 else "simdnbt::owned::NbtCompound::default()"
                             )
+                            if rust_type.startswith("Box<"):
+                                default = f"Box::new({default})"
+
                         elif type_name == "Quaternion":
                             default = f"Quaternion {{ x: {float(default['x'])}, y: {float(default['y'])}, z: {float(default['z'])}, w: {float(default['w'])} }}"
                         elif type_name == "Vector3":
