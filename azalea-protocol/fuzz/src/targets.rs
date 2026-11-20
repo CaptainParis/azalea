@@ -5,9 +5,11 @@ use std::{fmt::Debug, io::Cursor};
 use azalea_block::BlockState;
 use azalea_buf::AzBuf;
 use azalea_chat::FormattedText;
-use azalea_client::connection::RawConnection;
-use azalea_client::test_utils::simulation::{
-    Simulation, default_login_packet, make_basic_add_entity, make_basic_empty_chunk,
+use azalea_client::{
+    connection::RawConnection,
+    test_utils::simulation::{
+        Simulation, default_login_packet, make_basic_add_entity, make_basic_empty_chunk,
+    },
 };
 use azalea_core::position::{ChunkPos, ChunkSectionBlockPos};
 use azalea_protocol::{
@@ -16,7 +18,10 @@ use azalea_protocol::{
         config::{ClientboundConfigPacket, ClientboundFinishConfiguration},
         game::ClientboundGamePacket,
     },
-    read::{MAX_FRAME_LENGTH, MAXIMUM_UNCOMPRESSED_LENGTH, deserialize_packet, read_raw_packet_from_buffer},
+    read::{
+        MAX_FRAME_LENGTH, MAXIMUM_UNCOMPRESSED_LENGTH, deserialize_packet,
+        read_raw_packet_from_buffer,
+    },
     write::serialize_packet,
 };
 use azalea_registry::{builtin::EntityKind, data::Biome};
@@ -40,9 +45,8 @@ pub fn roundtrip<P: ProtocolPacket + Debug>(data: &[u8]) {
     };
     let bytes1 = serialize_packet(&first)
         .unwrap_or_else(|e| panic!("a decoded packet doesn't encode: {e}\n{first:?}"));
-    let second = deserialize_packet::<P>(&mut Cursor::new(&bytes1)).unwrap_or_else(|e| {
-        panic!("our own encoding doesn't decode: {e}\n{first:?}\n{bytes1:?}")
-    });
+    let second = deserialize_packet::<P>(&mut Cursor::new(&bytes1))
+        .unwrap_or_else(|e| panic!("our own encoding doesn't decode: {e}\n{first:?}\n{bytes1:?}"));
     let bytes2 = serialize_packet(&second)
         .unwrap_or_else(|e| panic!("a decoded packet doesn't encode: {e}\n{second:?}"));
     assert!(
@@ -79,7 +83,8 @@ pub fn frame(data: &[u8]) {
             }
         }
         // nothing buffered beyond one frame that hasn't fully arrived
-        let unread = buffer.get_ref().len() - (buffer.position() as usize).min(buffer.get_ref().len());
+        let unread =
+            buffer.get_ref().len() - (buffer.position() as usize).min(buffer.get_ref().len());
         assert!(
             unread <= MAX_FRAME_LENGTH + 3,
             "{unread} bytes buffered without a frame"
@@ -138,7 +143,10 @@ pub fn chat_component(data: &[u8]) {
         .unwrap_or_else(|e| panic!("our own chat NBT doesn't read back: {e}\n{text:?}"));
     let mut bytes2 = Vec::new();
     again.azalea_write(&mut bytes2).unwrap();
-    assert!(bytes1 == bytes2, "chat NBT write isn't stable\n{text:?}\n{again:?}");
+    assert!(
+        bytes1 == bytes2,
+        "chat NBT write isn't stable\n{text:?}\n{again:?}"
+    );
 }
 
 /// A paletted container: byte 0 picks block states or biomes and the
@@ -202,9 +210,12 @@ pub fn chunk_section(data: &[u8]) {
     };
     let biome_registry_size = (data[1] != 0).then_some(data[1] as usize);
     let mut cursor = Cursor::new(&data[2..]);
-    if let Ok(section) = Section::read_with_biome_registry_size(&mut cursor.clone(), biome_registry_size) {
+    if let Ok(section) =
+        Section::read_with_biome_registry_size(&mut cursor.clone(), biome_registry_size)
+    {
         for i in 0..4096u16 {
-            let pos = ChunkSectionBlockPos::new((i & 15) as u8, (i >> 8) as u8, ((i >> 4) & 15) as u8);
+            let pos =
+                ChunkSectionBlockPos::new((i & 15) as u8, (i >> 8) as u8, ((i >> 4) & 15) as u8);
             let _ = section.get_block_state(pos);
         }
         let mut out = Vec::new();
@@ -227,15 +238,47 @@ pub fn chunk_section(data: &[u8]) {
 /// How many packets a handler sequence may hold (a bigger input is cut).
 pub const MAX_SEQUENCE: usize = 256;
 
+thread_local! {
+    /// One simulation app per fuzzing process (libFuzzer runs inputs on one
+    /// thread): building an app and its runtime costs far more than an
+    /// input, so each input [`Simulation::reset`]s it instead.
+    static SIMULATION: std::cell::RefCell<Option<Simulation>> =
+        const { std::cell::RefCell::new(None) };
+}
+
+/// Run `f` on the process's simulation, reset to a fresh client in
+/// `protocol` (built on first use).
+fn with_simulation(protocol: ConnectionProtocol, f: impl FnOnce(&mut Simulation)) {
+    SIMULATION.with(|cell| {
+        let mut slot = cell.borrow_mut();
+        match slot.as_mut() {
+            Some(simulation) => simulation.reset(protocol),
+            None => *slot = Some(Simulation::new(protocol)),
+        }
+        if let Some(simulation) = slot.as_mut() {
+            f(simulation);
+        }
+    });
+}
+
 /// Azalea's networkless client in play, fed a list of clientbound game
 /// packets (see [`packet_list`]); it ticks after every 8 packets.
 pub fn handler_sequence(data: &[u8]) {
-    let mut simulation = Simulation::new(ConnectionProtocol::Game);
+    with_simulation(ConnectionProtocol::Game, |simulation| {
+        handler_sequence_on(simulation, data)
+    });
+}
+
+fn handler_sequence_on(simulation: &mut Simulation, data: &[u8]) {
     simulation.receive_packet(default_login_packet());
     simulation.receive_packet(make_basic_empty_chunk(ChunkPos::new(0, 0), (384 + 64) / 16));
-    simulation.receive_packet(make_basic_add_entity(EntityKind::Zombie, 7, (0.5, 70., 0.5)));
+    simulation.receive_packet(make_basic_add_entity(
+        EntityKind::Zombie,
+        7,
+        (0.5, 70., 0.5),
+    ));
     simulation.tick();
-    feed(&mut simulation, &packet_list(data));
+    feed(simulation, &packet_list(data));
 }
 
 /// Whether the client still has its connection (the bad packet policy
@@ -263,15 +306,20 @@ fn feed(simulation: &mut Simulation, packets: &[&[u8]]) {
 /// heights, registry sizes) reach chunk and entity code. Play packets after a
 /// [`PLAY_MARKER`] entry are fed too.
 pub fn config_to_play(data: &[u8]) {
+    with_simulation(ConnectionProtocol::Configuration, |simulation| {
+        config_to_play_on(simulation, data)
+    });
+}
+
+fn config_to_play_on(simulation: &mut Simulation, data: &[u8]) {
     let packets = packet_list(data);
     let split = packets
         .iter()
         .position(|p| *p == PLAY_MARKER)
         .unwrap_or(packets.len());
     let (config, play) = packets.split_at(split);
-    let mut simulation = Simulation::new(ConnectionProtocol::Configuration);
     for p in config.iter().take(MAX_SEQUENCE) {
-        if !connected(&simulation) {
+        if !connected(simulation) {
             return;
         }
         // a decodable finish would switch states early; it's sent below
@@ -283,18 +331,22 @@ pub fn config_to_play(data: &[u8]) {
         simulation.receive_raw_packet(*p);
     }
     simulation.tick();
-    if !connected(&simulation) {
+    if !connected(simulation) {
         return;
     }
     simulation.receive_packet(ClientboundFinishConfiguration);
     simulation.tick();
-    if !connected(&simulation) {
+    if !connected(simulation) {
         return;
     }
     simulation.receive_packet(default_login_packet());
     simulation.receive_packet(make_basic_empty_chunk(ChunkPos::new(0, 0), (384 + 64) / 16));
-    simulation.receive_packet(make_basic_add_entity(EntityKind::Zombie, 7, (0.5, 70., 0.5)));
+    simulation.receive_packet(make_basic_add_entity(
+        EntityKind::Zombie,
+        7,
+        (0.5, 70., 0.5),
+    ));
     simulation.tick();
     let play: Vec<&[u8]> = play.iter().skip(1).copied().collect();
-    feed(&mut simulation, &play);
+    feed(simulation, &play);
 }
