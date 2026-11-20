@@ -22,6 +22,7 @@ pub mod movement;
 pub mod packet;
 pub mod pong;
 pub mod respawn;
+pub mod secure_chat;
 pub mod task_pool;
 pub mod tick_counter;
 pub mod tick_end;

@@ -40,6 +40,12 @@ const SCANNED: &[&str] = &[
 const NOT_DECODE_ERRORS: &[(&str, &str, usize, &str)] = &[
     // sending packets
     (
+        "src/plugins/packet/game/mod.rs",
+        "if let Ok((mut st, mutation)) = chat.get_mut(self.player)",
+        1,
+        "send side: the chat acknowledgement sent before leaving play (no chat state: nothing to acknowledge)",
+    ),
+    (
         "src/plugins/packet/config/events.rs",
         "if let Ok((mut raw_conn, in_configuration_state)) = query.get_mut(send_config_packet.sent_by) {",
         1,

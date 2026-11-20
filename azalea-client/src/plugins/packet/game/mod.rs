@@ -310,8 +310,12 @@ impl GamePacketHandler<'_> {
                     .entity(self.player)
                     .remove::<bad_packet::TabListStale>();
 
-                // vanilla handleLogin: a new chat session (sent again with the
-                // same key once the client is in game)
+                // vanilla handleLogin: a fresh last-seen window and signature
+                // cache, and a new chat session (sent again with the same
+                // key once the client is in game)
+                commands
+                    .entity(self.player)
+                    .insert(crate::secure_chat::SecureChatState::default());
                 #[cfg(feature = "online-mode")]
                 commands
                     .entity(self.player)
@@ -451,8 +455,13 @@ impl GamePacketHandler<'_> {
         debug!("Got difficulty packet {p:?}");
     }
 
-    pub fn commands(&mut self, _p: &ClientboundCommands) {
-        debug!("Got declare commands packet");
+    pub fn commands(&mut self, p: &ClientboundCommands) {
+        debug!("Got commands packet");
+        // kept for signing commands (which arguments need a signature)
+        let tree = crate::secure_chat::CommandTree(Arc::new(p.clone()));
+        as_system::<Commands>(self.ecs, |mut commands| {
+            commands.entity(self.player).insert(tree);
+        });
     }
 
     pub fn player_abilities(&mut self, p: &ClientboundPlayerAbilities) {
@@ -1197,6 +1206,44 @@ impl GamePacketHandler<'_> {
     pub fn player_chat(&mut self, p: &ClientboundPlayerChat) {
         debug!("Got player chat packet {p:?}");
 
+        // vanilla handlePlayerChat + markMessageAsProcessed: resolve the
+        // body's packed last-seen list, push it to the signature cache, track
+        // the signature, acknowledge past 64 pending
+        as_system::<(
+            Commands,
+            Query<(
+                &mut crate::secure_chat::SecureChatState,
+                Option<&crate::secure_chat::SecureChatMutation>,
+            )>,
+        )>(self.ecs, |(mut commands, mut query)| {
+            let Ok((mut st, mutation)) = query.get_mut(self.player) else {
+                // decode error hook: player chat before a play login (no chat
+                // state yet); the message is dropped
+                record_decode_error(DecodeErrorKind::HandlerState);
+                return;
+            };
+            let Some(last_seen) = st.cache.unpack_all(&p.body.last_seen) else {
+                // vanilla disconnects (invalid packet); the message is only
+                // dropped here and counted, the chat state stays consistent
+                warn!("player chat refers to a signature that isn't cached");
+                record_decode_error(DecodeErrorKind::HandlerState);
+                return;
+            };
+            st.cache.push(&last_seen, p.signature.as_ref());
+            if let Some(sig) = &p.signature {
+                st.received_signed += 1;
+                if st.tracker.add_pending(sig.clone(), true)
+                    && st.tracker.offset() > crate::secure_chat::ACK_THRESHOLD
+                    && let Some(offset) = st.take_ack(mutation)
+                {
+                    commands.trigger(SendGamePacketEvent::new(
+                        self.player,
+                        ServerboundChatAck { messages: offset },
+                    ));
+                }
+            }
+        });
+
         as_system::<MessageWriter<_>>(self.ecs, |mut events| {
             events.write(ChatReceivedEvent {
                 entity: self.player,
@@ -1489,7 +1536,23 @@ impl GamePacketHandler<'_> {
 
     pub fn custom_chat_completions(&mut self, _p: &ClientboundCustomChatCompletions) {}
 
-    pub fn delete_chat(&mut self, _p: &ClientboundDeleteChat) {}
+    pub fn delete_chat(&mut self, p: &ClientboundDeleteChat) {
+        debug!("Got delete chat packet");
+        as_system::<Query<&mut crate::secure_chat::SecureChatState>>(self.ecs, |mut query| {
+            let Ok(mut st) = query.get_mut(self.player) else {
+                // decode error hook: a delete before a play login
+                record_decode_error(DecodeErrorKind::HandlerState);
+                return;
+            };
+            match st.cache.unpack(&p.signature) {
+                Some(sig) => st.tracker.ignore_pending(&sig),
+                None => {
+                    warn!("delete chat refers to a signature that isn't cached");
+                    record_decode_error(DecodeErrorKind::HandlerState);
+                }
+            }
+        });
+    }
 
     pub fn explode(&mut self, p: &ClientboundExplode) {
         debug!("Got explode packet {p:?}");
@@ -1762,9 +1825,16 @@ impl GamePacketHandler<'_> {
     pub fn start_configuration(&mut self, _p: &ClientboundStartConfiguration) {
         debug!("Got start configuration packet");
 
-        as_system::<(Commands, Query<(&mut RawConnection, &mut WorldHolder)>)>(
+        as_system::<(
+            Commands,
+            Query<(&mut RawConnection, &mut WorldHolder)>,
+            Query<(
+                &mut crate::secure_chat::SecureChatState,
+                Option<&crate::secure_chat::SecureChatMutation>,
+            )>,
+        )>(
             self.ecs,
-            |(mut commands, mut query)| {
+            |(mut commands, mut query, mut chat)| {
                 let Some((mut raw_conn, mut world_holder)) = query.get_mut(self.player).ok() else {
                     warn!("Got start configuration packet but player doesn't have a RawConnection");
                     // decode error hook: the client the packet arrived on lacks
@@ -1772,6 +1842,17 @@ impl GamePacketHandler<'_> {
                     record_decode_error(DecodeErrorKind::HandlerState);
                     return;
                 };
+                // vanilla handleConfigurationStart: acknowledge what's
+                // pending before leaving play
+                if let Ok((mut st, mutation)) = chat.get_mut(self.player)
+                    && let Some(offset) = st.take_ack(mutation)
+                {
+                    commands.trigger(SendGamePacketEvent::new(
+                        self.player,
+                        ServerboundChatAck { messages: offset },
+                    ));
+                }
+
                 raw_conn.state = ConnectionProtocol::Configuration;
 
                 commands.trigger(SendGamePacketEvent::new(
