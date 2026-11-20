@@ -282,7 +282,10 @@ impl<T: AzBuf, const N: usize> AzBuf for [T; N] {
 }
 
 impl AzBuf for simdnbt::owned::NbtTag {
+    const MIN_ENCODED_SIZE: usize = 1;
+
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
+        crate::nbt::check_network_nbt(buf)?;
         Ok(simdnbt::owned::read_tag(buf).map_err(simdnbt::Error::from)?)
     }
     fn azalea_write(&self, buf: &mut impl Write) -> io::Result<()> {
@@ -293,7 +296,10 @@ impl AzBuf for simdnbt::owned::NbtTag {
 }
 
 impl AzBuf for simdnbt::owned::NbtCompound {
+    const MIN_ENCODED_SIZE: usize = 1;
+
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
+        crate::nbt::check_network_nbt(buf)?;
         match simdnbt::owned::read_tag(buf).map_err(simdnbt::Error::from)? {
             simdnbt::owned::NbtTag::Compound(compound) => Ok(compound),
             _ => Err(BufReadError::Custom("Expected compound tag".to_owned())),
@@ -307,7 +313,10 @@ impl AzBuf for simdnbt::owned::NbtCompound {
 }
 
 impl AzBuf for simdnbt::owned::Nbt {
+    const MIN_ENCODED_SIZE: usize = 1;
+
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
+        crate::nbt::check_network_nbt(buf)?;
         Ok(simdnbt::owned::read_unnamed(buf)?)
     }
     fn azalea_write(&self, buf: &mut impl Write) -> io::Result<()> {

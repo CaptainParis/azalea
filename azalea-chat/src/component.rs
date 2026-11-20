@@ -768,6 +768,7 @@ impl AzBuf for FormattedText {
         use simdnbt::FromNbtTag;
         use tracing::trace;
 
+        azalea_buf::nbt::check_network_nbt(buf)?;
         let nbt = simdnbt::borrow::read_optional_tag(buf)?;
         trace!(
             "Reading NBT for FormattedText: {:?}",

@@ -8,6 +8,7 @@ extern crate self as azalea_buf;
 mod definitions;
 pub mod impls;
 pub mod limits;
+pub mod nbt;
 mod serializable_uuid;
 
 pub use azalea_buf_macros::*;
