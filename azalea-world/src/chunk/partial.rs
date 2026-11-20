@@ -180,6 +180,7 @@ impl PartialChunkStorage {
         }
 
         let index = self.index_from_chunk_pos(pos);
+        // network-safe: index_from_chunk_pos is below view_range^2, the length
         self.chunks[index].as_ref()
     }
     /// Get a mutable reference to a [`Chunk`] within render distance, or
@@ -195,6 +196,7 @@ impl PartialChunkStorage {
 
         let index = self.index_from_chunk_pos(pos);
 
+        // network-safe: index_from_chunk_pos is below view_range^2, the length
         Some(&mut self.chunks[index])
     }
 

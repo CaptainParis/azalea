@@ -180,11 +180,8 @@ pub fn get_block_state_from_sections(
         return None;
     }
     let section_index = section_index(pos.y, min_y) as usize;
-    if section_index >= sections.len() {
-        // y position is out of bounds
-        return None;
-    };
-    let section = &sections[section_index];
+    // y position out of bounds: None
+    let section = sections.get(section_index)?;
 
     let chunk_section_pos = ChunkSectionBlockPos::from(pos);
     Some(section.get_block_state(chunk_section_pos))

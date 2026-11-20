@@ -54,6 +54,8 @@ impl Heightmap {
     pub fn new(kind: HeightmapKind_, dimension_height: u32, min_y: i32, data: Box<[u64]>) -> Self {
         let bits = math::ceil_log2(dimension_height + 1);
         let mut bit_storage = BitStorage::new(bits as usize, 16 * 16, None)
+            // network-safe: dimension heights are at most 4064 (dimension
+            // type bounds), so bits is 1..=12
             .expect("data is empty, so this can't fail");
         if bit_storage.data.len() != data.len() {
             warn!(

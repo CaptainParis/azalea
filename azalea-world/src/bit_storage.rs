@@ -88,11 +88,21 @@ pub struct BitStorage {
 
 #[derive(Debug)]
 pub enum BitStorageError {
-    InvalidLength { got: usize, expected: usize },
+    InvalidLength {
+        got: usize,
+        expected: usize,
+    },
+    /// Bits per entry outside 1..=32 (0 only with empty data).
+    InvalidBits {
+        bits: usize,
+    },
 }
 impl Display for BitStorageError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            BitStorageError::InvalidBits { bits } => {
+                write!(f, "Invalid bits per entry for storage: {bits}")
+            }
             BitStorageError::InvalidLength { got, expected } => write!(
                 f,
                 "Invalid length given for storage, got: {got}, but expected: {expected}",
@@ -122,10 +132,15 @@ impl BitStorage {
             }
         }
 
-        debug_assert!((1..=32).contains(&bits));
+        // an error, not a panic (64 / 0, or no MAGIC entry, before)
+        if !(1..=32).contains(&bits) {
+            return Err(BitStorageError::InvalidBits { bits });
+        }
 
         let values_per_long = 64 / bits;
         let magic_index = values_per_long - 1;
+        // network-safe: values_per_long is 2..=64 for bits 1..=32, and MAGIC
+        // has 64 entries
         let (divide_mul, divide_add, divide_shift) = MAGIC[magic_index];
         let calculated_length = size.div_ceil(values_per_long);
 
@@ -172,6 +187,8 @@ impl BitStorage {
     /// the size of this storage.
     #[inline]
     pub fn get(&self, index: usize) -> u64 {
+        // network-safe: callers index with positions inside a section or
+        // heightmap (below size), not with network values
         assert!(
             index < self.size,
             "Index {index} out of bounds (must be less than {})",
@@ -184,6 +201,7 @@ impl BitStorage {
         }
 
         let cell_index = self.cell_index(index as u64);
+        // network-safe: index < size, and data holds size entries (new)
         let cell = &self.data[cell_index];
         let bit_index = (index - cell_index * self.values_per_long) * self.bits;
         (cell >> bit_index) & self.mask
@@ -198,6 +216,7 @@ impl BitStorage {
         debug_assert!(index < self.size);
         debug_assert!(value <= self.mask);
         let cell_index = self.cell_index(index as u64);
+        // network-safe: index < size, and data holds size entries (new)
         let cell = &mut self.data[cell_index];
         let bit_index = (index - cell_index * self.values_per_long) * self.bits;
         let old_value = (*cell >> (bit_index as u64)) & self.mask;
@@ -217,6 +236,7 @@ impl BitStorage {
             "value {value} at {index} was outside of the mask for {self:?}"
         );
         let cell_index = self.cell_index(index as u64);
+        // network-safe: index < size, and data holds size entries (new)
         let cell = &mut self.data[cell_index];
         let bit_index = (index - cell_index * self.values_per_long) * self.bits;
         *cell = (*cell & !(self.mask << bit_index)) | ((value & self.mask) << bit_index);

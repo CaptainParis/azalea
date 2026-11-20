@@ -245,6 +245,7 @@ impl Iterator for ChunkIterator {
                     }
                 }
             }
+            // network-safe: leg is only ever 0..=3
             _ => unreachable!(),
         }
         Some(self.start + self.pos)

@@ -146,6 +146,7 @@ impl<S: PalletedContainerKind> PalettedContainer<S> {
     pub fn new() -> Self {
         let palette = Palette::SingleValue(S::default());
         let size = S::size();
+        // network-safe: empty data with 0 bits is always valid
         let storage = BitStorage::new(0, size, Some(Box::new([]))).unwrap();
 
         PalettedContainer {
