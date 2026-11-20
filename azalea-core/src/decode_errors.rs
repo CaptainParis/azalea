@@ -91,6 +91,27 @@ pub enum DecodeErrorKind {
     /// A bot whose game tick didn't advance for the watchdog's stall time:
     /// its connection is closed and its thread abandoned.
     Stall,
+    /// Bad packet policy (WP2 section 4): a packet that couldn't be decoded
+    /// was dropped with no model change (state-free packets: sounds,
+    /// particles, chat display, titles). The decode error itself is counted
+    /// under its own kind; this counts the outcome.
+    BadPacketDropped,
+    /// Bad packet policy: an inventory or container packet couldn't be
+    /// decoded, so the inventory was marked unknown and a resync click sent.
+    InventoryUnknown,
+    /// Bad packet policy: the inventory resync didn't arrive in time, so the
+    /// connection was closed.
+    InventoryResyncFailed,
+    /// Bad packet policy: a packet about another entity couldn't be decoded,
+    /// so that entity keeps its last good state, marked stale.
+    StaleEntity,
+    /// Bad packet policy: a chunk or block packet couldn't be decoded (or
+    /// its chunk data couldn't be used), so the chunk is unknown (unloaded).
+    ChunkUnknown,
+    /// Bad packet policy: a packet with no safe repair (login, respawn,
+    /// teleport, start configuration, our own entity, frame errors) couldn't
+    /// be decoded, so the connection was closed for a reconnect.
+    PolicyClose,
 }
 
 impl DecodeErrorKind {
@@ -174,6 +195,12 @@ kinds! {
     Panic => panic,
     ProcessPanic => process_panic,
     Stall => stall,
+    BadPacketDropped => bad_packet_dropped,
+    InventoryUnknown => inventory_unknown,
+    InventoryResyncFailed => inventory_resync_failed,
+    StaleEntity => stale_entity,
+    ChunkUnknown => chunk_unknown,
+    PolicyClose => policy_close,
 }
 
 fn counter(kind: DecodeErrorKind) -> &'static AtomicU64 {
