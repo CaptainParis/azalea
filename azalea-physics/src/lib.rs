@@ -98,6 +98,12 @@ pub fn ai_step(
             physics.no_jump_delay -= 1;
         }
 
+        // LocalPlayer.aiStep does this before calling LivingEntity.aiStep, so
+        // before the small velocities are zeroed
+        if client_movement.trying_to_crouch && physics.is_in_water() {
+            go_down_in_water(&mut physics);
+        }
+
         // 1.21.4 LivingEntity.aiStep zeroes each axis on its own, for every
         // entity (players included)
         if physics.velocity.x.abs() < 0.003 {
@@ -108,10 +114,6 @@ pub fn ai_step(
         }
         if physics.velocity.z.abs() < 0.003 {
             physics.velocity.z = 0.;
-        }
-
-        if client_movement.trying_to_crouch && physics.is_in_water() {
-            go_down_in_water(&mut physics);
         }
 
         if jumping == Some(&Jumping(true)) {
