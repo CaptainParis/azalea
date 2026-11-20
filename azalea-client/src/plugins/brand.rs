@@ -21,6 +21,7 @@ pub fn send_brand(mut commands: Commands, mut removed: RemovedComponents<InLogin
     for entity in removed.read() {
         let mut brand_data = Vec::new();
         // pretend to be vanilla
+        // network-safe: writing to a Vec can't fail
         "vanilla".to_owned().azalea_write(&mut brand_data).unwrap();
         commands.trigger(SendConfigPacketEvent::new(
             entity,

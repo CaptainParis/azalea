@@ -65,6 +65,7 @@ impl Heightmap {
             );
             record_decode_error(DecodeErrorKind::Chunk);
         } else {
+            // network-safe: the lengths were compared just above
             bit_storage.data.copy_from_slice(&data);
         }
         Self {

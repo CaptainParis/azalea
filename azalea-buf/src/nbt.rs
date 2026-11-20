@@ -65,7 +65,7 @@ impl<'a> Checker<'a> {
 
     fn bytes<const N: usize>(&mut self) -> Result<[u8; N], BufReadError> {
         let mut out = [0; N];
-        // take(N) returns exactly N bytes, so copy_from_slice can't panic
+        // network-safe: take(N) returns exactly N bytes (or an error), so the lengths match
         out.copy_from_slice(self.take(N)?);
         Ok(out)
     }

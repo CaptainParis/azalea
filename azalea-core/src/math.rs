@@ -41,6 +41,7 @@ pub fn binary_search<
 ) -> T {
     let mut diff = max - min;
     while diff > T::from(0) {
+        // network-safe: the divisor is 2
         let diff_mid = diff / T::from(2);
         let mid = min + diff_mid;
         if predicate(mid) {
@@ -55,12 +56,16 @@ pub fn binary_search<
 }
 
 pub fn lcm(a: u32, b: u32) -> u64 {
-    let gcd = gcd(a, b);
-    (a as u64) * (b / gcd) as u64
+    // gcd is 0 only for lcm(0, 0), which is 0
+    let Some(b_over_gcd) = b.checked_div(gcd(a, b)) else {
+        return 0;
+    };
+    (a as u64) * b_over_gcd as u64
 }
 pub fn gcd(mut a: u32, mut b: u32) -> u32 {
     while b != 0 {
         let t = b;
+        // network-safe: the loop runs only while b != 0
         b = a % b;
         a = t;
     }

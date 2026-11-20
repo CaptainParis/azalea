@@ -485,7 +485,8 @@ impl Inventory {
                     let ItemStack::Present(item) = &inventory_item else {
                         return;
                     };
-                    if !self.menu().may_pickup(slot_index) || !self.menu().may_place(slot_index, item)
+                    if !self.menu().may_pickup(slot_index)
+                        || !self.menu().may_place(slot_index, item)
                     {
                         return;
                     }
@@ -756,7 +757,11 @@ fn get_quick_craft_slot_count(
     slot_item_count: i32,
 ) {
     item.count = match quick_craft_kind {
-        QuickCraftKind::Left => item.count / quick_craft_slots.len() as i32,
+        // no slots: nothing is split (vanilla never asks with none)
+        QuickCraftKind::Left => item
+            .count
+            .checked_div(quick_craft_slots.len() as i32)
+            .unwrap_or(item.count),
         QuickCraftKind::Right => 1,
         QuickCraftKind::Middle => item.kind.max_stack_size(),
     };
@@ -890,7 +895,8 @@ mod tests {
     #[test]
     fn test_swap_to_offhand_in_inventory_menu() {
         let mut inventory = Inventory::default();
-        *inventory.inventory_menu.slot_mut(20).unwrap() = ItemStack::new(ItemKind::TotemOfUndying, 1);
+        *inventory.inventory_menu.slot_mut(20).unwrap() =
+            ItemStack::new(ItemKind::TotemOfUndying, 1);
         *inventory.inventory_menu.slot_mut(45).unwrap() = ItemStack::new(ItemKind::Dirt, 3);
         inventory.simulate_click(
             &ClickOperation::Swap(SwapClick {

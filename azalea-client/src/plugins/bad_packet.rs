@@ -1359,6 +1359,7 @@ pub(crate) fn chunk_known(unknown: Option<Mut<UnknownChunks>>, pos: &ChunkPos) {
         && unknown.chunks.contains(pos)
         && !unknown.pending.contains(pos)
     {
+        // network-safe: HashSet::remove by key, not an index
         unknown.chunks.remove(pos);
     }
 }

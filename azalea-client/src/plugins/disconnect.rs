@@ -110,6 +110,7 @@ pub fn remove_components_from_disconnected_players(
         // in theory this could be inefficient if we have massive swarms... but
         // in practice this is fine.
         for mut loaded_by in &mut loaded_by_query.iter_mut() {
+            // network-safe: HashSet::remove by key, not an index
             loaded_by.remove(entity);
         }
     }

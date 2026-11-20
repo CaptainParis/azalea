@@ -68,9 +68,12 @@ pub fn handle_send_chat_kind_event(
                     message: content,
                     timestamp: timestamp
                         .duration_since(UNIX_EPOCH)
+                        // network-safe: our own clock, not network data
                         .expect("Time shouldn't be before epoch")
                         .as_millis()
                         .try_into()
+                        // network-safe: our own clock, not network data (u64 milliseconds last for
+                        // 584 million years)
                         .expect("Instant should fit into a u64"),
                     salt,
                     signature,
@@ -101,6 +104,8 @@ pub fn create_signature(
 
     let certs = account
         .certs()
+        // network-safe: called only for a client with a ChatSigningSession, which
+        // chat_signing.rs inserts after the certs were fetched; no packet clears them
         .expect("certs shouldn't be set back to None");
 
     let signature = azalea_crypto::signing::sign_chat_message(&SignChatMessageOptions {

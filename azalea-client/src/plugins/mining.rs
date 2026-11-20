@@ -163,7 +163,10 @@ fn handle_start_mining_block_event(
 ) {
     for event in events.read() {
         trace!("{event:?}");
-        let hit_result = query.get_mut(event.entity).unwrap();
+        let Ok(hit_result) = query.get_mut(event.entity) else {
+            warn!("StartMiningBlockEvent for an entity without a HitResultComponent");
+            continue;
+        };
         if event.force {
             let direction = if let Some(block_hit_result) =
                 hit_result.as_block_hit_result_if_not_miss()
@@ -305,14 +308,15 @@ pub fn handle_mining_queued(
                 &current_mining_item,
             )
         {
-            if mining.is_some() {
+            if mining.is_some()
+                && let Some(current_mining_pos) = **current_mining_pos
+            {
                 // send a packet to stop mining since we just changed target
                 commands.trigger(SendGamePacketEvent::new(
                     entity,
                     ServerboundPlayerAction {
                         action: s_player_action::Action::AbortDestroyBlock,
-                        pos: current_mining_pos
-                            .expect("IsMining is true so MineBlockPos must be present"),
+                        pos: current_mining_pos,
                         direction: mining_queued.direction,
                         seq: 0,
                     },
@@ -483,7 +487,7 @@ pub fn handle_finish_mining_block_observer(
 ) {
     let event = finish_mining_block.event();
 
-    let (
+    let Ok((
         world_name,
         &game_mode,
         inventory,
@@ -491,8 +495,15 @@ pub fn handle_finish_mining_block_observer(
         permission_level,
         player_pos,
         mut prediction_handler,
-    ) = query.get_mut(finish_mining_block.entity).unwrap();
-    let world_lock = worlds.get(world_name).unwrap();
+    )) = query.get_mut(finish_mining_block.entity)
+    else {
+        warn!("FinishMiningBlockEvent for an entity without the mining components");
+        return;
+    };
+    let Some(world_lock) = worlds.get(world_name) else {
+        warn!("FinishMiningBlockEvent, but our world {world_name} isn't loaded");
+        return;
+    };
     let world = world_lock.read();
     if check_is_interaction_restricted(&world, event.position, &game_mode, inventory) {
         return;
@@ -545,10 +556,14 @@ pub fn handle_stop_mining_block_event(
     mut query: Query<(&MineBlockPos, &mut MineProgress)>,
 ) {
     for event in events.read() {
-        let (mine_block_pos, mut mine_progress) = query.get_mut(event.entity).unwrap();
-
-        let mine_block_pos =
-            mine_block_pos.expect("IsMining is true so MineBlockPos must be present");
+        let Ok((mine_block_pos, mut mine_progress)) = query.get_mut(event.entity) else {
+            warn!("StopMiningBlockEvent for an entity without the mining components");
+            continue;
+        };
+        // not mining: nothing to stop
+        let Some(mine_block_pos) = **mine_block_pos else {
+            continue;
+        };
         commands.trigger(SendGamePacketEvent::new(
             event.entity,
             ServerboundPlayerAction {
@@ -643,7 +658,10 @@ pub fn continue_mining_block(
             )
         {
             trace!("continue mining block at {:?}", mining.pos);
-            let world_lock = worlds.get(world_name).unwrap();
+            let Some(world_lock) = worlds.get(world_name) else {
+                warn!("mining, but our world {world_name} isn't loaded");
+                continue;
+            };
             let world = world_lock.read();
             let target_block_state = world.get_block_state(mining.pos).unwrap_or_default();
 

@@ -44,6 +44,7 @@ pub fn handle_remove_effects(
     };
 
     for &effect in &remove_effects.effects {
+        // network-safe: ActiveEffects::remove by effect key, not an index
         active_effects.remove(effect);
 
         if let Some((attribute, modifier)) = attribute_modifier_for_effect(effect) {

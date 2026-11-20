@@ -219,7 +219,9 @@ impl LookDirection {
         }
 
         let sensitivity = sensitivity * 0.15;
+        // network-safe: f32 division
         let delta_y_rot = (delta_y_rot / sensitivity).round() * sensitivity;
+        // network-safe: f32 division
         let delta_x_rot = (delta_x_rot / sensitivity).round() * sensitivity;
 
         self.y_rot += delta_y_rot;

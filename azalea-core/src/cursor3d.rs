@@ -25,9 +25,14 @@ impl Iterator for Cursor3d {
         if self.index == self.end {
             return None;
         }
+        // network-safe: width and height are at least 1 (new() uses 1 for an empty or oversized
+        // range)
         let x = self.index % self.width;
+        // network-safe: width is at least 1, see above
         let r = self.index / self.width;
+        // network-safe: height is at least 1, see above
         let y = r % self.height;
+        // network-safe: height is at least 1, see above
         let z = r / self.height;
         self.index += 1;
 

@@ -41,6 +41,7 @@ impl EntityUuidIndex {
     }
 
     pub fn remove(&mut self, uuid: &Uuid) -> Option<Entity> {
+        // network-safe: HashMap::remove by key, not an index
         self.entity_by_uuid.remove(uuid)
     }
 }
@@ -204,6 +205,7 @@ pub fn remove_despawned_entities_from_indexes(
             // the world isn't even loaded by us, so we can safely delete the
             // entity
             debug!("Despawned entity {entity:?} because it's in a world that isn't loaded anymore");
+            // network-safe: HashMap::remove by key, not an index
             if entity_uuid_index.entity_by_uuid.remove(uuid).is_none() {
                 warn!(
                     "Tried to remove entity {entity:?} from the uuid index but it was not there."
@@ -269,9 +271,11 @@ pub fn remove_despawned_entities_from_indexes(
             }
         }
         // remove it from the uuid index
+        // network-safe: HashMap::remove by key, not an index
         if entity_uuid_index.entity_by_uuid.remove(uuid).is_none() {
             warn!("Tried to remove entity {entity:?} from the uuid index but it was not there.");
         }
+        // network-safe: HashMap::remove by key, not an index
         if world.entity_by_id.remove(minecraft_id).is_none() {
             debug!(
                 "Tried to remove entity {entity:?} from the per-world entity id index but it was not there. This may be expected if you're in a shared world."

@@ -209,15 +209,15 @@ pub fn check_collection_len(
     length: usize,
     min_element_size: usize,
 ) -> Result<(), BufReadError> {
-    if min_element_size > 0 {
-        let max = remaining(buf) / min_element_size;
-        if length > max {
-            return Err(limit_error(
-                LimitKind::CollectionLength,
-                length as u64,
-                max as u64,
-            ));
-        }
+    // a zero-size element type has no bound by bytes
+    if let Some(max) = remaining(buf).checked_div(min_element_size)
+        && length > max
+    {
+        return Err(limit_error(
+            LimitKind::CollectionLength,
+            length as u64,
+            max as u64,
+        ));
     }
     Ok(())
 }
@@ -226,7 +226,9 @@ pub fn check_collection_len(
 /// elements: at most [`MAX_INITIAL_COLLECTION_SIZE`], at most what the bytes
 /// left could hold, and at most [`MAX_INITIAL_COLLECTION_BYTES`].
 pub fn initial_capacity<T>(buf: &Cursor<&[u8]>, length: usize, min_element_size: usize) -> usize {
+    // network-safe: the divisor is `.max(1)`, never 0
     let by_bytes_left = remaining(buf) / min_element_size.max(1);
+    // network-safe: the divisor is `.max(1)`, never 0
     let by_memory = MAX_INITIAL_COLLECTION_BYTES / mem::size_of::<T>().max(1);
     length
         .min(MAX_INITIAL_COLLECTION_SIZE)

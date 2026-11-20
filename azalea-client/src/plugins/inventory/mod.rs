@@ -68,7 +68,10 @@ pub struct MenuOpenedEvent {
     pub title: FormattedText,
 }
 fn handle_menu_opened_trigger(event: On<MenuOpenedEvent>, mut query: Query<&mut Inv>) {
-    let mut inventory = query.get_mut(event.entity).unwrap();
+    let Ok(mut inventory) = query.get_mut(event.entity) else {
+        warn!("Got MenuOpenedEvent for an entity without an inventory");
+        return;
+    };
     inventory.id = event.window_id;
     inventory.container_menu = Some(Menu::from_kind(event.menu_type));
     inventory.container_menu_title = Some(event.title.clone());
@@ -92,7 +95,10 @@ fn handle_container_close_event(
     mut commands: Commands,
     query: Query<(Entity, &Inv)>,
 ) {
-    let (entity, inventory) = query.get(close_container.entity).unwrap();
+    let Ok((entity, inventory)) = query.get(close_container.entity) else {
+        warn!("Tried to close a container, but the client has no inventory");
+        return;
+    };
     if close_container.id != inventory.id {
         warn!(
             "Tried to close container with ID {}, but the current container ID is {}",
@@ -128,7 +134,10 @@ pub fn handle_client_side_close_container_trigger(
     event: On<ClientsideCloseContainerEvent>,
     mut query: Query<&mut Inv>,
 ) {
-    let mut inventory = query.get_mut(event.entity).unwrap();
+    let Ok(mut inventory) = query.get_mut(event.entity) else {
+        warn!("Got ClientsideCloseContainerEvent for an entity without an inventory");
+        return;
+    };
 
     // copy the Player part of the container_menu to the inventory_menu
     if let Some(inventory_menu) = inventory.container_menu.take() {
@@ -150,7 +159,11 @@ pub fn handle_client_side_close_container_trigger(
         // not implemented for now because i'm not sure if that's worth worrying
         // about.
 
+        // network-safe: player_slots_range() is a range of this menu's own
+        // slots
         let new_inventory = inventory_menu.slots()[inventory_menu.player_slots_range()].to_vec();
+        // network-safe: the player slots of every menu are the 36 of the player
+        // inventory
         let new_inventory = <[ItemStack; 36]>::try_from(new_inventory).unwrap();
         *inventory.inventory_menu.as_player_mut().inventory = new_inventory;
     }
@@ -251,8 +264,7 @@ pub fn handle_container_click_event(
     // MultiPlayerGameMode.handleInventoryMouseClick sends copies of the full
     // item stacks (1.21.5 switched to hashed stacks).
     let mut changed_slots: IndexMap<u16, ItemStack> = IndexMap::new();
-    for (slot_index, old_slot) in old_slots.iter().enumerate() {
-        let new_slot = &new_slots[slot_index];
+    for (slot_index, (old_slot, new_slot)) in old_slots.iter().zip(&new_slots).enumerate() {
         if old_slot != new_slot {
             changed_slots.insert(slot_index as u16, new_slot.clone());
         }
@@ -289,7 +301,10 @@ pub fn handle_set_container_content_trigger(
     set_container_content: On<SetContainerContentEvent>,
     mut query: Query<&mut Inv>,
 ) {
-    let mut inventory = query.get_mut(set_container_content.entity).unwrap();
+    let Ok(mut inventory) = query.get_mut(set_container_content.entity) else {
+        warn!("Got SetContainerContentEvent for an entity without an inventory");
+        return;
+    };
 
     if set_container_content.container_id != inventory.id {
         warn!(
@@ -320,7 +335,10 @@ pub fn handle_set_selected_hotbar_slot_event(
     set_selected_hotbar_slot: On<SetSelectedHotbarSlotEvent>,
     mut query: Query<&mut Inv>,
 ) {
-    let mut inventory = query.get_mut(set_selected_hotbar_slot.entity).unwrap();
+    let Ok(mut inventory) = query.get_mut(set_selected_hotbar_slot.entity) else {
+        warn!("Got SetSelectedHotbarSlotEvent for an entity without an inventory");
+        return;
+    };
     inventory.selected_hotbar_slot = set_selected_hotbar_slot.slot;
 }
 

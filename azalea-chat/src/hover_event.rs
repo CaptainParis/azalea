@@ -369,14 +369,8 @@ fn int_array_to_uuid(ints: &[i32]) -> Option<String> {
         | u128::from(*d as u32);
     let h = format!("{n:032x}");
     // network-safe: h is exactly 32 hex digits
-    Some(format!(
-        "{}-{}-{}-{}-{}",
-        &h[0..8],
-        &h[8..12],
-        &h[12..16],
-        &h[16..20],
-        &h[20..32]
-    ))
+    let (p1, p2, p3, p4, p5) = (&h[0..8], &h[8..12], &h[12..16], &h[16..20], &h[20..32]);
+    Some(format!("{p1}-{p2}-{p3}-{p4}-{p5}"))
 }
 
 #[cfg(feature = "simdnbt")]

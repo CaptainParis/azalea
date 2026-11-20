@@ -86,6 +86,7 @@ impl Chunk {
         heightmaps_data: &[(HeightmapKind, Box<[u64]>)],
         biome_registry_size: Option<usize>,
     ) -> Result<Self, BufReadError> {
+        // network-safe: SECTION_HEIGHT is the constant 16
         let section_count = dimension_height / SECTION_HEIGHT;
         let mut sections = Vec::with_capacity(section_count as usize);
         for _ in 0..section_count {

@@ -38,6 +38,7 @@ pub enum ChatPacket {
 macro_rules! regex {
     ($re:literal $(,)?) => {{
         static RE: std::sync::LazyLock<regex::Regex> =
+            // network-safe: the patterns are literals in this file, all valid
             std::sync::LazyLock::new(|| regex::Regex::new($re).unwrap());
         &RE
     }};
@@ -86,6 +87,8 @@ impl ChatPacket {
                 // and allow username prefixes like [Owner]
                 if let Some(m) = regex!(r"^<(?:\[[^\]]+?\] )?(\w{1,16})> (.+)$").captures(&message)
                 {
+                    // network-safe: groups 1 and 2 aren't optional, so a match
+                    // has both
                     return (Some(m[1].to_string()), m[2].to_string());
                 }
                 // username surrounded by square brackets (essentials whispers,
@@ -94,6 +97,8 @@ impl ChatPacket {
                 if let Some(m) =
                     regex!(r"^\[(?:\[[^\]]+?\] )?(\w{1,16})(?: -> me)?\] (.+)$").captures(&message)
                 {
+                    // network-safe: groups 1 and 2 aren't optional, so a match
+                    // has both
                     return (Some(m[1].to_string()), m[2].to_string());
                 }
                 // username without angle brackets (2b2t whispers, vanilla-like
@@ -101,12 +106,16 @@ impl ChatPacket {
                 if let Some(m) =
                     regex!(r"^(\w{1,16}) whispers(?: to you)?: (.+)$").captures(&message)
                 {
+                    // network-safe: groups 1 and 2 aren't optional, so a match
+                    // has both
                     return (Some(m[1].to_string()), m[2].to_string());
                 }
                 // hypixel whispers
                 if let Some(m) =
                     regex!(r"^From (?:\[[^\]]+\] )(\w{1,16}): (.+)$").captures(&message)
                 {
+                    // network-safe: groups 1 and 2 aren't optional, so a match
+                    // has both
                     return (Some(m[1].to_string()), m[2].to_string());
                 }
 
@@ -119,8 +128,8 @@ impl ChatPacket {
                 p.body.content.clone(),
             ),
             ChatPacket::Disguised(p) => (
-                // disguised chat packets are basically the same as player chat packets but without
-                // the chat signing things
+                // disguised chat packets are basically the same as player chat
+                // packets but without the chat signing things
                 Some(p.chat_type.name.to_string()),
                 p.message.to_string(),
             ),
@@ -220,6 +229,8 @@ pub fn handle_send_chat_event(
         if event.content.starts_with('/') {
             send_chat_kind_events.write(SendChatKindEvent {
                 entity: event.entity,
+                // network-safe: starts with '/' (checked above), a 1-byte char,
+                // so 1 is a char boundary
                 content: event.content[1..].to_string(),
                 kind: ChatKind::Command,
             });

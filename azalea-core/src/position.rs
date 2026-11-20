@@ -219,8 +219,12 @@ macro_rules! vec3_impl {
             #[inline]
             fn rem(self, rhs: $type) -> Self::Output {
                 Self {
+                    // network-safe: operator impl: the divisor is the caller's, and a
+                    // call with a non-literal divisor is a scanned site of its own
                     x: self.x % rhs,
+                    // network-safe: the same as for x
                     y: self.y % rhs,
+                    // network-safe: the same as for x
                     z: self.z % rhs,
                 }
             }
@@ -275,8 +279,12 @@ macro_rules! vec3_impl {
             #[inline]
             fn div(self, divisor: $type) -> Self::Output {
                 Self {
+                    // network-safe: operator impl: the divisor is the caller's, and a
+                    // call with a non-literal divisor is a scanned site of its own
                     x: self.x / divisor,
+                    // network-safe: the same as for x
                     y: self.y / divisor,
+                    // network-safe: the same as for x
                     z: self.z / divisor,
                 }
             }
@@ -284,8 +292,12 @@ macro_rules! vec3_impl {
         impl DivAssign<$type> for $name {
             #[inline]
             fn div_assign(&mut self, divisor: $type) {
+                // network-safe: operator impl: the divisor is the caller's, and a call
+                // site with a non-literal divisor is a scanned site of its own
                 self.x /= divisor;
+                // network-safe: the same as for x
                 self.y /= divisor;
+                // network-safe: the same as for x
                 self.z /= divisor;
             }
         }
@@ -972,7 +984,9 @@ impl Vec2 {
             return Vec2::ZERO;
         }
         Vec2 {
+            // network-safe: f32 division, length checked >= 1e-4 above
             x: self.x / length,
+            // network-safe: f32 division, length checked >= 1e-4 above
             y: self.y / length,
         }
     }

@@ -87,7 +87,10 @@ impl PartialChunkStorage {
         let base_z = self.view_center.z.div_euclid(view_range) * view_range;
 
         // add the offset from the base
+        // network-safe: view_range is radius * 2 + 1 >= 1 (the radius comes from our own view
+        // distance, a u8)
         let offset_x = index as i32 / view_range;
+        // network-safe: view_range >= 1, as above
         let offset_z = index as i32 % view_range;
 
         ChunkPos::new(base_x + offset_x, base_z + offset_z)

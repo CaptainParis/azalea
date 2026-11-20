@@ -107,6 +107,7 @@ impl AttributeInstance {
     /// Remove the modifier with the given ID from this attribute, returning
     /// the previous modifier is present.
     pub fn remove(&mut self, id: &Identifier) -> Option<AttributeModifier> {
+        // network-safe: HashMap::remove by key, not an index
         self.modifiers_by_id.remove(id)
     }
 }

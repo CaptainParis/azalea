@@ -92,8 +92,11 @@ impl Vec3 {
             return Vec3::ZERO;
         }
         Vec3 {
+            // network-safe: f64 division, length checked >= 1e-5 above
             x: self.x / length,
+            // network-safe: f64 division, length checked >= 1e-5 above
             y: self.y / length,
+            // network-safe: f64 division, length checked >= 1e-5 above
             z: self.z / length,
         }
     }
@@ -183,8 +186,11 @@ impl LpVec3 {
         } else {
             divisor as u64
         };
+        // network-safe: f64 division
         let packed_x = Self::pack(x / (divisor as f64)) << 3;
+        // network-safe: f64 division
         let packed_y = Self::pack(y / (divisor as f64)) << 18;
+        // network-safe: f64 division
         let packed_z = Self::pack(z / (divisor as f64)) << 33;
         let packed = packed_divisor | packed_x | packed_y | packed_z;
 

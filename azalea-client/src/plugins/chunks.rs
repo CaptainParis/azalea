@@ -21,10 +21,8 @@ use bevy_ecs::prelude::*;
 use tracing::{error, trace, warn};
 
 use crate::{
-    inventory::InventorySystems,
-    local_player::WorldHolder,
-    bad_packet::UnknownChunks, packet::game::SendGamePacketEvent,
-    respawn::perform_respawn,
+    bad_packet::UnknownChunks, inventory::InventorySystems, local_player::WorldHolder,
+    packet::game::SendGamePacketEvent, respawn::perform_respawn,
 };
 
 pub struct ChunksPlugin;
@@ -151,6 +149,7 @@ impl ChunkBatchInfo {
             return;
         }
         let batch_duration = self.start_time.elapsed();
+        // network-safe: batch_size is checked != 0 above
         let duration_per_chunk = batch_duration / batch_size;
         let clamped_duration = Duration::clamp(
             duration_per_chunk,
@@ -217,6 +216,8 @@ pub struct ChunkReceiveSpeedAccumulator {
 }
 impl ChunkReceiveSpeedAccumulator {
     pub fn new(capacity: usize) -> Self {
+        // at least one entry, so the index always has a slot
+        let capacity = capacity.max(1);
         Self {
             batch_sizes: vec![0; capacity],
             batch_durations: vec![0; capacity],
@@ -226,9 +227,13 @@ impl ChunkReceiveSpeedAccumulator {
     }
 
     pub fn accumulate(&mut self, batch_size: u32, batch_duration: Duration) {
+        // network-safe: index is always < len: it starts at 0 and wraps by `%
+        // len`, and new() makes len at least 1
         self.batch_sizes[self.index] = batch_size;
+        // network-safe: index < len, as above
         self.batch_durations[self.index] =
             f32::clamp(batch_duration.as_millis() as f32, 0., 15000.) as u32;
+        // network-safe: len is at least 1 (new())
         self.index = (self.index + 1) % self.batch_sizes.len();
         if self.filled_size < self.batch_sizes.len() {
             self.filled_size += 1;
@@ -239,12 +244,15 @@ impl ChunkReceiveSpeedAccumulator {
         let mut total_batch_size = 0;
         let mut total_batch_duration = 0;
         for i in 0..self.filled_size {
+            // network-safe: i < filled_size <= len
             total_batch_size += self.batch_sizes[i];
+            // network-safe: i < filled_size <= len
             total_batch_duration += self.batch_durations[i];
         }
         if total_batch_size == 0 {
             return 0.;
         }
+        // network-safe: f64 division, the zero total is handled above
         total_batch_duration as f64 / total_batch_size as f64
     }
 }

@@ -137,6 +137,7 @@ impl BitStorage {
             return Err(BitStorageError::InvalidBits { bits });
         }
 
+        // network-safe: bits is 1..=32, checked above
         let values_per_long = 64 / bits;
         let magic_index = values_per_long - 1;
         // network-safe: values_per_long is 2..=64 for bits 1..=32, and MAGIC

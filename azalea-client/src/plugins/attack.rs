@@ -161,6 +161,7 @@ pub fn get_attack_strength_scale(
     in_ticks: f32,
 ) -> f32 {
     let attack_strength_delay = get_attack_strength_delay(attributes);
+    // network-safe: f32 division
     let attack_strength = (ticks_since_last_attack as f32 + in_ticks) / attack_strength_delay;
     attack_strength.clamp(0., 1.)
 }
