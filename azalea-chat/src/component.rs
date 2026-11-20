@@ -654,17 +654,20 @@ impl FormattedText {
                                     with_array.push(PrimitiveOrComponent::String("?".to_owned()));
                                 }
                             } else if let Some(c) = FormattedText::from_nbt_compound(item) {
-                                if let FormattedText::Text(text_component) = c
-                                    && text_component.base.siblings.is_empty()
-                                    && text_component.base.style.is_unstyled()
-                                {
-                                    with_array
-                                        .push(PrimitiveOrComponent::String(text_component.text));
-                                    continue;
+                                // parse each item once: parsing it again here
+                                // made a translate/with chain of depth d cost
+                                // 2^d parses
+                                match c {
+                                    FormattedText::Text(text_component)
+                                        if text_component.base.siblings.is_empty()
+                                            && text_component.base.style.is_unstyled() =>
+                                    {
+                                        with_array.push(PrimitiveOrComponent::String(
+                                            text_component.text,
+                                        ));
+                                    }
+                                    c => with_array.push(PrimitiveOrComponent::FormattedText(c)),
                                 }
-                                with_array.push(PrimitiveOrComponent::FormattedText(
-                                    FormattedText::from_nbt_compound(item)?,
-                                ));
                             } else {
                                 warn!("couldn't parse {item:?} as FormattedText");
                                 with_array.push(PrimitiveOrComponent::String("?".to_owned()));
@@ -959,6 +962,79 @@ mod tests {
         // the uuid is written as vanilla's int array
         let ints: [u8; 4] = 0x76c4497e_u32.to_be_bytes();
         assert!(buf.windows(4).any(|w| w == ints));
+    }
+
+    /// A `translate`/`with` chain as deep as network NBT allows: each level
+    /// is a compound holding a `with` list, so 255 levels plus the leaf use
+    /// 511 of the 512 levels.
+    #[cfg(all(feature = "azalea-buf", feature = "simdnbt"))]
+    pub(crate) fn deep_translate_chain(levels: usize) -> Vec<u8> {
+        // network NBT: compound tag id, then the unnamed payload
+        let mut buf = vec![10u8];
+        let key = |buf: &mut Vec<u8>, ty: u8, name: &str| {
+            buf.push(ty);
+            buf.extend_from_slice(&(name.len() as u16).to_be_bytes());
+            buf.extend_from_slice(name.as_bytes());
+        };
+        let string = |buf: &mut Vec<u8>, s: &str| {
+            buf.extend_from_slice(&(s.len() as u16).to_be_bytes());
+            buf.extend_from_slice(s.as_bytes());
+        };
+        for _ in 0..levels {
+            key(&mut buf, 8, "translate");
+            string(&mut buf, "chat.type.text");
+            // styled, so the item isn't collapsed to a plain string
+            key(&mut buf, 1, "bold");
+            buf.push(1);
+            key(&mut buf, 9, "with");
+            buf.push(10);
+            buf.extend_from_slice(&1i32.to_be_bytes());
+        }
+        key(&mut buf, 8, "text");
+        string(&mut buf, "leaf");
+        // close the leaf compound, then each level's compound (the list
+        // holding it has exactly one element, so it closes by count)
+        buf.extend(std::iter::repeat_n(0u8, levels + 1));
+        buf
+    }
+
+    #[cfg(all(feature = "azalea-buf", feature = "simdnbt"))]
+    #[test]
+    fn deep_translate_with_chain_is_linear() {
+        // bot threads have a 16 MB stack
+        std::thread::Builder::new()
+            .stack_size(16 * 1024 * 1024)
+            .spawn(deep_translate_with_chain_is_linear_inner)
+            .unwrap()
+            .join()
+            .unwrap();
+    }
+    #[cfg(all(feature = "azalea-buf", feature = "simdnbt"))]
+    fn deep_translate_with_chain_is_linear_inner() {
+        let levels = 255;
+        let buf = deep_translate_chain(levels);
+        let start = std::time::Instant::now();
+        let c = FormattedText::azalea_read(&mut Cursor::new(&buf[..])).unwrap();
+        let elapsed = start.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(10),
+            "took {elapsed:?}"
+        );
+
+        let mut depth = 0;
+        let mut cur = &c;
+        while let FormattedText::Translatable(t) = cur {
+            depth += 1;
+            match &t.args[..] {
+                [PrimitiveOrComponent::FormattedText(next)] => cur = next,
+                [PrimitiveOrComponent::String(s)] => {
+                    assert_eq!(s, "leaf");
+                    break;
+                }
+                other => panic!("unexpected args {other:?}"),
+            }
+        }
+        assert_eq!(depth, levels);
     }
 
     #[cfg(all(feature = "azalea-buf", feature = "simdnbt"))]
