@@ -6,6 +6,7 @@ use azalea_protocol::packets::{
     game::{ClientboundGamePacket, ClientboundPlayerCombatKill, ServerboundGamePacket},
 };
 use azalea_world::{World, WorldName};
+use azalea_core::decode_errors::{DecodeErrorKind, record_decode_error};
 use bevy_ecs::prelude::*;
 use parking_lot::RwLock;
 use tracing::{error, trace};
@@ -64,6 +65,7 @@ pub fn handle_outgoing_packets_observer(
                 "Tried to send a game packet {:?} while not in game state",
                 event.packet
             );
+            record_decode_error(DecodeErrorKind::SendState);
             return;
         }
 

@@ -47,12 +47,6 @@ const NOT_DECODE_ERRORS: &[(&str, &str, usize, &str)] = &[
     ),
     (
         "src/plugins/packet/config/events.rs",
-        "error!(",
-        1,
-        "sending a packet in the wrong state is a bug in our code",
-    ),
-    (
-        "src/plugins/packet/config/events.rs",
         "if let Err(e) = raw_conn.write(send_config_packet.packet.clone()) {",
         1,
         "write (encode/IO) error when sending",
@@ -71,12 +65,6 @@ const NOT_DECODE_ERRORS: &[(&str, &str, usize, &str)] = &[
     ),
     (
         "src/plugins/packet/game/events.rs",
-        "error!(",
-        1,
-        "sending a packet in the wrong state is a bug in our code",
-    ),
-    (
-        "src/plugins/packet/game/events.rs",
         "if let Err(e) = raw_connection.write(event.packet.clone()) {",
         1,
         "write (encode/IO) error when sending",
@@ -92,12 +80,6 @@ const NOT_DECODE_ERRORS: &[(&str, &str, usize, &str)] = &[
         "if let Ok((mut raw_conn, in_login_state)) = query.get_mut(event.sent_by) {",
         1,
         "ECS lookup of our own connection when sending",
-    ),
-    (
-        "src/plugins/packet/login/events.rs",
-        "error!(",
-        1,
-        "sending a packet in the wrong state is a bug in our code",
     ),
     (
         "src/plugins/packet/login/events.rs",

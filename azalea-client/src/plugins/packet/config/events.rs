@@ -4,6 +4,7 @@ use azalea_protocol::packets::{
     Packet,
     config::{ClientboundConfigPacket, ServerboundConfigPacket},
 };
+use azalea_core::decode_errors::{DecodeErrorKind, record_decode_error};
 use bevy_ecs::prelude::*;
 use tracing::{debug, error};
 
@@ -42,6 +43,7 @@ pub fn handle_outgoing_packets_observer(
                 "Tried to send a configuration packet {:?} while not in configuration state",
                 send_config_packet.packet
             );
+            record_decode_error(DecodeErrorKind::SendState);
             return;
         }
         debug!("Sending config packet: {:?}", send_config_packet.packet);

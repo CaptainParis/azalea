@@ -42,9 +42,15 @@ pub enum DecodeErrorKind {
     /// The entity indexes disagree with the ECS: an indexed entity is missing
     /// from the world or lacks components every entity has.
     EntityIndex,
+    /// We tried to send a packet in a protocol state it doesn't belong to (for
+    /// example a game packet while in configuration), so it was dropped.
+    ///
+    /// Not a decode error but a bug in our own code; it's counted here so
+    /// the same zero check covers it.
+    SendState,
 }
 
-const ALL_KINDS: [DecodeErrorKind; 9] = [
+const ALL_KINDS: [DecodeErrorKind; 10] = [
     DecodeErrorKind::Frame,
     DecodeErrorKind::UnknownPacketId,
     DecodeErrorKind::PacketBody,
@@ -54,6 +60,7 @@ const ALL_KINDS: [DecodeErrorKind; 9] = [
     DecodeErrorKind::HandlerState,
     DecodeErrorKind::UnknownEntity,
     DecodeErrorKind::EntityIndex,
+    DecodeErrorKind::SendState,
 ];
 
 static FRAME: AtomicU64 = AtomicU64::new(0);
@@ -65,6 +72,7 @@ static CHUNK: AtomicU64 = AtomicU64::new(0);
 static HANDLER_STATE: AtomicU64 = AtomicU64::new(0);
 static UNKNOWN_ENTITY: AtomicU64 = AtomicU64::new(0);
 static ENTITY_INDEX: AtomicU64 = AtomicU64::new(0);
+static SEND_STATE: AtomicU64 = AtomicU64::new(0);
 
 fn counter(kind: DecodeErrorKind) -> &'static AtomicU64 {
     match kind {
@@ -77,6 +85,7 @@ fn counter(kind: DecodeErrorKind) -> &'static AtomicU64 {
         DecodeErrorKind::HandlerState => &HANDLER_STATE,
         DecodeErrorKind::UnknownEntity => &UNKNOWN_ENTITY,
         DecodeErrorKind::EntityIndex => &ENTITY_INDEX,
+        DecodeErrorKind::SendState => &SEND_STATE,
     }
 }
 
@@ -99,6 +108,7 @@ pub struct DecodeErrorCounts {
     pub handler_state: u64,
     pub unknown_entity: u64,
     pub entity_index: u64,
+    pub send_state: u64,
 }
 impl DecodeErrorCounts {
     pub fn get(&self, kind: DecodeErrorKind) -> u64 {
@@ -112,6 +122,7 @@ impl DecodeErrorCounts {
             DecodeErrorKind::HandlerState => self.handler_state,
             DecodeErrorKind::UnknownEntity => self.unknown_entity,
             DecodeErrorKind::EntityIndex => self.entity_index,
+            DecodeErrorKind::SendState => self.send_state,
         }
     }
 
@@ -145,6 +156,7 @@ pub fn decode_errors() -> DecodeErrorCounts {
         handler_state: load(DecodeErrorKind::HandlerState),
         unknown_entity: load(DecodeErrorKind::UnknownEntity),
         entity_index: load(DecodeErrorKind::EntityIndex),
+        send_state: load(DecodeErrorKind::SendState),
     }
 }
 
