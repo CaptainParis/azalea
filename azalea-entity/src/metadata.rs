@@ -200,7 +200,8 @@ use uuid::Uuid;
 
 use super::{
     ArmadilloStateKind, CopperGolemStateKind, EntityDataItem, EntityDataValue, OptionalUnsignedInt,
-    Pose, Quaternion, Rotations, SnifferStateKind, VillagerData, WeatheringCopperStateKind,
+    PaintingVariantHolder, Pose, Quaternion, Rotations, SnifferStateKind, VillagerData,
+    WeatheringCopperStateKind, WolfVariantHolder,
 };
 use crate::{HumanoidArm, particle::Particle};
 
@@ -1718,7 +1719,7 @@ impl Default for OminousItemSpawnerMetadataBundle {
 
 /// A metadata field for [Painting].
 #[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct PaintingVariant(pub azalea_registry::data::PaintingVariant);
+pub struct PaintingVariant(pub PaintingVariantHolder);
 /// The marker component for entities of type `minecraft:painting`.
 ///
 /// # Metadata
@@ -1771,7 +1772,9 @@ impl Default for PaintingMetadataBundle {
         Self {
             _marker: Painting,
             parent: Default::default(),
-            painting_variant: PaintingVariant(azalea_registry::data::PaintingVariant::new_raw(0)),
+            painting_variant: PaintingVariant(azalea_registry::Holder::Reference(
+                azalea_registry::data::PaintingVariant::new_raw(0),
+            )),
         }
     }
 }
@@ -3221,8 +3224,8 @@ impl Default for PlayerMetadataBundle {
             score: Score(0),
             player_mode_customisation: PlayerModeCustomisation(0),
             player_main_hand: PlayerMainHand(Default::default()),
-            shoulder_left: ShoulderLeft(simdnbt::owned::NbtCompound::default()),
-            shoulder_right: ShoulderRight(simdnbt::owned::NbtCompound::default()),
+            shoulder_left: ShoulderLeft(Box::new(simdnbt::owned::NbtCompound::default())),
+            shoulder_right: ShoulderRight(Box::new(simdnbt::owned::NbtCompound::default())),
         }
     }
 }
@@ -5230,15 +5233,15 @@ impl Default for FoxMetadataBundle {
             pouncing: Pouncing(false),
             fox_crouching: FoxCrouching(false),
             fox_interested: FoxInterested(false),
-            trusted_id_0: TrustedId0(Empty),
-            trusted_id_1: TrustedId1(Empty),
+            trusted_id_0: TrustedId0(None),
+            trusted_id_1: TrustedId1(None),
         }
     }
 }
 
 /// A metadata field for [Frog].
 #[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct FrogVariant(pub azalea_registry::data::FrogVariant);
+pub struct FrogVariant(pub azalea_registry::builtin::FrogVariant);
 /// A metadata field for [Frog].
 #[derive(Component, Deref, DerefMut, Clone, PartialEq)]
 pub struct TongueTarget(pub OptionalUnsignedInt);
@@ -5303,7 +5306,7 @@ impl Default for FrogMetadataBundle {
         Self {
             _marker: Frog,
             parent: Default::default(),
-            frog_variant: FrogVariant(azalea_registry::data::FrogVariant::new_raw(0)),
+            frog_variant: FrogVariant(azalea_registry::builtin::FrogVariant::Temperate),
             tongue_target: TongueTarget(OptionalUnsignedInt(None)),
         }
     }
@@ -6924,14 +6927,14 @@ impl Default for AbstractTameableMetadataBundle {
             parent: Default::default(),
             tame: Tame(false),
             in_sitting_pose: InSittingPose(false),
-            owneruuid: Owneruuid(Empty),
+            owneruuid: Owneruuid(None),
         }
     }
 }
 
 /// A metadata field for [Cat].
 #[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct CatVariant(pub azalea_registry::data::CatVariant);
+pub struct CatVariant(pub azalea_registry::builtin::CatVariant);
 /// A metadata field for [Cat].
 #[derive(Component, Deref, DerefMut, Clone, PartialEq)]
 pub struct IsLying(pub bool);
@@ -7013,7 +7016,7 @@ impl Default for CatMetadataBundle {
         Self {
             _marker: Cat,
             parent: Default::default(),
-            cat_variant: CatVariant(azalea_registry::data::CatVariant::new_raw(0)),
+            cat_variant: CatVariant(azalea_registry::builtin::CatVariant::Black),
             is_lying: IsLying(false),
             relax_state_one: RelaxStateOne(false),
             cat_collar_color: CatCollarColor(Default::default()),
@@ -7097,7 +7100,7 @@ pub struct WolfCollarColor(pub i32);
 pub struct WolfRemainingAngerTime(pub i32);
 /// A metadata field for [Wolf].
 #[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct WolfVariant(pub azalea_registry::data::WolfVariant);
+pub struct WolfVariant(pub WolfVariantHolder);
 /// The marker component for entities of type `minecraft:wolf`.
 ///
 /// # Metadata
@@ -7173,7 +7176,9 @@ impl Default for WolfMetadataBundle {
             wolf_interested: WolfInterested(false),
             wolf_collar_color: WolfCollarColor(Default::default()),
             wolf_remaining_anger_time: WolfRemainingAngerTime(0),
-            wolf_variant: WolfVariant(azalea_registry::data::WolfVariant::new_raw(0)),
+            wolf_variant: WolfVariant(azalea_registry::Holder::Reference(
+                azalea_registry::data::WolfVariant::new_raw(0),
+            )),
         }
     }
 }

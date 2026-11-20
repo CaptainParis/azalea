@@ -11,8 +11,13 @@ use azalea_core::{
     direction::Direction,
     position::{BlockPos, GlobalPos, Vec3f32},
 };
-use azalea_inventory::ItemStack;
-use azalea_registry::builtin::{VillagerKind, VillagerProfession};
+use azalea_inventory::{ItemStack, components::PaintingVariantData};
+use azalea_registry::{
+    Holder, HolderSet,
+    builtin::{VillagerKind, VillagerProfession},
+    data::Biome,
+    identifier::Identifier,
+};
 use derive_more::Deref;
 use enum_as_inner::EnumAsInner;
 use uuid::Uuid;
@@ -83,10 +88,10 @@ pub enum EntityDataValue {
     OptionalUnsignedInt(OptionalUnsignedInt),
     Pose(Pose),
     CatVariant(azalea_registry::builtin::CatVariant),
-    WolfVariant(azalea_registry::data::WolfVariant),
+    WolfVariant(WolfVariantHolder),
     FrogVariant(azalea_registry::builtin::FrogVariant),
     OptionalGlobalPos(Option<Box<GlobalPos>>),
-    PaintingVariant(azalea_registry::data::PaintingVariant),
+    PaintingVariant(PaintingVariantHolder),
     SnifferState(SnifferStateKind),
     ArmadilloState(ArmadilloStateKind),
     Vector3(Vec3f32),
@@ -114,6 +119,27 @@ pub enum ArmadilloStateKind {
     Idle,
     Rolling,
     Scared,
+    Unrolling,
+}
+
+/// A wolf variant: a registry id, or an inline [`WolfVariantData`].
+///
+/// Vanilla encodes this with `ByteBufCodecs.holder`, so a registry id is sent
+/// as `id + 1` and 0 means an inline value follows.
+pub type WolfVariantHolder = Holder<azalea_registry::data::WolfVariant, Box<WolfVariantData>>;
+/// A painting variant: a registry id, or an inline [`PaintingVariantData`].
+///
+/// Encoded like [`WolfVariantHolder`].
+pub type PaintingVariantHolder =
+    Holder<azalea_registry::data::PaintingVariant, Box<PaintingVariantData>>;
+
+/// An inline wolf variant, used when the variant isn't a registry reference.
+#[derive(AzBuf, Clone, Debug, PartialEq)]
+pub struct WolfVariantData {
+    pub wild_texture: Identifier,
+    pub tame_texture: Identifier,
+    pub angry_texture: Identifier,
+    pub biomes: HolderSet<Biome, Identifier>,
 }
 
 impl AzBuf for OptionalUnsignedInt {
