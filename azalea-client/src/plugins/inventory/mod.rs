@@ -157,6 +157,8 @@ pub fn handle_client_side_close_container_trigger(
 
     inventory.id = 0;
     inventory.container_menu_title = None;
+    // back to the inventory menu and its own state id
+    inventory.state_id = inventory.inventory_menu_state_id;
 }
 
 #[derive(Debug, EntityEvent)]

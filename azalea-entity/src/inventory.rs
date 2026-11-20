@@ -45,9 +45,14 @@ pub struct Inventory {
     pub carried: ItemStack,
     /// An identifier used by the server to track client inventory desyncs.
     ///
-    /// This is sent on every container click, and it's only ever updated when
-    /// the server sends a new container update.
+    /// This is the state id of the menu that's currently open; it's sent on
+    /// every container click, and it's only ever updated when the server sends
+    /// a new container update.
     pub state_id: u32,
+    /// The state id of the player's inventory menu (container 0), which vanilla
+    /// keeps separately from the open container's. It becomes [`Self::state_id`]
+    /// again when the container is closed.
+    pub inventory_menu_state_id: u32,
 
     pub quick_craft_status: QuickCraftStatusKind,
     pub quick_craft_kind: QuickCraftKind,
@@ -64,6 +69,23 @@ pub struct Inventory {
 }
 
 impl Inventory {
+    /// Sets slot `i` of the player's inventory menu (container 0). While another
+    /// container is open, its player slots show the same items (vanilla shares
+    /// the `Slot` objects between the two menus), so they're updated too.
+    pub fn set_inventory_menu_slot(&mut self, i: usize, item: ItemStack) {
+        if let Some(menu) = &mut self.container_menu
+            && (9..=44).contains(&i)
+        {
+            let at = *menu.player_slots_range().start() + (i - 9);
+            if let Some(slot) = menu.slot_mut(at) {
+                *slot = item.clone();
+            }
+        }
+        if let Some(slot) = self.inventory_menu.slot_mut(i) {
+            *slot = item;
+        }
+    }
+
     /// Returns a reference to the currently active menu.
     ///
     /// If a container is open then it'll return [`Self::container_menu`],
@@ -673,6 +695,7 @@ impl Default for Inventory {
             container_menu_title: None,
             carried: ItemStack::Empty,
             state_id: 0,
+            inventory_menu_state_id: 0,
             quick_craft_status: QuickCraftStatusKind::Start,
             quick_craft_kind: QuickCraftKind::Middle,
             quick_craft_slots: HashSet::new(),
@@ -704,6 +727,7 @@ mod tests {
             container_menu_title: None,
             carried: ItemStack::Empty,
             state_id: 0,
+            inventory_menu_state_id: 0,
             quick_craft_status: QuickCraftStatusKind::Start,
             quick_craft_kind: QuickCraftKind::Middle,
             quick_craft_slots: HashSet::new(),

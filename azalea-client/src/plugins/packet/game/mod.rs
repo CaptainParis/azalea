@@ -1134,15 +1134,25 @@ impl GamePacketHandler<'_> {
         as_system::<(Commands, Query<&mut Inventory>)>(self.ecs, |(mut commands, mut query)| {
             let mut inventory = query.get_mut(self.player).unwrap();
 
-            // container id 0 is always the player's inventory
+            // 1.21.4 ClientPacketListener.handleContainerContent and
+            // AbstractContainerMenu.initializeContents: the menu takes the items,
+            // the carried item and the state id. A stale state id makes the
+            // server answer the next click with a full resync.
             if p.container_id == 0 {
-                // this is just so it has the same type as the `else` block
+                // container id 0 is always the player's inventory, open or not
                 for (i, slot) in p.items.iter().enumerate() {
-                    if let Some(slot_mut) = inventory.inventory_menu.slot_mut(i) {
-                        *slot_mut = slot.clone();
-                    }
+                    inventory.set_inventory_menu_slot(i, slot.clone());
+                }
+                inventory.inventory_menu_state_id = p.state_id;
+                if inventory.id == 0 {
+                    inventory.state_id = p.state_id;
+                    inventory.carried = p.carried_item.clone();
                 }
             } else {
+                if p.container_id == inventory.id {
+                    inventory.state_id = p.state_id;
+                    inventory.carried = p.carried_item.clone();
+                }
                 commands.trigger(SetContainerContentEvent {
                     entity: self.player,
                     slots: p.items.clone(),
@@ -1178,26 +1188,21 @@ impl GamePacketHandler<'_> {
                 if let Some(slot) = inventory.inventory_menu.slot_mut(p.slot.into()) {
                     *slot = p.item_stack.clone();
                 }
-            } else {
-                let is_creative_mode_and_inventory_closed = false;
-                // technically minecraft has slightly different behavior here if
-                // you're in creative mode and have your inventory open
-                if p.container_id == 0 && azalea_inventory::Player::is_hotbar_slot(p.slot.into()) {
-                    // minecraft also sets a "pop time" here which is used for
-                    // an animation but that's not really
-                    // necessary
-                    if let Some(slot) = inventory.inventory_menu.slot_mut(p.slot.into()) {
-                        *slot = p.item_stack.clone();
-                    }
-                } else if p.container_id == inventory.id
-                    && (p.container_id != 0 || !is_creative_mode_and_inventory_closed)
-                {
-                    // var2.containerMenu.setItem(var4, var1.getStateId(),
-                    // var3);
-                    if let Some(slot) = inventory.menu_mut().slot_mut(p.slot.into()) {
-                        *slot = p.item_stack.clone();
-                        inventory.state_id = p.state_id;
-                    }
+            } else if p.container_id == 0 {
+                // 1.21.4 handleContainerSetSlot: container 0 is
+                // `player.inventoryMenu.setItem(slot, stateId, item)` for any slot,
+                // whatever container is open (minecraft also sets a "pop time"
+                // for the hotbar animation, not needed here)
+                inventory.set_inventory_menu_slot(p.slot.into(), p.item_stack.clone());
+                inventory.inventory_menu_state_id = p.state_id;
+                if inventory.id == 0 {
+                    inventory.state_id = p.state_id;
+                }
+            } else if p.container_id == inventory.id {
+                // player.containerMenu.setItem(slot, stateId, item)
+                if let Some(slot) = inventory.menu_mut().slot_mut(p.slot.into()) {
+                    *slot = p.item_stack.clone();
+                    inventory.state_id = p.state_id;
                 }
             }
         });
