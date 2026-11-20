@@ -10,6 +10,8 @@ use azalea_protocol::packets::{
 };
 use bevy_ecs::prelude::*;
 use tracing::debug;
+#[cfg(feature = "online-mode")]
+use tracing::warn;
 
 use super::ChatKind;
 #[cfg(feature = "online-mode")]
@@ -37,6 +39,121 @@ pub struct SendChatKindEvent {
     pub kind: ChatKind,
 }
 
+/// The text as sent: control characters and `§` removed, 256 characters.
+fn clean(content: &str) -> String {
+    content
+        .chars()
+        .filter(|c| !matches!(c, '\x00'..='\x1F' | '\x7F' | '§'))
+        .take(256)
+        .collect()
+}
+
+/// The longest a held message waits. Past it, a client in game sends it
+/// anyway (signed with the session it has, as vanilla, which never holds);
+/// a client out of game (configuration) drops it.
+pub const HOLD_CAP: std::time::Duration = std::time::Duration::from_secs(10);
+/// Held messages per client at most (the oldest are dropped beyond).
+pub const HOLD_MAX: usize = 64;
+
+/// The client's chat session as the hold sees it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SessionView {
+    /// No chat session: chat goes unsigned, nothing to wait for.
+    None,
+    /// Announced less than `SESSION_SETTLE` ago.
+    Unsettled,
+    Settled,
+}
+
+/// What the hold needs to know about one client.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ClientView {
+    /// The entity still exists.
+    pub exists: bool,
+    /// In game (has its secure chat state; not in configuration).
+    pub in_game: bool,
+    pub session: SessionView,
+}
+
+/// Signed chat held after a chat session update (see
+/// [`crate::chat_signing::SESSION_SETTLE`]). Only messages that would be
+/// signed are held; a held queue is released in order when the session
+/// settles, when the session goes away (they go unsigned, as vanilla without
+/// a session), or at [`HOLD_CAP`]; a despawned client's entries are dropped.
+#[derive(Debug, Default)]
+pub struct ChatHold {
+    held: std::collections::HashMap<
+        Entity,
+        std::collections::VecDeque<(String, ChatKind, std::time::Instant)>,
+    >,
+}
+
+impl ChatHold {
+    /// Entries that may go now, in order per client, and how many were
+    /// dropped.
+    pub fn release(
+        &mut self,
+        now: std::time::Instant,
+        view: &dyn Fn(Entity) -> ClientView,
+    ) -> (Vec<(Entity, String, ChatKind)>, usize) {
+        let mut out = Vec::new();
+        let mut dropped = 0;
+        for (e, q) in self.held.iter_mut() {
+            let v = view(*e);
+            if !v.exists {
+                dropped += q.len();
+                q.clear();
+                continue;
+            }
+            while let Some((_, _, since)) = q.front() {
+                let free = v.in_game && v.session != SessionView::Unsettled;
+                let over = now.saturating_duration_since(*since) >= HOLD_CAP;
+                if !(free || over) {
+                    break;
+                }
+                let Some((c, k, _)) = q.pop_front() else {
+                    break;
+                };
+                if v.in_game {
+                    out.push((*e, c, k));
+                } else {
+                    dropped += 1;
+                }
+            }
+        }
+        self.held.retain(|_, q| !q.is_empty());
+        (out, dropped)
+    }
+
+    /// A new message: `Some` to send now, `None` held. `signed`: it would be
+    /// signed if sent now.
+    pub fn offer(
+        &mut self,
+        e: Entity,
+        content: String,
+        kind: ChatKind,
+        signed: bool,
+        v: ClientView,
+        now: std::time::Instant,
+    ) -> Option<(Entity, String, ChatKind)> {
+        let waiting = self.held.get(&e).is_some_and(|q| !q.is_empty());
+        if !signed || !(waiting || v.session == SessionView::Unsettled) {
+            return Some((e, content, kind));
+        }
+        let q = self.held.entry(e).or_default();
+        if q.len() >= HOLD_MAX {
+            q.pop_front();
+        }
+        q.push_back((content, kind, now));
+        None
+    }
+
+    /// Messages held for `e`.
+    pub fn held(&self, e: Entity) -> usize {
+        self.held.get(&e).map_or(0, |q| q.len())
+    }
+}
+
 fn millis(t: SystemTime) -> u64 {
     // network-safe: our own clock, not network data; u64 milliseconds last for
     // 584 million years
@@ -59,51 +176,55 @@ pub fn handle_send_chat_kind_event(
         &mut ChatSigningSession,
         Option<&CommandTree>,
     )>,
-    #[cfg(feature = "online-mode")] mut held: Local<
-        std::collections::HashMap<Entity, std::collections::VecDeque<(String, ChatKind)>>,
-    >,
+    #[cfg(feature = "online-mode")] mut held: Local<ChatHold>,
 ) {
     // Signed chat right after a chat session update waits until the server
-    // has surely applied it (`SESSION_SETTLE`); order is kept per client.
+    // has surely applied it (`SESSION_SETTLE`); order is kept per client
+    // among held messages. Unsigned chat and commands never wait (P3), and
+    // nothing waits forever (see `ChatHold`).
     let mut todo: Vec<(Entity, String, ChatKind)> = Vec::new();
     #[cfg(feature = "online-mode")]
     {
-        let settled = |e: Entity,
-                       signing: &Query<(
-            &Account,
-            &mut ChatSigningSession,
-            Option<&CommandTree>,
-        )>| {
-            signing.get(e).is_ok_and(|(_, s, _)| {
-                s.announced_at.elapsed() >= crate::chat_signing::SESSION_SETTLE
-            })
-        };
-        let ready: Vec<Entity> = held
-            .iter()
-            .filter(|(e, q)| !q.is_empty() && settled(**e, &signing))
-            .map(|(e, _)| *e)
-            .collect();
-        for e in ready {
-            if let Some(q) = held.remove(&e) {
-                todo.extend(q.into_iter().map(|(c, k)| (e, c, k)));
-            }
-        }
-        for event in events.read() {
-            let unsettled = signing.get(event.entity).is_ok_and(|(_, s, _)| {
-                s.announced_at.elapsed() < crate::chat_signing::SESSION_SETTLE
-            });
-            let queue = held.entry(event.entity).or_default();
-            if unsettled || !queue.is_empty() {
-                // bounded: a client that never settles keeps its last 64
-                if queue.len() >= 64 {
-                    queue.pop_front();
+        let now = std::time::Instant::now();
+        let view = |e: Entity| ClientView {
+            exists: chat.get(e).is_ok(),
+            in_game: chat.get(e).is_ok_and(|(s, _)| s.is_some()),
+            session: match signing.get(e) {
+                Err(_) => SessionView::None,
+                Ok((_, s, _)) if s.announced_at.elapsed() < crate::chat_signing::SESSION_SETTLE => {
+                    SessionView::Unsettled
                 }
-                queue.push_back((event.content.clone(), event.kind));
-            } else {
-                todo.push((event.entity, event.content.clone(), event.kind));
+                Ok(_) => SessionView::Settled,
+            },
+        };
+        let (released, dropped) = held.release(now, &view);
+        if dropped > 0 {
+            warn!(
+                "{dropped} held chat messages dropped (client gone, or out of game past the hold cap)"
+            );
+        }
+        todo.extend(released);
+        for event in events.read() {
+            let signed = match event.kind {
+                ChatKind::Message => signing.get(event.entity).is_ok(),
+                ChatKind::Command => signing.get(event.entity).is_ok_and(|(_, _, tree)| {
+                    tree.and_then(|t| {
+                        crate::secure_chat::signable_arguments(&t.0, &clean(&event.content))
+                    })
+                    .is_some_and(|a| !a.is_empty())
+                }),
+            };
+            if let Some(go) = held.offer(
+                event.entity,
+                event.content.clone(),
+                event.kind,
+                signed,
+                view(event.entity),
+                now,
+            ) {
+                todo.push(go);
             }
         }
-        held.retain(|_, q| !q.is_empty());
     }
     #[cfg(not(feature = "online-mode"))]
     todo.extend(events.read().map(|e| (e.entity, e.content.clone(), e.kind)));
@@ -114,12 +235,7 @@ pub fn handle_send_chat_kind_event(
             content: raw,
             kind,
         };
-        let content = event
-            .content
-            .chars()
-            .filter(|c| !matches!(c, '\x00'..='\x1F' | '\x7F' | '§'))
-            .take(256)
-            .collect::<String>();
+        let content = clean(&event.content);
 
         let timestamp = SystemTime::now();
         let Ok((mut state, mutation)) = chat.get_mut(event.entity) else {
@@ -248,4 +364,139 @@ pub fn create_signature(
     chat_session.messages_sent += 1;
 
     signature
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::{Duration, Instant};
+
+    use super::*;
+
+    fn e(n: u32) -> Entity {
+        Entity::from_raw_u32(n).unwrap()
+    }
+    const UNSETTLED: ClientView = ClientView {
+        exists: true,
+        in_game: true,
+        session: SessionView::Unsettled,
+    };
+    const SETTLED: ClientView = ClientView {
+        session: SessionView::Settled,
+        ..UNSETTLED
+    };
+    const NO_SESSION: ClientView = ClientView {
+        session: SessionView::None,
+        ..UNSETTLED
+    };
+
+    fn names(v: &[(Entity, String, ChatKind)]) -> Vec<&str> {
+        v.iter().map(|(_, c, _)| c.as_str()).collect()
+    }
+
+    #[test]
+    fn held_until_settled_in_order() {
+        let mut h = ChatHold::default();
+        let t = Instant::now();
+        assert!(
+            h.offer(e(1), "a".into(), ChatKind::Message, true, UNSETTLED, t)
+                .is_none()
+        );
+        assert!(
+            h.offer(e(1), "b".into(), ChatKind::Message, true, UNSETTLED, t)
+                .is_none()
+        );
+        let (r, d) = h.release(t + Duration::from_millis(500), &|_| UNSETTLED);
+        assert!(r.is_empty() && d == 0);
+        // settled, but a queue exists: a new signed message goes behind it
+        assert!(
+            h.offer(e(1), "c".into(), ChatKind::Message, true, SETTLED, t)
+                .is_none()
+        );
+        let (r, _) = h.release(t + Duration::from_secs(2), &|_| SETTLED);
+        assert_eq!(names(&r), ["a", "b", "c"]);
+        assert_eq!(h.held(e(1)), 0);
+    }
+
+    #[test]
+    fn unsigned_never_waits() {
+        // P3: an unsigned command (no signable argument) or chat without a
+        // session is never blocked by signing (a failed cert fetch, a held
+        // queue)
+        let mut h = ChatHold::default();
+        let t = Instant::now();
+        assert!(
+            h.offer(e(1), "a".into(), ChatKind::Message, true, UNSETTLED, t)
+                .is_none()
+        );
+        let go = h.offer(
+            e(1),
+            "/tpa x".into(),
+            ChatKind::Command,
+            false,
+            UNSETTLED,
+            t,
+        );
+        assert!(go.is_some(), "unsigned command goes at once");
+        let go = h.offer(e(2), "hi".into(), ChatKind::Message, false, NO_SESSION, t);
+        assert!(go.is_some());
+    }
+
+    #[test]
+    fn session_gone_releases_unsigned() {
+        // a held queue when the chat session goes away (cert fetch failed and
+        // the session was dropped, a chain repair): released at once
+        let mut h = ChatHold::default();
+        let t = Instant::now();
+        h.offer(e(1), "a".into(), ChatKind::Message, true, UNSETTLED, t);
+        let (r, d) = h.release(t + Duration::from_millis(100), &|_| NO_SESSION);
+        assert_eq!(names(&r), ["a"]);
+        assert_eq!(d, 0);
+    }
+
+    #[test]
+    fn hold_is_capped() {
+        // a session that keeps being re-announced never settles: the cap
+        // sends anyway; out of game (configuration) past the cap: dropped
+        let mut h = ChatHold::default();
+        let t = Instant::now();
+        h.offer(e(1), "a".into(), ChatKind::Message, true, UNSETTLED, t);
+        h.offer(e(2), "b".into(), ChatKind::Message, true, UNSETTLED, t);
+        let config = ClientView {
+            in_game: false,
+            session: SessionView::None,
+            ..UNSETTLED
+        };
+        let view = |x: Entity| if x == e(1) { UNSETTLED } else { config };
+        let (r, d) = h.release(t + HOLD_CAP - Duration::from_millis(1), &view);
+        assert!(
+            r.is_empty() && d == 0,
+            "in configuration it waits (a server switch)"
+        );
+        let (r, d) = h.release(t + HOLD_CAP, &view);
+        assert_eq!(names(&r), ["a"]);
+        assert_eq!(d, 1);
+        assert_eq!(h.held(e(1)) + h.held(e(2)), 0);
+        // bounded per client
+        for i in 0..(HOLD_MAX + 5) {
+            h.offer(e(3), format!("{i}"), ChatKind::Message, true, UNSETTLED, t);
+        }
+        assert_eq!(h.held(e(3)), HOLD_MAX);
+    }
+
+    #[test]
+    fn despawned_client_entries_are_dropped() {
+        let mut h = ChatHold::default();
+        let t = Instant::now();
+        h.offer(e(1), "a".into(), ChatKind::Message, true, UNSETTLED, t);
+        h.offer(e(1), "b".into(), ChatKind::Message, true, UNSETTLED, t);
+        let gone = ClientView {
+            exists: false,
+            in_game: false,
+            session: SessionView::None,
+        };
+        let (r, d) = h.release(t, &|_| gone);
+        assert!(r.is_empty());
+        assert_eq!(d, 2);
+        assert_eq!(h.held(e(1)), 0);
+    }
 }
