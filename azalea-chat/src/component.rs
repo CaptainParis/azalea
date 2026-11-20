@@ -152,7 +152,7 @@ impl FormattedText {
         S: FnMut(&str) -> String,
     {
         let component_style = &self.get_base().style;
-        let new_style = parent_style.merged_with(component_style);
+        let new_style = parent_style.merged_for_render(component_style);
 
         let mut append_text = |text: &str| {
             if !text.is_empty() {
@@ -749,7 +749,9 @@ impl FormattedText {
 
         let base_style = Style::from_compound(compound).ok()?;
         let new_style = &mut component.get_base_mut().style;
-        **new_style = new_style.merged_with(&base_style);
+        // by value: cloning the hover event at every level of a nested chain
+        // was quadratic
+        **new_style = std::mem::take(&mut **new_style).merged_with_owned(base_style);
 
         Some(component)
     }
@@ -1036,6 +1038,111 @@ mod tests {
             }
         }
         assert_eq!(depth, levels);
+    }
+
+    /// `levels` components, each with a show_text hover event holding the
+    /// next; the innermost has `width` text siblings. Every level holds the
+    /// whole rest of the tree in its hover event.
+    #[cfg(all(feature = "azalea-buf", feature = "simdnbt"))]
+    fn deep_hover_chain(levels: usize, width: usize) -> Vec<u8> {
+        let mut buf = vec![10u8];
+        let key = |buf: &mut Vec<u8>, ty: u8, name: &str| {
+            buf.push(ty);
+            buf.extend_from_slice(&(name.len() as u16).to_be_bytes());
+            buf.extend_from_slice(name.as_bytes());
+        };
+        let string = |buf: &mut Vec<u8>, s: &str| {
+            buf.extend_from_slice(&(s.len() as u16).to_be_bytes());
+            buf.extend_from_slice(s.as_bytes());
+        };
+        for _ in 0..levels {
+            key(&mut buf, 8, "text");
+            string(&mut buf, "x");
+            key(&mut buf, 10, "hoverEvent");
+            key(&mut buf, 8, "action");
+            string(&mut buf, "show_text");
+            key(&mut buf, 10, "contents");
+        }
+        key(&mut buf, 8, "text");
+        string(&mut buf, "leaf");
+        key(&mut buf, 9, "extra");
+        buf.push(10);
+        buf.extend_from_slice(&(width as i32).to_be_bytes());
+        for _ in 0..width {
+            key(&mut buf, 8, "text");
+            string(&mut buf, "a");
+            buf.push(0);
+        }
+        // the leaf, then each level's contents and hoverEvent compounds and
+        // the level itself
+        buf.push(0);
+        buf.extend(std::iter::repeat_n(0u8, levels * 2));
+        buf
+    }
+
+    #[cfg(all(feature = "azalea-buf", feature = "simdnbt"))]
+    fn on_bot_thread(f: impl FnOnce() + Send + 'static) {
+        std::thread::Builder::new()
+            .stack_size(16 * 1024 * 1024)
+            .spawn(f)
+            .unwrap()
+            .join()
+            .unwrap();
+    }
+
+    #[cfg(all(feature = "azalea-buf", feature = "simdnbt"))]
+    #[test]
+    fn deep_hover_chain_is_linear() {
+        on_bot_thread(|| {
+            let parse = |levels| {
+                let buf = deep_hover_chain(levels, 12_000);
+                let start = std::time::Instant::now();
+                FormattedText::azalea_read(&mut Cursor::new(&buf[..])).unwrap();
+                start.elapsed()
+            };
+            // 254 hover levels (the leaf at NBT depth 509, its siblings at
+            // 511) over 12 000 siblings, about 2 MB of accounted NBT, cost
+            // about what one level over the same siblings costs (cloning
+            // each level's hover event made it 254 times as much)
+            let shallow = parse(1);
+            let deep = parse(254);
+            assert!(
+                deep < shallow * 5 + std::time::Duration::from_millis(50)
+                    && deep < std::time::Duration::from_secs(1),
+                "1 level {shallow:?}, 254 levels {deep:?}"
+            );
+        });
+    }
+
+    #[cfg(all(feature = "azalea-buf", feature = "simdnbt"))]
+    #[test]
+    fn rendering_under_a_big_hover_is_linear() {
+        use crate::hover_event::HoverEvent;
+        on_bot_thread(|| {
+            // a component whose hover text has 6000 parts, with 6000
+            // siblings: inheriting the hover event cloned it for each sibling
+            let mut hover = TextComponent::new("h");
+            for _ in 0..6000 {
+                hover.base.siblings.push(FormattedText::from("a"));
+            }
+            let mut c = TextComponent::new("x");
+            c.base.style = Box::new(Style {
+                hover_event: Some(HoverEvent::ShowText {
+                    value: Box::new(FormattedText::Text(hover)),
+                }),
+                ..Style::default()
+            });
+            for _ in 0..6000 {
+                c.base.siblings.push(FormattedText::from("b"));
+            }
+            let c = FormattedText::Text(c);
+            let start = std::time::Instant::now();
+            let ansi = c.to_ansi();
+            let html = c.to_html();
+            let elapsed = start.elapsed();
+            assert!(ansi.contains('b') && html.contains('b'));
+            assert!(elapsed < std::time::Duration::from_secs(1), "{elapsed:?}");
+        });
     }
 
     #[cfg(all(feature = "azalea-buf", feature = "simdnbt"))]

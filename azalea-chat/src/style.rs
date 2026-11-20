@@ -533,6 +533,44 @@ impl Style {
         }
     }
 
+    /// [`Self::merged_with`], taking both styles by value so nothing is
+    /// cloned (a hover event can hold a whole component tree).
+    pub fn merged_with_owned(self, other: Style) -> Style {
+        Style {
+            color: other.color.or(self.color),
+            shadow_color: other.shadow_color.or(self.shadow_color),
+            bold: other.bold.or(self.bold),
+            italic: other.italic.or(self.italic),
+            underlined: other.underlined.or(self.underlined),
+            strikethrough: other.strikethrough.or(self.strikethrough),
+            obfuscated: other.obfuscated.or(self.obfuscated),
+            click_event: other.click_event.or(self.click_event),
+            hover_event: other.hover_event.or(self.hover_event),
+            insertion: other.insertion.or(self.insertion),
+            font: other.font.or(self.font),
+        }
+    }
+
+    /// The style a component is rendered with: [`Self::merged_with`], except
+    /// that click and hover events are only the component's own. Inheriting
+    /// them would clone the parent's hover event (a whole component tree)
+    /// for every descendant, quadratic in the input.
+    pub(crate) fn merged_for_render(&self, other: &Style) -> Style {
+        Style {
+            color: other.color.clone().or(self.color.clone()),
+            shadow_color: other.shadow_color.or(self.shadow_color),
+            bold: other.bold.or(self.bold),
+            italic: other.italic.or(self.italic),
+            underlined: other.underlined.or(self.underlined),
+            strikethrough: other.strikethrough.or(self.strikethrough),
+            obfuscated: other.obfuscated.or(self.obfuscated),
+            click_event: other.click_event.clone(),
+            hover_event: other.hover_event.clone(),
+            insertion: other.insertion.clone().or(self.insertion.clone()),
+            font: other.font.clone().or(self.font.clone()),
+        }
+    }
+
     /// Apply a ChatFormatting to this style
     pub fn apply_formatting(&mut self, formatting: &ChatFormatting) {
         match *formatting {

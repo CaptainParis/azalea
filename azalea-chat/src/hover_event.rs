@@ -92,10 +92,7 @@ impl ItemStackInfo {
         match self.components.as_ref()? {
             ItemComponents::Json(m) => Some(m.clone()),
             #[cfg(feature = "simdnbt")]
-            ItemComponents::Nbt(c) => match nbt_to_json(&simdnbt::owned::NbtTag::Compound(c.clone())) {
-                serde_json::Value::Object(m) => Some(m),
-                _ => None,
-            },
+            ItemComponents::Nbt(c) => Some(nbt_compound_to_json(c)),
         }
     }
 }
@@ -119,7 +116,7 @@ impl Serialize for ItemStackInfo {
 #[cfg(feature = "simdnbt")]
 fn nbt_to_json(tag: &simdnbt::owned::NbtTag) -> serde_json::Value {
     use serde_json::{Value, json};
-    use simdnbt::owned::{NbtList, NbtTag};
+    use simdnbt::owned::NbtTag;
     match tag {
         NbtTag::Byte(v) => json!(v),
         NbtTag::Short(v) => json!(v),
@@ -131,12 +128,26 @@ fn nbt_to_json(tag: &simdnbt::owned::NbtTag) -> serde_json::Value {
         NbtTag::String(s) => json!(s.to_str()),
         NbtTag::IntArray(v) => json!(v),
         NbtTag::LongArray(v) => json!(v),
-        NbtTag::Compound(c) => Value::Object(
-            c.iter()
-                .map(|(k, v)| (k.to_str().into_owned(), nbt_to_json(v)))
-                .collect(),
-        ),
-        NbtTag::List(l) => Value::Array(match l {
+        NbtTag::Compound(c) => Value::Object(nbt_compound_to_json(c)),
+        NbtTag::List(l) => nbt_list_to_json(l),
+    }
+}
+
+#[cfg(feature = "simdnbt")]
+fn nbt_compound_to_json(
+    c: &simdnbt::owned::NbtCompound,
+) -> serde_json::Map<String, serde_json::Value> {
+    c.iter()
+        .map(|(k, v)| (k.to_str().into_owned(), nbt_to_json(v)))
+        .collect()
+}
+
+#[cfg(feature = "simdnbt")]
+fn nbt_list_to_json(l: &simdnbt::owned::NbtList) -> serde_json::Value {
+    use serde_json::{Value, json};
+    use simdnbt::owned::NbtList;
+    {
+        Value::Array(match l {
             NbtList::Empty => vec![],
             NbtList::Byte(v) => v.iter().map(|x| json!(x)).collect(),
             NbtList::Short(v) => v.iter().map(|x| json!(x)).collect(),
@@ -146,20 +157,19 @@ fn nbt_to_json(tag: &simdnbt::owned::NbtTag) -> serde_json::Value {
             NbtList::Double(v) => v.iter().map(|x| json!(x)).collect(),
             NbtList::ByteArray(v) => v
                 .iter()
-                .map(|x| nbt_to_json(&NbtTag::ByteArray(x.clone())))
+                .map(|x| json!(x.iter().map(|b| *b as i8).collect::<Vec<_>>()))
                 .collect(),
             NbtList::String(v) => v.iter().map(|x| json!(x.to_str())).collect(),
-            NbtList::List(v) => v
-                .iter()
-                .map(|x| nbt_to_json(&NbtTag::List(x.clone())))
-                .collect(),
+            // without cloning each element into a tag first, which copied
+            // every subtree once per level (quadratic in the depth)
+            NbtList::List(v) => v.iter().map(nbt_list_to_json).collect(),
             NbtList::Compound(v) => v
                 .iter()
-                .map(|x| nbt_to_json(&NbtTag::Compound(x.clone())))
+                .map(|x| Value::Object(nbt_compound_to_json(x)))
                 .collect(),
             NbtList::IntArray(v) => v.iter().map(|x| json!(x)).collect(),
             NbtList::LongArray(v) => v.iter().map(|x| json!(x)).collect(),
-        }),
+        })
     }
 }
 
@@ -487,7 +497,10 @@ mod tests {
         let simple = json!({"action": "show_item", "contents": "minecraft:stone"});
         assert_eq!(
             HoverEvent::deserialize(&simple),
-            Some(HoverEvent::ShowItem(ItemStackInfo::new("minecraft:stone", 1)))
+            Some(HoverEvent::ShowItem(ItemStackInfo::new(
+                "minecraft:stone",
+                1
+            )))
         );
         // count: intRange(1, 99).orElse(1)
         for count in [json!(null), json!(0), json!(100)] {
@@ -498,13 +511,19 @@ mod tests {
             let h = json!({"action": "show_item", "contents": contents});
             assert_eq!(
                 HoverEvent::deserialize(&h),
-                Some(HoverEvent::ShowItem(ItemStackInfo::new("minecraft:stone", 1)))
+                Some(HoverEvent::ShowItem(ItemStackInfo::new(
+                    "minecraft:stone",
+                    1
+                )))
             );
         }
         // vanilla always writes count, and leaves out an empty patch
         assert_eq!(
-            serde_json::to_value(HoverEvent::ShowItem(ItemStackInfo::new("minecraft:stone", 1)))
-                .unwrap(),
+            serde_json::to_value(HoverEvent::ShowItem(ItemStackInfo::new(
+                "minecraft:stone",
+                1
+            )))
+            .unwrap(),
             json!({"action": "show_item", "contents": {"id": "minecraft:stone", "count": 1}})
         );
     }
@@ -556,6 +575,37 @@ mod tests {
         assert_eq!(back, c);
     }
 
+    #[cfg(feature = "simdnbt")]
+    #[test]
+    fn nbt_components_to_json_is_linear() {
+        use simdnbt::owned::{NbtCompound, NbtList, NbtTag};
+        std::thread::Builder::new()
+            .stack_size(16 * 1024 * 1024)
+            .spawn(|| {
+                // 500 nested lists over 100 000 ints: converting cloned each
+                // level's whole subtree
+                let mut list = NbtList::Int((0..100_000).collect());
+                for _ in 0..500 {
+                    list = NbtList::List(vec![list]);
+                }
+                let mut components = NbtCompound::new();
+                components.insert("minecraft:custom_data", NbtTag::List(list));
+                let info = ItemStackInfo {
+                    id: "minecraft:stone".to_owned(),
+                    count: 1,
+                    components: Some(ItemComponents::Nbt(components)),
+                };
+                let start = std::time::Instant::now();
+                let json = serde_json::to_string(&info).unwrap();
+                let elapsed = start.elapsed();
+                assert!(json.contains("99999"));
+                assert!(elapsed < std::time::Duration::from_secs(1), "{elapsed:?}");
+            })
+            .unwrap()
+            .join()
+            .unwrap();
+    }
+
     #[cfg(all(feature = "azalea-buf", feature = "simdnbt"))]
     #[test]
     fn nbt_show_item_simple_form() {
@@ -578,7 +628,10 @@ mod tests {
         };
         assert_eq!(
             t.base.style.hover_event,
-            Some(HoverEvent::ShowItem(ItemStackInfo::new("minecraft:stone", 1)))
+            Some(HoverEvent::ShowItem(ItemStackInfo::new(
+                "minecraft:stone",
+                1
+            )))
         );
     }
 }
