@@ -188,3 +188,19 @@ fn test_item_stack_with_components() {
         .with_component::<Unbreakable>(None);
     roundtrip(&item);
 }
+
+#[test]
+fn test_default_components() {
+    use azalea_inventory::components::{Food, MaxDamage, MaxStackSize};
+
+    let sword = ItemStack::from(ItemKind::DiamondSword);
+    assert_eq!(sword.get_component::<MaxDamage>().unwrap().amount, 1561);
+    assert_eq!(sword.get_component::<MaxStackSize>().unwrap().count, 1);
+    let apple = ItemStack::from(ItemKind::Apple);
+    assert_eq!(apple.get_component::<Food>().unwrap().nutrition, 4);
+    assert!(
+        ItemStack::from(ItemKind::Stone)
+            .get_component::<Food>()
+            .is_none()
+    );
+}
