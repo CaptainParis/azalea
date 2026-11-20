@@ -605,16 +605,14 @@ impl GamePacketHandler<'_> {
                         // what went wrong and print an error
 
                         let entity_in_ecs = entity_query.get(ecs_entity).is_ok();
-
-                        if entity_in_ecs {
-                            error!(
-                                "LoadedBy for entity {entity_id:?} ({ecs_entity:?}) isn't in the ecs, but the entity is in entity_by_id"
-                            );
+                        let missing = if entity_in_ecs {
+                            "LoadedBy for entity"
                         } else {
-                            error!(
-                                "Entity {entity_id:?} ({ecs_entity:?}) isn't in the ecs, but the entity is in entity_by_id"
-                            );
-                        }
+                            "Entity"
+                        };
+                        error!(
+                            "{missing} {entity_id:?} ({ecs_entity:?}) isn't in the ecs, but the entity is in entity_by_id"
+                        );
                         // decode error hook: the world's entity index and the
                         // ecs disagree, so the add is dropped
                         record_decode_error(DecodeErrorKind::EntityIndex);
