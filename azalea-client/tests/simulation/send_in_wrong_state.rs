@@ -1,9 +1,6 @@
 use azalea_client::{packet::game::SendGamePacketEvent, test_utils::prelude::*};
 use azalea_core::decode_errors::decode_errors;
-use azalea_protocol::packets::{
-    ConnectionProtocol,
-    game::ServerboundSwing,
-};
+use azalea_protocol::packets::{ConnectionProtocol, game::ServerboundSwing};
 
 // A game packet sent while in the configuration state is dropped and counted as
 // SendState, so the zero check in the live proofs sees it.

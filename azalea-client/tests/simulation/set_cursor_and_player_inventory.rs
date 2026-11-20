@@ -30,12 +30,15 @@ fn test_set_cursor_item() {
         contents: ItemStack::Empty,
     });
     simulation.tick();
-    assert_eq!(simulation.component::<Inventory>().carried, ItemStack::Empty);
+    assert_eq!(
+        simulation.component::<Inventory>().carried,
+        ItemStack::Empty
+    );
 }
 
-// 1.21.4 handleSetPlayerInventory: `player.getInventory().setItem(slot, contents)`,
-// in the Inventory's index space (hotbar 0..9, main 9..36, armor 36..40 feet
-// first, offhand 40)
+// 1.21.4 handleSetPlayerInventory: `player.getInventory().setItem(slot,
+// contents)`, in the Inventory's index space (hotbar 0..9, main 9..36, armor
+// 36..40 feet first, offhand 40)
 #[test]
 fn test_set_player_inventory() {
     let _lock = init();
@@ -82,6 +85,9 @@ fn test_set_player_inventory() {
     tracing::subscriber::with_default(tracing::subscriber::NoSubscriber::default(), || {
         simulation.tick();
     });
-    assert_eq!(simulation.component::<Inventory>().inventory_menu.slots(), slots);
+    assert_eq!(
+        simulation.component::<Inventory>().inventory_menu.slots(),
+        slots
+    );
     assert!(decode_errors().packet_handler > before.packet_handler);
 }

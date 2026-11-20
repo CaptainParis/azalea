@@ -831,7 +831,15 @@ mod tests {
     #[test]
     fn test_set_player_inventory_item_slots() {
         let mut inventory = Inventory::default();
-        let cases = [(0, 36), (8, 44), (9, 9), (35, 35), (36, 8), (39, 5), (40, 45)];
+        let cases = [
+            (0, 36),
+            (8, 44),
+            (9, 9),
+            (35, 35),
+            (36, 8),
+            (39, 5),
+            (40, 45),
+        ];
         for (i, (index, menu_slot)) in cases.into_iter().enumerate() {
             let item = ItemStack::new(ItemKind::Stone, i as i32 + 1);
             assert_eq!(
