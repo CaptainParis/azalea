@@ -95,6 +95,25 @@ pub async fn join_with_server_id_hash(
     uuid: &Uuid,
     server_hash: &str,
 ) -> Result<(), ClientSessionServerError> {
+    join_with_server_id_hash_at(
+        client,
+        &crate::endpoints::AuthEndpoints::default().session_join,
+        access_token,
+        uuid,
+        server_hash,
+    )
+    .await
+}
+
+/// [`join_with_server_id_hash`] against another join endpoint (see
+/// [`crate::endpoints::AuthEndpoints`]).
+pub async fn join_with_server_id_hash_at(
+    client: &reqwest::Client,
+    url: &str,
+    access_token: &str,
+    uuid: &Uuid,
+    server_hash: &str,
+) -> Result<(), ClientSessionServerError> {
     let mut encode_buffer = Uuid::encode_buffer();
     let undashed_uuid = uuid.simple().encode_lower(&mut encode_buffer);
 
@@ -104,7 +123,7 @@ pub async fn join_with_server_id_hash(
         "serverId": server_hash
     });
     let res = client
-        .post("https://sessionserver.mojang.com/session/minecraft/join")
+        .post(url)
         .json(&data)
         .send()
         .await?;

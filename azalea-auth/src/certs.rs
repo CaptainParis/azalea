@@ -1,6 +1,5 @@
-use base64::Engine;
 use chrono::{DateTime, Utc};
-use rsa::{RsaPrivateKey, pkcs8::DecodePrivateKey};
+use rsa::RsaPrivateKey;
 use serde::Deserialize;
 use thiserror::Error;
 use tracing::trace;
@@ -13,6 +12,8 @@ pub enum FetchCertificatesError {
     Pkcs8(#[from] rsa::pkcs8::Error),
     #[error("Fetching certificates took longer than {0:?}")]
     TimedOut(std::time::Duration),
+    #[error("Bad certificates: {0}")]
+    Decode(String),
 }
 
 /// Fetch the Mojang-provided key-pair for your player, which is used for
@@ -20,62 +21,33 @@ pub enum FetchCertificatesError {
 pub async fn fetch_certificates(
     minecraft_access_token: &str,
 ) -> Result<Certificates, FetchCertificatesError> {
+    fetch_certificates_at(
+        &crate::endpoints::AuthEndpoints::default().mc_certificates,
+        minecraft_access_token,
+    )
+    .await
+}
+
+/// [`fetch_certificates`] against another certificates endpoint (see
+/// [`crate::endpoints::AuthEndpoints`]). A non-success status and a body that
+/// doesn't decode are errors, never panics.
+pub async fn fetch_certificates_at(
+    url: &str,
+    minecraft_access_token: &str,
+) -> Result<Certificates, FetchCertificatesError> {
     let client = reqwest::Client::new();
 
     let res = client
-        .post("https://api.minecraftservices.com/player/certificates")
+        .post(url)
         .header("Authorization", format!("Bearer {minecraft_access_token}"))
         .send()
         .await?
+        .error_for_status()?
         .json::<CertificatesResponse>()
         .await?;
     trace!("{:?}", res);
 
-    // using RsaPrivateKey::from_pkcs8_pem gives an error with decoding base64
-    // so we just decode it ourselves
-
-    // remove the first and last lines of the private key
-    let private_key_pem_base64 = res
-        .key_pair
-        .private_key
-        .lines()
-        .skip(1)
-        .take_while(|line| !line.starts_with('-'))
-        .collect::<String>();
-    let private_key_der = base64::engine::general_purpose::STANDARD
-        .decode(private_key_pem_base64)
-        .unwrap();
-
-    let public_key_pem_base64 = res
-        .key_pair
-        .public_key
-        .lines()
-        .skip(1)
-        .take_while(|line| !line.starts_with('-'))
-        .collect::<String>();
-    let public_key_der = base64::engine::general_purpose::STANDARD
-        .decode(public_key_pem_base64)
-        .unwrap();
-
-    // the private key also contains the public key so it's basically a keypair
-    let private_key = RsaPrivateKey::from_pkcs8_der(&private_key_der).unwrap();
-
-    let certificates = Certificates {
-        private_key,
-        public_key_der,
-
-        signature_v1: base64::engine::general_purpose::STANDARD
-            .decode(&res.public_key_signature)
-            .unwrap(),
-        signature_v2: base64::engine::general_purpose::STANDARD
-            .decode(&res.public_key_signature_v2)
-            .unwrap(),
-
-        expires_at: res.expires_at,
-        refresh_after: res.refreshed_after,
-    };
-
-    Ok(certificates)
+    crate::steps::decode_certificates(res).map_err(FetchCertificatesError::Decode)
 }
 
 /// A chat signing certificate.
