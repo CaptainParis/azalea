@@ -607,13 +607,12 @@ impl Inventory {
         if count <= 0 {
             return None;
         }
-        // vanilla calls .remove here but i think it has the same behavior as
-        // split?
+        // 1.21.4 Slot.tryRemove -> Slot.remove -> Container.removeItem splits the
+        // stack in the slot, so the slot keeps what's left (a partial pickup,
+        // like a right click on a stack, takes half and leaves half).
         let removed = slot_item.split(count as u32);
-
-        if removed.is_present() && slot_item.is_empty() {
-            *self.menu_mut().slot_mut(slot).unwrap() = ItemStack::Empty;
-        }
+        slot_item.update_empty();
+        *self.menu_mut().slot_mut(slot).unwrap() = slot_item;
 
         Some(removed)
     }
@@ -744,6 +743,36 @@ mod tests {
         assert_eq!(
             &new_slots[*Menu::CRAFTING_PLAYER_SLOTS.start()],
             &spruce_planks
+        );
+    }
+
+    fn with_shulker(contents: &[(usize, ItemStack)], player: &[(usize, ItemStack)]) -> Inventory {
+        let mut menu = Menu::ShulkerBox {
+            contents: SlotList::default(),
+            player: SlotList::default(),
+        };
+        for (i, item) in contents.iter().chain(player.iter()) {
+            *menu.slot_mut(*i).unwrap() = item.clone();
+        }
+        Inventory {
+            id: 1,
+            container_menu: Some(menu),
+            ..Inventory::default()
+        }
+    }
+
+    // 1.21.4 Slot.tryRemove: a right click takes half and leaves the rest
+    #[test]
+    fn test_right_click_picks_up_half() {
+        let mut inventory = with_shulker(&[(0, ItemStack::new(ItemKind::Cobblestone, 10))], &[]);
+        inventory.simulate_click(
+            &ClickOperation::Pickup(PickupClick::Right { slot: Some(0) }),
+            &PlayerAbilities::default(),
+        );
+        assert_eq!(inventory.carried, ItemStack::new(ItemKind::Cobblestone, 5));
+        assert_eq!(
+            inventory.menu().slot(0),
+            Some(&ItemStack::new(ItemKind::Cobblestone, 5))
         );
     }
 }
