@@ -206,7 +206,9 @@ pub fn written_book() -> Vec<u8> {
     ItemKind::WrittenBook.azalea_write(&mut v).unwrap();
     1u32.azalea_write_var(&mut v).unwrap();
     0u32.azalea_write_var(&mut v).unwrap();
-    DataComponentKind::WrittenBookContent.azalea_write(&mut v).unwrap();
+    DataComponentKind::WrittenBookContent
+        .azalea_write(&mut v)
+        .unwrap();
     // title: raw, then a filtered one
     "deep".to_owned().azalea_write(&mut v).unwrap();
     v.push(1);
@@ -315,7 +317,13 @@ pub fn command_chain(n: u32) -> Vec<u8> {
         entries.push(BrigadierNodeStub {
             is_executable: true,
             children: if i + 1 < n { vec![i + 1] } else { vec![] },
-            redirect_node: if i + 1 == n { Some(i) } else if i == 1 { Some(0) } else { None },
+            redirect_node: if i + 1 == n {
+                Some(i)
+            } else if i == 1 {
+                Some(0)
+            } else {
+                None
+            },
             node_type: NodeType::Literal {
                 name: "a".to_owned(),
             },

@@ -19,15 +19,36 @@ use simdnbt::borrow::NbtTag;
 
 use crate::{direction::Direction, math};
 
-/// Component arithmetic of the vector types. Integers wrap, as Java's ints
-/// in vanilla's `BlockPos` and `Vec3i` maths (positions come from the
-/// server, and an overflow panicked in debug and fuzz builds); floats use
-/// the plain operators.
+/// Component arithmetic of the vector types. Positions come from the server,
+/// and an integer overflow panicked in debug and fuzz builds, so the integer
+/// types (`i32`, and `u8` for positions inside a section) never panic on
+/// overflow. How each operation relates to vanilla 1.21.4 (Java ints in
+/// `Vec3i` and `BlockPos`):
+///
+/// - `+`, `-`, `*` (by a vector or a scalar, and their `*Assign` forms), the
+///   offsets (`up`, `down`, `north`, ...), `cross`, `dot`, `length_squared`,
+///   `horizontal_distance_squared`: wrap, as Java's int `+ - *` (vanilla
+///   `Vec3i.offset`, `multiply`, `cross` wrap the same way);
+/// - `/` and `%` by a scalar: `wrapping_div` and `wrapping_rem`, as Java's int
+///   `/` and `%` (`i32::MIN / -1` is `i32::MIN`, `i32::MIN % -1` is 0); by zero
+///   they still panic, where Java throws (`ArithmeticException`), so the
+///   divisor is the caller's to check;
+/// - `distance_squared_to`, `horizontal_distance_squared_to`: not here, they
+///   are in `f64` for every type, as vanilla's `Vec3i.distSqr` (which converts
+///   the coordinates to doubles first): far apart positions don't wrap to a
+///   small distance.
+///
+/// Elsewhere, block cursors over a box (`BlockCollisionsState` in
+/// azalea-physics) saturate instead of wrapping (see there). Floats use the
+/// plain operators.
 #[doc(hidden)]
 pub trait VecComponent: Copy {
     fn add(self, rhs: Self) -> Self;
     fn sub(self, rhs: Self) -> Self;
     fn mul(self, rhs: Self) -> Self;
+    fn div(self, rhs: Self) -> Self;
+    fn rem(self, rhs: Self) -> Self;
+    fn to_f64(self) -> f64;
 }
 impl VecComponent for f64 {
     #[inline]
@@ -41,6 +62,20 @@ impl VecComponent for f64 {
     #[inline]
     fn mul(self, rhs: Self) -> Self {
         self * rhs
+    }
+    #[inline]
+    fn div(self, rhs: Self) -> Self {
+        // network-safe: float division doesn't panic
+        self / rhs
+    }
+    #[inline]
+    fn rem(self, rhs: Self) -> Self {
+        // network-safe: float remainder doesn't panic
+        self % rhs
+    }
+    #[inline]
+    fn to_f64(self) -> f64 {
+        self
     }
 }
 macro_rules! wrapping_component {
@@ -57,6 +92,22 @@ macro_rules! wrapping_component {
             #[inline]
             fn mul(self, rhs: Self) -> Self {
                 self.wrapping_mul(rhs)
+            }
+            #[inline]
+            fn div(self, rhs: Self) -> Self {
+                // network-safe: the divisor is the caller's (by zero panics as
+                // Java throws); `MIN / -1` wraps as Java's
+                self.wrapping_div(rhs)
+            }
+            #[inline]
+            fn rem(self, rhs: Self) -> Self {
+                // network-safe: the divisor is the caller's (by zero panics as
+                // Java throws); `MIN % -1` is 0 as Java's
+                self.wrapping_rem(rhs)
+            }
+            #[inline]
+            fn to_f64(self) -> f64 {
+                self as f64
             }
         }
     )*};
@@ -91,11 +142,17 @@ macro_rules! vec3_impl {
                 )
             }
 
-            /// Get the squared distance from this position to another position.
-            /// Equivalent to `(self - other).length_squared()`.
+            /// Get the squared distance from this position to another position,
+            /// in `f64` as vanilla's `Vec3i.distSqr` and `Vec3.distanceToSqr`:
+            /// the coordinates are converted first, so far apart integer
+            /// positions don't wrap (for [`Vec3`] this is
+            /// `(self - other).length_squared()`).
             #[inline]
-            pub fn distance_squared_to(self, other: Self) -> $type {
-                (self - other).length_squared()
+            pub fn distance_squared_to(self, other: Self) -> f64 {
+                let dx = self.x.to_f64() - other.x.to_f64();
+                let dy = self.y.to_f64() - other.y.to_f64();
+                let dz = self.z.to_f64() - other.z.to_f64();
+                dx * dx + dy * dy + dz * dz
             }
 
             #[inline]
@@ -106,9 +163,13 @@ macro_rules! vec3_impl {
                 )
             }
 
+            /// [`Self::distance_squared_to`] without y, in `f64` for the same
+            /// reason.
             #[inline]
-            pub fn horizontal_distance_squared_to(self, other: Self) -> $type {
-                (self - other).horizontal_distance_squared()
+            pub fn horizontal_distance_squared_to(self, other: Self) -> f64 {
+                let dx = self.x.to_f64() - other.x.to_f64();
+                let dz = self.z.to_f64() - other.z.to_f64();
+                dx * dx + dz * dz
             }
 
             /// Return a new instance of this position with the y coordinate
@@ -186,10 +247,11 @@ macro_rules! vec3_impl {
 
             #[inline]
             pub fn cross(&self, other: Self) -> Self {
+                use VecComponent as C;
                 Self::new(
-                    self.y * other.z - self.z * other.y,
-                    self.z * other.x - self.x * other.z,
-                    self.x * other.y - self.y * other.x,
+                    C::sub(C::mul(self.y, other.z), C::mul(self.z, other.y)),
+                    C::sub(C::mul(self.z, other.x), C::mul(self.x, other.z)),
+                    C::sub(C::mul(self.x, other.y), C::mul(self.y, other.x)),
                 )
             }
 
@@ -277,14 +339,13 @@ macro_rules! vec3_impl {
 
             #[inline]
             fn rem(self, rhs: $type) -> Self::Output {
+                // operator impl: the divisor is the caller's (a call with a
+                // non-literal divisor is a scanned site of its own); `MIN % -1`
+                // doesn't panic (VecComponent::rem)
                 Self {
-                    // network-safe: operator impl: the divisor is the caller's, and a
-                    // call with a non-literal divisor is a scanned site of its own
-                    x: self.x % rhs,
-                    // network-safe: the same as for x
-                    y: self.y % rhs,
-                    // network-safe: the same as for x
-                    z: self.z % rhs,
+                    x: <$type as VecComponent>::rem(self.x, rhs),
+                    y: <$type as VecComponent>::rem(self.y, rhs),
+                    z: <$type as VecComponent>::rem(self.z, rhs),
                 }
             }
         }
@@ -326,9 +387,7 @@ macro_rules! vec3_impl {
         impl MulAssign<$type> for $name {
             #[inline]
             fn mul_assign(&mut self, multiplier: $type) {
-                self.x *= multiplier;
-                self.y *= multiplier;
-                self.z *= multiplier;
+                *self = *self * multiplier;
             }
         }
 
@@ -337,27 +396,22 @@ macro_rules! vec3_impl {
 
             #[inline]
             fn div(self, divisor: $type) -> Self::Output {
+                // operator impl: the divisor is the caller's (a call with a
+                // non-literal divisor is a scanned site of its own); `MIN / -1`
+                // doesn't panic (VecComponent::div)
                 Self {
-                    // network-safe: operator impl: the divisor is the caller's, and a
-                    // call with a non-literal divisor is a scanned site of its own
-                    x: self.x / divisor,
-                    // network-safe: the same as for x
-                    y: self.y / divisor,
-                    // network-safe: the same as for x
-                    z: self.z / divisor,
+                    x: <$type as VecComponent>::div(self.x, divisor),
+                    y: <$type as VecComponent>::div(self.y, divisor),
+                    z: <$type as VecComponent>::div(self.z, divisor),
                 }
             }
         }
         impl DivAssign<$type> for $name {
             #[inline]
             fn div_assign(&mut self, divisor: $type) {
-                // network-safe: operator impl: the divisor is the caller's, and a call
-                // site with a non-literal divisor is a scanned site of its own
-                self.x /= divisor;
-                // network-safe: the same as for x
-                self.y /= divisor;
-                // network-safe: the same as for x
-                self.z /= divisor;
+                // network-safe: Div above (the divisor is the caller's, `MIN / -1`
+                // wraps)
+                *self = *self / divisor;
             }
         }
 
@@ -539,7 +593,10 @@ impl BlockPos {
 
     /// Get the distance of this vector from the origin by doing `x + y + z`.
     pub fn length_manhattan(&self) -> u32 {
-        (self.x.abs() + self.y.abs() + self.z.abs()) as u32
+        // as Java's ints (Math.abs(MIN) is MIN, the sum wraps)
+        (self.x.wrapping_abs())
+            .wrapping_add(self.y.wrapping_abs())
+            .wrapping_add(self.z.wrapping_abs()) as u32
     }
 
     /// Add or subtract `1` to one of this position's coordinates, depending on
@@ -560,17 +617,17 @@ impl BlockPos {
     /// Get the distance (as an f64) of this BlockPos to the origin by
     /// doing `sqrt(x^2 + y^2 + z^2)`.
     pub fn length(&self) -> f64 {
-        f64::sqrt((self.x * self.x + self.y * self.y + self.z * self.z) as f64)
+        self.distance_squared_to(Self::ZERO).sqrt()
     }
 
     /// Get the distance (as an f64) from this position to another position.
-    /// Equivalent to `(self - other).length()`.
+    /// In `f64` from the coordinates, as vanilla's `Math.sqrt(distSqr(other))`.
     ///
     /// Note that if you're using this in a hot path, it may be more performant
     /// to use [`BlockPos::distance_squared_to`] instead (by squaring the other
     /// side in the comparison).
     pub fn distance_to(self, other: Self) -> f64 {
-        (self - other).length()
+        self.distance_squared_to(other).sqrt()
     }
 }
 #[cfg(feature = "serde")]
@@ -1195,10 +1252,59 @@ mod tests {
             BlockPos::new(i32::MAX, i32::MAX, 0)
         );
         let _ = edge.length_squared();
+        let _ = edge.cross(edge.up(1));
+        let mut m = edge;
+        m *= 3;
+        assert_eq!(m, edge * 3);
+        assert_eq!(
+            BlockPos::new(i32::MIN, 0, 0).length_manhattan(),
+            i32::MIN as u32
+        );
         // floats unchanged
         assert_eq!(
             Vec3::new(1., 2., 3.) - Vec3::new(1., 1., 1.),
             Vec3::new(0., 1., 2.)
+        );
+    }
+
+    // `%` and `/` by -1 at i32::MIN overflow in Rust; Java's int ops give 0
+    // and i32::MIN
+    #[test]
+    fn rem_and_div_by_minus_one_at_i32_min_dont_panic() {
+        let min = BlockPos::new(i32::MIN, i32::MIN, 7);
+        assert_eq!(min % -1, BlockPos::new(0, 0, 0));
+        assert_eq!(min / -1, BlockPos::new(i32::MIN, i32::MIN, -7));
+        let mut d = Vec3i::new(i32::MIN, 1, 2);
+        d /= -1;
+        assert_eq!(d, Vec3i::new(i32::MIN, -1, -2));
+        assert_eq!(
+            ChunkSectionPos::new(i32::MIN, 0, 0) % -1,
+            ChunkSectionPos::ZERO
+        );
+        // still Rust's (and Java's) remainder otherwise
+        assert_eq!(BlockPos::new(-7, 7, 16) % 16, BlockPos::new(-7, 7, 0));
+    }
+
+    // vanilla Vec3i.distSqr is in doubles: positions far apart don't wrap to a
+    // small (or negative) distance
+    #[test]
+    fn integer_distance_is_in_f64_as_vanilla_dist_sqr() {
+        let a = BlockPos::new(i32::MAX, 0, 0);
+        let b = BlockPos::new(i32::MIN, 0, 0);
+        let d = (i32::MAX as f64) - (i32::MIN as f64);
+        assert_eq!(a.distance_squared_to(b), d * d);
+        assert_eq!(a.horizontal_distance_squared_to(b), d * d);
+        assert_eq!(a.distance_to(b), d);
+        assert_eq!(b.length(), -(i32::MIN as f64));
+        // (wrapping, the difference is -1 and the square 1)
+        assert_eq!((a - b).length_squared(), 1);
+        assert_eq!(
+            BlockPos::new(1, 2, 3).distance_squared_to(BlockPos::new(4, 6, 3)),
+            25.
+        );
+        assert_eq!(
+            Vec3::new(1., 2., 3.).distance_squared_to(Vec3::new(4., 6., 3.)),
+            25.
         );
     }
 

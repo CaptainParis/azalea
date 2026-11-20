@@ -112,7 +112,8 @@ impl LevelBasedValue {
                 if value == 0. {
                     0.
                 } else {
-                    // network-safe: f32 division, a zero denominator handled above
+                    // network-safe: f32 division, a zero denominator handled
+                    // above
                     numerator.calculate(n) / value
                 }
             }

@@ -14,7 +14,10 @@ async fn shutting_down_the_duplicate_closes_the_connection() {
     let conn = conn.unwrap();
     let (mut server_side, _) = accepted.unwrap();
     let (read, _write) = conn.into_split_raw();
-    let socket = read.socket.clone().expect("client connections keep a duplicate");
+    let socket = read
+        .socket
+        .clone()
+        .expect("client connections keep a duplicate");
 
     // from another thread, as the watchdog does
     std::thread::spawn(move || socket.shutdown(Shutdown::Both).unwrap())

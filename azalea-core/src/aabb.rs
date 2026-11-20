@@ -341,7 +341,8 @@ impl Aabb {
     }
 
     fn clip_point(opts: ClipPointOpts) -> Option<Direction> {
-        // network-safe: f64 division: a zero delta gives inf or NaN, not a panic
+        // network-safe: f64 division: a zero delta gives inf or NaN, not a
+        // panic
         let d = (opts.begin - opts.start.x) / opts.delta.x;
         let e = opts.start.y + d * opts.delta.y;
         let f = opts.start.z + d * opts.delta.z;

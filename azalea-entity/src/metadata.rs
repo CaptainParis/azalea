@@ -199,8 +199,9 @@ use thiserror::Error;
 use uuid::Uuid;
 
 use super::{
-    ArmadilloStateKind, EntityDataItem, EntityDataValue, OptionalUnsignedInt, PaintingVariantHolder,
-    Pose, Quaternion, Rotations, SnifferStateKind, VillagerData, WolfVariantHolder,
+    ArmadilloStateKind, EntityDataItem, EntityDataValue, OptionalUnsignedInt,
+    PaintingVariantHolder, Pose, Quaternion, Rotations, SnifferStateKind, VillagerData,
+    WolfVariantHolder,
 };
 use crate::particle::Particle;
 

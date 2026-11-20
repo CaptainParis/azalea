@@ -25,8 +25,8 @@ impl Iterator for Cursor3d {
         if self.index == self.end {
             return None;
         }
-        // network-safe: width and height are at least 1 (new() uses 1 for an empty or oversized
-        // range)
+        // network-safe: width and height are at least 1 (new() uses 1 for an
+        // empty or oversized range)
         let x = self.index % self.width;
         // network-safe: width is at least 1, see above
         let r = self.index / self.width;
@@ -141,7 +141,10 @@ mod tests {
         // these panicked (try_into of a negative width, i32 overflow)
         let p = |x, y, z| BlockPos::new(x, y, z);
         assert_eq!(Cursor3d::new(p(1, 0, 0), p(0, 0, 0)).count(), 0);
-        assert_eq!(Cursor3d::new(p(i32::MIN, 0, 0), p(i32::MAX, 0, 0)).count(), 0);
+        assert_eq!(
+            Cursor3d::new(p(i32::MIN, 0, 0), p(i32::MAX, 0, 0)).count(),
+            0
+        );
         assert_eq!(Cursor3d::new(p(0, 0, 0), p(256, 255, 255)).count(), 0);
         assert_eq!(Cursor3d::new(p(0, 0, 0), p(255, 255, 255)).count(), 1 << 24);
         let at_edge = Cursor3d::new(p(i32::MAX - 1, 0, 0), p(i32::MAX, 0, 0))

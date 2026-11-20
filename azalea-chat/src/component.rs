@@ -636,9 +636,8 @@ impl FormattedText {
                     } else if let Some(with) = with_list.doubles() {
                         with_array.extend(with.into_iter().map(PrimitiveOrComponent::Double));
                     } else if let Some(with) = with_list.bytes() {
-                        with_array.extend(
-                            with.iter().map(|&b| PrimitiveOrComponent::Boolean(b != 0)),
-                        );
+                        with_array
+                            .extend(with.iter().map(|&b| PrimitiveOrComponent::Boolean(b != 0)));
                     } else if let Some(with) = with_list.compounds() {
                         for item in with {
                             // if it's a string component with no styling and no
@@ -857,7 +856,10 @@ mod tests {
         use azalea_buf::AzBuf;
         for args in [
             vec![PrimitiveOrComponent::Float(0.)],
-            vec![PrimitiveOrComponent::Short(256), PrimitiveOrComponent::Short(-1)],
+            vec![
+                PrimitiveOrComponent::Short(256),
+                PrimitiveOrComponent::Short(-1),
+            ],
             vec![PrimitiveOrComponent::Double(1.5)],
             vec![PrimitiveOrComponent::Boolean(true)],
             vec![PrimitiveOrComponent::Integer(3)],
@@ -962,7 +964,10 @@ mod tests {
         let j = serde_json::json!(["a", {"text": "b"}]);
         assert_eq!(FormattedText::deserialize(&j).unwrap().to_string(), "ab");
         let j = serde_json::json!([]);
-        assert_eq!(FormattedText::deserialize(&j).unwrap(), FormattedText::default());
+        assert_eq!(
+            FormattedText::deserialize(&j).unwrap(),
+            FormattedText::default()
+        );
     }
 
     #[test]

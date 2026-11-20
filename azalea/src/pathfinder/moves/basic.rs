@@ -350,7 +350,7 @@ pub fn execute_descend_move(mut ctx: ExecuteCtx) {
         start_center.z + (center.z - start_center.z) * 1.5,
     );
 
-    if (BlockPos::from(position).horizontal_distance_squared_to(target) > 0)
+    if (BlockPos::from(position).horizontal_distance_squared_to(target) > 0.)
         || horizontal_distance_from_target > 0.25
     {
         if horizontal_distance_from_start < 1.25 {

@@ -39,13 +39,13 @@ pub fn get_reachable_blocks_around_player(
 pub fn pick_closest_block(position: BlockPos, blocks: &[BlockPos]) -> Option<BlockPos> {
     // pick the closest one and mine it
     let mut closest_block_pos = None;
-    let mut closest_distance = i32::MAX;
+    let mut closest_distance = f64::MAX;
     for block_pos in &blocks[1..] {
         if block_pos.y < position.y {
             // skip blocks below us at first
             continue;
         }
-        let distance = block_pos.distance_squared_to(&position);
+        let distance = block_pos.distance_squared_to(position);
         if distance < closest_distance {
             closest_block_pos = Some(*block_pos);
             closest_distance = distance;
@@ -55,7 +55,7 @@ pub fn pick_closest_block(position: BlockPos, blocks: &[BlockPos]) -> Option<Blo
     if closest_block_pos.is_none() {
         // ok now check every block if the only ones around us are below
         for block_pos in blocks {
-            let distance = block_pos.distance_squared_to(&position);
+            let distance = block_pos.distance_squared_to(position);
             if distance < closest_distance {
                 closest_block_pos = Some(*block_pos);
                 closest_distance = distance;

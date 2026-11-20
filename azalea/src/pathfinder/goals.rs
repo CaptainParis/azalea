@@ -273,7 +273,7 @@ impl Goal for ReachBlockPosGoal {
 
         // only do the expensive check if we're close enough
         let distance_squared = self.pos.distance_squared_to(n);
-        if distance_squared > self.max_check_distance.pow(2) {
+        if distance_squared > (self.max_check_distance as f64).powi(2) {
             return false;
         }
 

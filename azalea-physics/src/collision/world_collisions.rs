@@ -126,8 +126,14 @@ impl<'a> BlockCollisionsState<'a> {
     }
 
     pub fn new(world: &'a World, aabb: &'a Aabb, context: EntityCollisionContext) -> Self {
-        // saturating: a position the server set can be far outside i32 (the
-        // cast saturates, then -1 overflowed); Cursor3d bounds the volume
+        // saturating, not as Java: a position the server set can be far
+        // outside i32 (the cast saturates, as Java's (int) cast in Mth.floor,
+        // then `- 1` overflowed). Vanilla's int `- 1` and `+ 1` wrap there
+        // (min - 1 becomes i32::MAX), which turns the box inside out; we
+        // keep the box at the i32 edge instead. Either way no chunk is loaded
+        // there (|x| or |z| near 2^31 is beyond the 30 000 000 world border
+        // and every chunk position), so the blocks found are the same: none.
+        // Cursor3d bounds the volume.
         let origin = BlockPos {
             x: ((aabb.min.x - EPSILON).floor() as i32).saturating_sub(1),
             y: ((aabb.min.y - EPSILON).floor() as i32).saturating_sub(1),
