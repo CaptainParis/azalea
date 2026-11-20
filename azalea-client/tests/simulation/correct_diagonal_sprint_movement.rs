@@ -71,13 +71,16 @@ fn test_correct_diagonal_sprint_movement() {
     });
     // moving right (-x) and forward (+z) at the sprinting speed, with the
     // input normalized to length 1
-    sent_packets.expect("MovePlayerPos { x: 0.4080761112807846, z: 0.5919238887192154 }", |p| {
-        matches!(
-            p,
-            ServerboundGamePacket::MovePlayerPos(p)
-            if p.pos == Vec3::new(0.4080761112807846, 120., 0.5919238887192154)
-        )
-    });
+    sent_packets.expect(
+        "MovePlayerPos { x: 0.4080761112807846, z: 0.5919238887192154 }",
+        |p| {
+            matches!(
+                p,
+                ServerboundGamePacket::MovePlayerPos(p)
+                if p.pos == Vec3::new(0.4080761112807846, 120., 0.5919238887192154)
+            )
+        },
+    );
     sent_packets.expect_tick_end();
     sent_packets.expect_empty();
 }

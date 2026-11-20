@@ -284,3 +284,48 @@ fn bad_spawn_with_only_the_id_readable_spawns_a_marker_placeholder() {
     simulation.tick();
     assert!(is_stale(&simulation, e));
 }
+
+#[test]
+fn placeholder_is_despawned_when_its_chunk_unloads() {
+    use azalea_client::bad_packet::PlaceholderEntity;
+
+    let _lock = init_expecting_errors();
+    let mut simulation = Simulation::new(ConnectionProtocol::Game);
+    simulation.receive_packet(default_login_packet());
+    simulation.receive_packet(make_basic_empty_chunk(ChunkPos::new(0, 0), (384 + 64) / 16));
+    simulation.tick();
+    // id, uuid, type and position readable; the rest is made up
+    simulation.receive_raw_packet(truncated_packet(add_cow_packet(), 1 + 16 + 1 + 24 + 1));
+    simulation.tick();
+    simulation.tick();
+    let e = cow(&simulation).expect("placeholder spawned");
+    assert!(simulation.app.world().get::<PlaceholderEntity>(e).is_some());
+    assert!(is_stale(&simulation, e));
+
+    simulation.receive_packet(
+        azalea_protocol::packets::game::ClientboundForgetLevelChunk {
+            pos: ChunkPos::new(0, 0),
+        },
+    );
+    simulation.tick();
+    simulation.tick();
+    simulation.tick();
+    // not left behind as a good-looking entity with made-up fields
+    assert!(cow(&simulation).is_none(), "out of the id index");
+    let w = simulation.app.world();
+    assert!(
+        w.get_entity(e).is_err(),
+        "despawned, not just cleared: stale {}, placeholder {}",
+        w.get::<StaleEntity>(e).is_some(),
+        w.get::<PlaceholderEntity>(e).is_some()
+    );
+
+    // the server sends it again, whole, when the chunk comes back
+    simulation.receive_packet(make_basic_empty_chunk(ChunkPos::new(0, 0), (384 + 64) / 16));
+    simulation.receive_packet(add_cow_packet());
+    simulation.tick();
+    simulation.tick();
+    let e = cow(&simulation).expect("spawned again");
+    assert!(!is_stale(&simulation, e));
+    assert!(simulation.app.world().get::<PlaceholderEntity>(e).is_none());
+}

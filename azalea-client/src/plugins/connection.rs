@@ -249,9 +249,10 @@ impl RawConnection {
             mpsc::unbounded_channel::<Box<[u8]>>();
 
         // Compat: the per-write time cap needs a tokio timer
-        let writer_task = crate::task_pool::owner::spawn_io(async_compat::Compat::new(
-            write_task(network_packet_writer_rx, writer.write_stream),
-        ));
+        let writer_task = crate::task_pool::owner::spawn_io(async_compat::Compat::new(write_task(
+            network_packet_writer_rx,
+            writer.write_stream,
+        )));
 
         let mut conn = Self::new_networkless(state);
         conn.network = Some(NetworkConnection {
@@ -334,8 +335,8 @@ pub fn handle_raw_packet(
     let stream = &mut Cursor::new(raw_packet);
     match state {
         ConnectionProtocol::Handshake => {
-            // network-safe: we never set a connection to the handshake state (it's only the first
-            // packet we send)
+            // network-safe: we never set a connection to the handshake state
+            // (it's only the first packet we send)
             unreachable!()
         }
         ConnectionProtocol::Game => {
@@ -347,8 +348,8 @@ pub fn handle_raw_packet(
                 .push(ReceiveGamePacketEvent { entity, packet });
         }
         ConnectionProtocol::Status => {
-            // network-safe: we never set a connection to the status state (a client app only logs
-            // in)
+            // network-safe: we never set a connection to the status state (a
+            // client app only logs in)
             unreachable!()
         }
         ConnectionProtocol::Login => {

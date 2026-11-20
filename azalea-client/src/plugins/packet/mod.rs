@@ -31,26 +31,27 @@ pub fn death_event_on_0_health(
 
 impl Plugin for PacketPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(crate::bad_packet::BadPacketPlugin).add_systems(
-            Update,
-            relative_updates::debug_detect_updates_received_on_local_entities,
-        )
-        .add_observer(game::handle_outgoing_packets_observer)
-        .add_observer(config::handle_outgoing_packets_observer)
-        .add_observer(login::handle_outgoing_packets_observer)
-        .add_systems(Update, death_event_on_0_health)
-        .add_message::<game::ReceiveGamePacketEvent>()
-        .add_message::<config::ReceiveConfigPacketEvent>()
-        .add_message::<login::ReceiveLoginPacketEvent>()
-        //
-        .add_message::<game::AddPlayerEvent>()
-        .add_message::<game::RemovePlayerEvent>()
-        .add_message::<game::UpdatePlayerEvent>()
-        .add_message::<ChatReceivedEvent>()
-        .add_message::<game::DeathEvent>()
-        .add_message::<game::ResourcePackEvent>()
-        .add_message::<game::WorldLoadedEvent>()
-        .add_message::<login::ReceiveCustomQueryEvent>();
+        app.add_plugins(crate::bad_packet::BadPacketPlugin)
+            .add_systems(
+                Update,
+                relative_updates::debug_detect_updates_received_on_local_entities,
+            )
+            .add_observer(game::handle_outgoing_packets_observer)
+            .add_observer(config::handle_outgoing_packets_observer)
+            .add_observer(login::handle_outgoing_packets_observer)
+            .add_systems(Update, death_event_on_0_health)
+            .add_message::<game::ReceiveGamePacketEvent>()
+            .add_message::<config::ReceiveConfigPacketEvent>()
+            .add_message::<login::ReceiveLoginPacketEvent>()
+            //
+            .add_message::<game::AddPlayerEvent>()
+            .add_message::<game::RemovePlayerEvent>()
+            .add_message::<game::UpdatePlayerEvent>()
+            .add_message::<ChatReceivedEvent>()
+            .add_message::<game::DeathEvent>()
+            .add_message::<game::ResourcePackEvent>()
+            .add_message::<game::WorldLoadedEvent>()
+            .add_message::<login::ReceiveCustomQueryEvent>();
     }
 }
 

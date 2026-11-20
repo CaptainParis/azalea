@@ -22,7 +22,8 @@
 //!   marked [`StaleEntity`] until the server removes it or its chunk unloads. A
 //!   spawn that can't be decoded spawns a [`PlaceholderEntity`] from the fields
 //!   that can be read (id, uuid, type, position), marked stale and alerted at
-//!   once;
+//!   once; it stays stale until removed, and is despawned (not cleared) when
+//!   its chunk unloads;
 //! - chunk and block packets: the chunk is unknown, treated as unloaded
 //!   ([`UnknownChunks`]);
 //! - tab list packets: the tab list is stale until the next login
@@ -59,7 +60,7 @@ use azalea_core::{
     entity_id::MinecraftEntityId,
     position::{BlockPos, ChunkPos, ChunkSectionPos, Vec3},
 };
-use azalea_entity::{InLoadedChunk, indexing::EntityIdIndex, inventory::Inventory};
+use azalea_entity::{InLoadedChunk, LoadedBy, indexing::EntityIdIndex, inventory::Inventory};
 use azalea_inventory::{
     ItemStack,
     operations::{ClickOperation, ClickType},
@@ -468,7 +469,9 @@ pub struct StaleEntity {
 /// [`StaleEntity`]). Fields that couldn't be read have placeholder values: a
 /// `marker` type (vanilla servers never send markers, so it can't be a real
 /// one), a uuid made from the entity id, the origin as position, zero
-/// rotations, data and velocity. Removed with the entity.
+/// rotations, data and velocity. Removed with the entity. It never stops
+/// being stale: when it leaves the loaded chunks it's despawned (a placeholder
+/// whose position couldn't be read stays).
 #[derive(Clone, Component, Debug, Eq, PartialEq)]
 pub struct PlaceholderEntity {
     pub uuid_known: bool,
@@ -1251,6 +1254,11 @@ pub(crate) fn entity_removed(ecs: &mut World, entity: Entity) {
 /// A stale entity whose chunk unloads isn't stale anymore (the server sends
 /// it again, whole, if the chunk comes back). Only entities that were in a
 /// loaded chunk and left it: a new placeholder isn't in one yet.
+///
+/// A [`PlaceholderEntity`] is despawned instead: its unread fields (type,
+/// uuid, rotations, data) are made up, so without [`StaleEntity`] it would
+/// look like a good entity. The server sends it again, whole, if the chunk
+/// comes back.
 fn clear_stale_entities_out_of_loaded_chunks(
     mut commands: Commands,
     mut left_loaded_chunks: RemovedComponents<InLoadedChunk>,
@@ -1260,13 +1268,41 @@ fn clear_stale_entities_out_of_loaded_chunks(
         let Ok(placeholder) = query.get(entity) else {
             continue;
         };
-        // a placeholder whose position couldn't be read is at the origin, so
-        // the chunk it's in says nothing about it
-        if placeholder.is_some_and(|p| !p.position_known) {
-            continue;
+        match placeholder {
+            // a placeholder whose position couldn't be read is at the origin,
+            // so the chunk it's in says nothing about it
+            Some(p) if !p.position_known => {}
+            Some(_) => commands.queue(move |ecs: &mut World| despawn_placeholder(ecs, entity)),
+            None => {
+                commands.entity(entity).remove::<StaleEntity>();
+            }
         }
-        commands.entity(entity).remove::<StaleEntity>();
     }
+}
+
+/// Take a placeholder out of the model as the server's `remove_entities`
+/// would: out of the id index of every client that loaded it and out of its
+/// [`LoadedBy`] (`remove_despawned_entities_from_indexes` then despawns it).
+fn despawn_placeholder(ecs: &mut World, entity: Entity) {
+    let Some(id) = ecs.get::<MinecraftEntityId>(entity).copied() else {
+        return;
+    };
+    let players = ecs
+        .get::<LoadedBy>(entity)
+        .map(|l| l.iter().copied().collect::<Vec<_>>())
+        .unwrap_or_default();
+    for player in players {
+        if let Some(mut index) = ecs.get_mut::<EntityIdIndex>(player)
+            && index.get_by_minecraft_entity(id) == Some(entity)
+        {
+            index.remove_by_minecraft_entity(id);
+        }
+        if let Some(mut loaded_by) = ecs.get_mut::<LoadedBy>(entity) {
+            loaded_by.remove(&player);
+        }
+    }
+    debug!("placeholder entity {id} left the loaded chunks: despawned");
+    entity_removed(ecs, entity);
 }
 
 // --- tab list ---
