@@ -263,13 +263,25 @@ impl Swarm {
                     "Sending SwarmEvent::Disconnect due to receiving an Event::Disconnect from client {}",
                     bot.entity
                 );
-                let account = bot.account();
-                swarm_tx
-                    .send(SwarmEvent::Disconnect(
-                        Box::new(account),
-                        Box::new(join_opts.clone()),
-                    ))
-                    .unwrap();
+                // the ECS runner clears the world when the app exits, which
+                // can happen in the same update as the disconnect (an app that
+                // ends with its session), so the client may be gone already
+                let account = bot
+                    .component::<Account>()
+                    .map(|a| a.clone());
+                match account {
+                    Ok(account) => {
+                        // the swarm may have ended too
+                        let _ = swarm_tx.send(SwarmEvent::Disconnect(
+                            Box::new(account),
+                            Box::new(join_opts.clone()),
+                        ));
+                    }
+                    Err(_) => debug!(
+                        "client {} was gone before its disconnect was handled (the app exited)",
+                        bot.entity
+                    ),
+                }
             }
 
             // we can't handle events here (since we can't copy the handler),
