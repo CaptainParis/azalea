@@ -229,8 +229,8 @@ fn global_palette_with_few_storage_bits_round_trips() {
         assert_eq!(PaletteKind::from(&c.palette), PaletteKind::Global);
         let mut bytes1 = Vec::new();
         c.write(&mut bytes1).unwrap();
-        let again =
-            read(&bytes1).unwrap_or_else(|e| panic!("{registry_size} {sent_bits}: {e} {bytes1:?}"));
+        let again = read(&bytes1)
+            .unwrap_or_else(|e| panic!("{registry_size} {sent_bits}: {e} {bytes1:?}"));
         assert_eq!(PaletteKind::from(&again.palette), PaletteKind::Global);
         let mut bytes2 = Vec::new();
         again.write(&mut bytes2).unwrap();

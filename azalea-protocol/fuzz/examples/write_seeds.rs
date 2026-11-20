@@ -3,9 +3,7 @@
 //! -- <corpus dir>`.
 
 fn main() {
-    let dir = std::env::args()
-        .nth(1)
-        .expect("usage: write_seeds <corpus dir>");
+    let dir = std::env::args().nth(1).expect("usage: write_seeds <corpus dir>");
     let mut n = 0;
     for seed in azalea_fuzz::seeds::all() {
         let target = std::path::Path::new(&dir).join(seed.target);

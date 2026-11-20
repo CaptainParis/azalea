@@ -266,7 +266,9 @@ impl Swarm {
                 // the ECS runner clears the world when the app exits, which
                 // can happen in the same update as the disconnect (an app that
                 // ends with its session), so the client may be gone already
-                let account = bot.component::<Account>().map(|a| a.clone());
+                let account = bot
+                    .component::<Account>()
+                    .map(|a| a.clone());
                 match account {
                     Ok(account) => {
                         // the swarm may have ended too

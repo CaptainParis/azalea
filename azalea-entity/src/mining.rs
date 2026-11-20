@@ -42,8 +42,7 @@ pub fn get_mine_progress(
         attributes,
         active_effects,
     );
-    // network-safe: f32 division (inf or NaN for a zero destroy time, as
-    // vanilla)
+    // network-safe: f32 division (inf or NaN for a zero destroy time, as vanilla)
     (base_destroy_speed / destroy_time) / (divisor as f32)
 }
 

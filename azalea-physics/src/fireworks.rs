@@ -9,9 +9,8 @@ use azalea_entity::{
 use azalea_world::WorldName;
 use bevy_ecs::prelude::*;
 
-/// 1.21.4 `FireworkRocketEntity.tick`: a rocket attached to a fall-flying
-/// entity pushes it along its look direction every tick, towards 1.5 blocks per
-/// tick.
+/// 1.21.4 `FireworkRocketEntity.tick`: a rocket attached to a fall-flying entity
+/// pushes it along its look direction every tick, towards 1.5 blocks per tick.
 ///
 /// Vanilla runs this on the client too, and for the local player it's the only
 /// place the boost happens (the player's movement is client-side), so without

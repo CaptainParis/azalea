@@ -158,9 +158,8 @@ async fn handle_connection(stream: TcpStream) -> eyre::Result<()> {
                 }
             }
         }
-        // If the client intends to join the proxy, wait for them to send the
-        // `Hello` packet to log their username and uuid, then start proxying
-        // their connection.
+        // If the client intends to join the proxy, wait for them to send the `Hello` packet to log
+        // their username and uuid, then start proxying their connection.
         ClientIntention::Login => {
             let mut conn = conn.login();
             loop {
