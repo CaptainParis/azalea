@@ -1,205 +1,190 @@
-use azalea_chat::{
-    FormattedText,
-    style::{Style, TextColor},
-    text_component::TextComponent,
-};
-use azalea_core::{
-    attribute_modifier_operation::AttributeModifierOperation,
-    checksum::get_checksum,
-    position::{BlockPos, GlobalPos},
-};
+//! Wire format tests for data components, checked by hand against the
+//! 1.21.4 stream codecs.
+
+use std::io::Cursor;
+
+use azalea_buf::{AzBuf, AzBufVar};
+use azalea_core::attribute_modifier_operation::AttributeModifierOperation;
 use azalea_inventory::{
     ItemStack,
     components::{
-        AdventureModePredicate, AttributeModifier, AttributeModifierDisplay, AttributeModifiers,
-        AttributeModifiersEntry, BlockPredicate, CanPlaceOn, ChargedProjectiles, CustomData,
-        CustomName, EquipmentSlotGroup, Glider, JukeboxPlayable, LodestoneTracker, Lore, MapColor,
-        PotDecorations, Rarity,
+        AdventureModePredicate, AttributeModifier, AttributeModifiers, AttributeModifiersEntry,
+        BlockPredicate, BlockStatePropertyMatcher, BlockStateValueMatcher, DyedColor, Enchantments,
+        EquipmentSlot, EquipmentSlotGroup, Equippable, IntangibleProjectile, JukeboxPlayable,
+        JukeboxSongHolder, Recipes, Unbreakable,
     },
 };
-use azalea_registry::builtin::{Attribute, BlockKind, ItemKind};
-use simdnbt::owned::{BaseNbt, Nbt, NbtCompound, NbtList, NbtTag};
+use azalea_registry::{
+    DataRegistry, Holder,
+    builtin::{Attribute, BlockKind, ItemKind, SoundEvent},
+    data::{Enchantment, JukeboxSong},
+};
 
-#[test]
-fn test_custom_name_checksum() {
-    let c = CustomName {
-        name: FormattedText::from("meow"),
-    };
-    assert_eq!(get_checksum(&c, &Default::default()).unwrap().0, 2222287064);
+fn encode<T: AzBuf>(value: &T) -> Vec<u8> {
+    let mut buf = Vec::new();
+    value.azalea_write(&mut buf).unwrap();
+    buf
 }
-#[test]
-fn test_custom_name_checksum_2() {
-    let c = CustomName {
-        name: TextComponent::new("meow")
-            .with_style(
-                Style::new()
-                    .color(Some(TextColor::parse("red").unwrap()))
-                    .underlined(true),
-            )
-            .into(),
-    };
 
-    assert_eq!(get_checksum(&c, &Default::default()).unwrap().0, 187682122);
-}
-#[test]
-fn test_map_color_checksum() {
-    let c = MapColor { color: 1 };
-    assert_eq!(get_checksum(&c, &Default::default()).unwrap().0, 1565579036);
-}
-#[test]
-fn test_lore_checksum() {
-    let c = Lore {
-        lines: vec!["first".into(), "second".into()],
-    };
-    assert_eq!(get_checksum(&c, &Default::default()).unwrap().0, 1545409323);
-}
-#[test]
-fn test_rarity_checksum() {
-    let c = Rarity::Rare;
-    assert_eq!(get_checksum(&c, &Default::default()).unwrap().0, 2874400570);
-}
-// #[test]
-// fn test_enchantments_checksum() {
-//     let mut registry_holder = RegistryHolder::default();
-//     registry_holder.append(
-//         "enchantment".into(),
-//         vec![
-//             ("sharpness".into(), Some(NbtCompound::default())),
-//             ("knockback".into(), Some(NbtCompound::default())),
-//         ],
-//     );
-//     println!("registry holder: {registry_holder:?}");
-//     let c = Enchantments {
-//         levels: HashMap::from_iter([(Enchantment::new_raw(0), 5),
-// (Enchantment::new_raw(1), 1)]),     };
-//     assert_eq!(get_checksum(&c, &registry_holder).unwrap().0, 3717391112);
-// }
-#[test]
-fn test_can_place_on_checksum() {
-    let c = CanPlaceOn {
-        predicate: AdventureModePredicate {
-            predicates: vec![BlockPredicate {
-                blocks: Some(vec![BlockKind::GrassBlock].into()),
-                properties: None,
-                nbt: None,
-            }],
-        },
-    };
-
-    assert_eq!(get_checksum(&c, &Default::default()).unwrap().0, 227436005);
+fn roundtrip<T: AzBuf + PartialEq + std::fmt::Debug>(value: &T) {
+    let buf = encode(value);
+    let mut cursor = Cursor::new(buf.as_slice());
+    let decoded = T::azalea_read(&mut cursor).unwrap();
+    assert_eq!(&decoded, value);
+    assert_eq!(cursor.position() as usize, buf.len(), "trailing bytes");
 }
 
 #[test]
-fn test_custom_data_nbt() {
-    let c = CustomData {
-        nbt: Nbt::Some(BaseNbt::new(
-            "",
-            NbtCompound::from_values(vec![
-                ("meow".into(), "mrrp".into()),
-                (
-                    "nya".into(),
-                    NbtList::Compound(vec![
-                        NbtTag::Int(1).into(),
-                        NbtTag::Int(2).into(),
-                        NbtCompound::new(),
-                        NbtCompound::from_values(vec![("data".into(), NbtTag::Byte(1))]),
-                    ])
-                    .into(),
-                ),
-            ]),
-        )),
-    };
-    assert_eq!(get_checksum(&c, &Default::default()).unwrap().0, 1035780974);
+fn test_unbreakable_has_show_in_tooltip() {
+    assert_eq!(encode(&Unbreakable::new()), [1]);
+    roundtrip(&Unbreakable {
+        show_in_tooltip: false,
+    });
 }
+
 #[test]
-fn test_attribute_modifiers_checksum() {
+fn test_dyed_color() {
+    let c = DyedColor {
+        rgb: 0x123456,
+        show_in_tooltip: false,
+    };
+    assert_eq!(encode(&c), [0x00, 0x12, 0x34, 0x56, 0]);
+}
+
+#[test]
+fn test_enchantments() {
+    let mut c = Enchantments::new();
+    c.levels.insert(Enchantment::new_raw(3), 5);
+    // map size, enchantment id, level, show_in_tooltip
+    assert_eq!(encode(&c), [1, 3, 5, 1]);
+    roundtrip(&c);
+}
+
+#[test]
+fn test_block_state_value_matcher_either() {
+    // ByteBufCodecs.either writes true for the left side (exact)
+    let exact = BlockStateValueMatcher::Exact {
+        value: "a".to_owned(),
+    };
+    assert_eq!(encode(&exact), [1, 1, b'a']);
+    let range = BlockStateValueMatcher::Range {
+        min: None,
+        max: Some("b".to_owned()),
+    };
+    assert_eq!(encode(&range), [0, 0, 1, 1, b'b']);
+    roundtrip(&exact);
+    roundtrip(&range);
+}
+
+#[test]
+fn test_adventure_mode_predicate() {
+    let c = AdventureModePredicate {
+        predicates: vec![BlockPredicate {
+            blocks: Some(vec![BlockKind::Stone].into()),
+            properties: Some(vec![BlockStatePropertyMatcher {
+                name: "x".to_owned(),
+                value_matcher: BlockStateValueMatcher::Exact {
+                    value: "y".to_owned(),
+                },
+            }]),
+            nbt: None,
+        }],
+        show_in_tooltip: true,
+    };
+    let stone = BlockKind::Stone as u8;
+    assert_eq!(
+        encode(&c),
+        // list len, Some(holder set of 1: stone), Some([x = exact y]), None,
+        // show_in_tooltip
+        [1, 1, 2, stone, 1, 1, 1, b'x', 1, 1, b'y', 0, 1]
+    );
+    roundtrip(&c);
+}
+
+#[test]
+fn test_attribute_modifiers() {
     let c = AttributeModifiers {
         modifiers: vec![AttributeModifiersEntry {
             kind: Attribute::Scale,
             modifier: AttributeModifier {
-                id: "example:grow".into(),
+                id: "a:b".into(),
                 amount: 4.0,
                 operation: AttributeModifierOperation::AddMultipliedBase,
             },
             slot: EquipmentSlotGroup::Hand,
-            display: AttributeModifierDisplay::Default,
         }],
+        show_in_tooltip: false,
     };
-
-    assert_eq!(get_checksum(&c, &Default::default()).unwrap().0, 2501379836);
+    let mut expected = vec![1, Attribute::Scale as u8, 3, b'a', b':', b'b'];
+    expected.extend(4.0f64.to_be_bytes());
+    // operation, slot group, show_in_tooltip
+    expected.extend([1, 3, 0]);
+    assert_eq!(encode(&c), expected);
+    roundtrip(&c);
 }
 
 #[test]
-fn test_firework_explosion_checksum() {
-    let c = AttributeModifiers {
-        modifiers: vec![AttributeModifiersEntry {
-            kind: Attribute::Scale,
-            modifier: AttributeModifier {
-                id: "example:grow".into(),
-                amount: 4.0,
-                operation: AttributeModifierOperation::AddMultipliedBase,
-            },
-            slot: EquipmentSlotGroup::Hand,
-            display: AttributeModifierDisplay::Default,
-        }],
+fn test_equippable_uses_slot_ids() {
+    let c = Equippable {
+        slot: EquipmentSlot::Offhand,
+        ..Equippable::new()
     };
+    let buf = encode(&c);
+    // EquipmentSlot.OFFHAND has id 5 (its ordinal is 1)
+    assert_eq!(buf[0], 5);
+    // equip_sound is a holder, so it's the registry id + 1
+    let mut sound = Vec::new();
+    (SoundEvent::ItemArmorEquipGeneric as u32 + 1)
+        .azalea_write_var(&mut sound)
+        .unwrap();
+    assert_eq!(&buf[1..1 + sound.len()], &sound);
+    roundtrip(&c);
 
-    assert_eq!(get_checksum(&c, &Default::default()).unwrap().0, 2501379836);
+    for slot in EquipmentSlot::values() {
+        roundtrip(&Equippable {
+            slot,
+            ..Equippable::new()
+        });
+    }
 }
 
 #[test]
-fn test_charged_projectile_checksum() {
-    let c = ChargedProjectiles {
-        items: vec![ItemStack::from(ItemKind::MusicDiscCat)],
+fn test_jukebox_playable_either_holder() {
+    let c = JukeboxPlayable {
+        song: JukeboxSongHolder::Holder(Holder::Reference(JukeboxSong::new_raw(2))),
+        show_in_tooltip: true,
     };
-
-    assert_eq!(get_checksum(&c, &Default::default()).unwrap().0, 3435761017);
+    assert_eq!(encode(&c), [1, 3, 1]);
+    roundtrip(&c);
+    let c = JukeboxPlayable {
+        song: JukeboxSongHolder::Key("a:b".into()),
+        show_in_tooltip: false,
+    };
+    assert_eq!(encode(&c), [0, 3, b'a', b':', b'b', 0]);
+    roundtrip(&c);
 }
 
 #[test]
-fn test_charged_projectile_with_components_checksum() {
-    let c = ChargedProjectiles {
-        items: vec![
-            ItemStack::from(ItemKind::MusicDiscCat)
-                .with_component::<JukeboxPlayable>(None)
-                .with_component(ChargedProjectiles {
-                    items: vec![ItemStack::from(ItemKind::MusicDiscCat)],
-                }),
-        ],
-    };
+fn test_nbt_only_components() {
+    // empty compound, as Unit.CODEC encodes it
+    assert_eq!(encode(&IntangibleProjectile), [0x0a, 0x00]);
+    roundtrip(&IntangibleProjectile);
 
-    assert_eq!(get_checksum(&c, &Default::default()).unwrap().0, 170375255);
+    let c = Recipes {
+        recipes: vec!["minecraft:stick".into()],
+    };
+    roundtrip(&c);
+    // list tag of strings
+    assert_eq!(&encode(&c)[..2], [0x09, 0x08]);
 }
 
 #[test]
-fn test_lodestone_tracker_checksum() {
-    let c = LodestoneTracker {
-        target: Some(GlobalPos {
-            dimension: "meow".into(),
-            pos: BlockPos::new(1, 2, 3),
-        }),
-        tracked: true,
-    };
-
-    assert_eq!(get_checksum(&c, &Default::default()).unwrap().0, 4138292505);
-}
-
-#[test]
-fn test_pot_decorations_checksum() {
-    let c = PotDecorations {
-        items: vec![
-            ItemKind::Stick,
-            ItemKind::Brick,
-            ItemKind::Brick,
-            ItemKind::Brick,
-        ],
-    };
-
-    assert_eq!(get_checksum(&c, &Default::default()).unwrap().0, 1951715383);
-}
-
-#[test]
-fn test_glider_checksum() {
-    let c = Glider;
-    assert_eq!(get_checksum(&c, &Default::default()).unwrap().0, 3312760008);
+fn test_item_stack_with_components() {
+    let item = ItemStack::from(ItemKind::LeatherHelmet)
+        .with_component(DyedColor {
+            rgb: 1,
+            show_in_tooltip: true,
+        })
+        .with_component::<Unbreakable>(None);
+    roundtrip(&item);
 }
