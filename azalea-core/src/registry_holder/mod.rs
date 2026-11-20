@@ -34,9 +34,9 @@ use crate::decode_errors::{DecodeErrorKind, record_decode_error};
 /// client in a world.
 #[derive(Clone, Debug, Default)]
 pub struct RegistryHolder {
-    // if you add new fields here, don't forget to also update `RegistryHolder::append`,
-    // `protocol_id_to_identifier`, and `define_default_deserializes_to!` in
-    // `data_registry.rs`.
+    // if you add new fields here, don't forget to also update
+    // `RegistryHolder::append`, `protocol_id_to_identifier`, and
+    // `define_default_deserializes_to!` in `data_registry.rs`.
     #[rustfmt::skip] // allow empty line
 
     /// Attributes about the dimension.
@@ -148,13 +148,36 @@ impl<T: simdnbt::Deserialize> Default for RegistryType<T> {
     }
 }
 
-impl<T: simdnbt::Deserialize> RegistryType<T> {
+/// Bounds a registry entry must be within before it's used, as vanilla's
+/// codec for it checks them. An entry outside them is kept (so later
+/// entries keep their protocol ids) but never resolved by
+/// [`RegistryDeserializesTo::get_for_registry`].
+pub trait RegistryEntryBounds {
+    /// Why the entry is outside its bounds, or `None` if it's within them.
+    fn out_of_bounds(&self) -> Option<String> {
+        None
+    }
+    /// The decode error counter kind for an entry outside its bounds.
+    fn out_of_bounds_kind() -> DecodeErrorKind {
+        DecodeErrorKind::Registry
+    }
+}
+impl RegistryEntryBounds for NbtCompound {}
+impl RegistryEntryBounds for enchantment::EnchantmentData {}
+
+impl<T: simdnbt::Deserialize + RegistryEntryBounds> RegistryType<T> {
     fn append_nbt(&mut self, id: Identifier, entries: Vec<(Identifier, Option<NbtCompound>)>) {
         let map = &mut self.map;
         for (key, value) in entries {
             if let Some(value) = value {
-                match nbt_to_serializable_type(&value) {
+                match nbt_to_serializable_type::<T>(&value) {
                     Ok(value) => {
+                        if let Some(reason) = value.out_of_bounds() {
+                            error!("Rejecting {id} entry {key}: {reason}");
+                            // decode error hook: the entry is kept for its
+                            // protocol id but never resolved
+                            record_decode_error(T::out_of_bounds_kind());
+                        }
                         map.insert(key, value);
                     }
                     Err(err) => {
@@ -207,6 +230,9 @@ impl RegistryDeserializesTo for dimension_type::DimensionKindElement {
             .dimension_type
             .map
             .get_index(protocol_id as usize)
+            // a dimension type outside vanilla's bounds was counted when it
+            // was received, and nothing may be sized from it
+            .filter(|(_, d)| d.out_of_bounds().is_none())
     }
 }
 impl RegistryDeserializesTo for enchantment::EnchantmentData {
@@ -230,4 +256,50 @@ pub fn get_in_compound<T: FromNbtTag>(
 ) -> Result<T, DeserializeError> {
     let value = compound.get(key).ok_or(DeserializeError::MissingField)?;
     T::from_nbt_tag(value).ok_or(DeserializeError::MissingField)
+}
+
+#[cfg(test)]
+mod tests {
+    use simdnbt::owned::NbtCompound;
+
+    use super::*;
+    use crate::decode_errors::decode_errors;
+
+    fn dimension(height: i32, min_y: i32, logical_height: i32) -> NbtCompound {
+        let mut c = NbtCompound::new();
+        c.insert("height", height);
+        c.insert("min_y", min_y);
+        c.insert("logical_height", logical_height);
+        c
+    }
+
+    // strict registries need every dimension field
+    #[cfg(not(feature = "strict_registry"))]
+    #[test]
+    fn out_of_bounds_dimension_type_is_counted_and_never_resolved() {
+        let mut registries = RegistryHolder::default();
+        let before = decode_errors();
+        registries.append(
+            Identifier::new("minecraft:dimension_type"),
+            vec![
+                (Identifier::new("a:ok"), Some(dimension(384, -64, 384))),
+                // 4080 is over the 4064 maximum
+                (Identifier::new("a:tall"), Some(dimension(4080, -2032, 0))),
+                (Identifier::new("a:also_ok"), Some(dimension(256, 0, 128))),
+            ],
+        );
+        assert!(decode_errors().dimension_type > before.dimension_type);
+        let get = |id| {
+            <dimension_type::DimensionKindElement as RegistryDeserializesTo>::get_for_registry(
+                &registries,
+                "dimension_type",
+                id,
+            )
+            .map(|(k, _)| k.to_string())
+        };
+        assert_eq!(get(0).as_deref(), Some("a:ok"));
+        assert_eq!(get(1), None);
+        // the entry after the rejected one keeps its protocol id
+        assert_eq!(get(2).as_deref(), Some("a:also_ok"));
+    }
 }

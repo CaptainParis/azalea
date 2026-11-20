@@ -84,6 +84,79 @@ pub struct DimensionKindElement {
     pub _extra: HashMap<String, NbtTag>,
 }
 
+/// `DimensionType.MIN_Y`: `BlockPos` packs Y in 12 bits, less 32.
+pub const DIMENSION_MIN_Y: i32 = -2032;
+/// `DimensionType.MAX_Y`.
+pub const DIMENSION_MAX_Y: i32 = 2031;
+/// `DimensionType.Y_SIZE`, the largest height.
+pub const DIMENSION_MAX_HEIGHT: i32 = 4064;
+/// `DimensionType.MIN_HEIGHT`.
+pub const DIMENSION_MIN_HEIGHT: i32 = 16;
+
+/// The bounds vanilla's `DimensionType` codec and constructor put on a
+/// dimension's height, minimum Y and logical height. Returns why the values
+/// are outside them, if they are.
+pub fn dimension_bounds_error(height: i64, min_y: i64, logical_height: i64) -> Option<String> {
+    let (min_height, max_height) = (DIMENSION_MIN_HEIGHT as i64, DIMENSION_MAX_HEIGHT as i64);
+    let (lowest, highest) = (DIMENSION_MIN_Y as i64, DIMENSION_MAX_Y as i64);
+    if !(lowest..=highest).contains(&min_y) {
+        Some(format!("min_y {min_y} not in {lowest}..={highest}"))
+    } else if !(min_height..=max_height).contains(&height) {
+        Some(format!(
+            "height {height} not in {min_height}..={max_height}"
+        ))
+    } else if !(0..=max_height).contains(&logical_height) {
+        Some(format!(
+            "logical_height {logical_height} not in 0..={max_height}"
+        ))
+    } else if min_y + height > highest + 1 {
+        Some(format!(
+            "min_y + height = {} is higher than {}",
+            min_y + height,
+            highest + 1
+        ))
+    } else if logical_height > height {
+        Some(format!(
+            "logical_height {logical_height} is higher than height {height}"
+        ))
+    } else if height % 16 != 0 {
+        Some(format!("height {height} is not a multiple of 16"))
+    } else if min_y % 16 != 0 {
+        Some(format!("min_y {min_y} is not a multiple of 16"))
+    } else {
+        None
+    }
+}
+
+impl DimensionKindElement {
+    /// The dimension's logical height (`logical_height`), if it has one.
+    pub fn logical_height(&self) -> Option<i64> {
+        #[cfg(feature = "strict_registry")]
+        {
+            Some(self.logical_height as i64)
+        }
+        #[cfg(not(feature = "strict_registry"))]
+        {
+            match self._extra.get("logical_height")? {
+                NbtTag::Int(i) => Some(*i as i64),
+                _ => None,
+            }
+        }
+    }
+}
+
+impl super::RegistryEntryBounds for DimensionKindElement {
+    fn out_of_bounds(&self) -> Option<String> {
+        let Some(logical_height) = self.logical_height() else {
+            return Some("no logical_height".to_owned());
+        };
+        dimension_bounds_error(self.height as i64, self.min_y as i64, logical_height)
+    }
+    fn out_of_bounds_kind() -> crate::decode_errors::DecodeErrorKind {
+        crate::decode_errors::DecodeErrorKind::DimensionType
+    }
+}
+
 /// The light level at which monsters can spawn.
 ///
 /// This can be either a single minimum value, or a formula with a min and
@@ -257,4 +330,33 @@ pub struct DamageTypeElement {
     pub effects: Option<String>,
     #[serde(skip_serializing_if = "is_default")]
     pub death_message_type: Option<String>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::dimension_bounds_error as e;
+
+    #[test]
+    fn dimension_bounds_at_the_limits() {
+        // the overworld, nether and the largest dimension
+        assert_eq!(e(384, -64, 384), None);
+        assert_eq!(e(256, 0, 128), None);
+        assert_eq!(e(4064, -2032, 4064), None);
+        assert_eq!(e(16, 2016, 0), None);
+        // height: 16..=4064, multiple of 16
+        assert!(e(0, 0, 0).is_some());
+        assert!(e(4080, -2032, 0).is_some());
+        assert!(e(4064 + 16, -2048, 0).is_some());
+        assert!(e(24, 0, 0).is_some());
+        // min_y: -2032..=2031, multiple of 16, min_y + height <= 2032
+        assert!(e(16, -2048, 0).is_some());
+        assert_eq!(e(16, -2032, 0), None);
+        assert!(e(32, 2016, 0).is_some());
+        assert!(e(16, 8, 0).is_some());
+        assert!(e(16, 2031, 0).is_some());
+        // logical height: 0..=height
+        assert_eq!(e(384, -64, 384), None);
+        assert!(e(384, -64, 385).is_some());
+        assert!(e(384, -64, -1).is_some());
+    }
 }
