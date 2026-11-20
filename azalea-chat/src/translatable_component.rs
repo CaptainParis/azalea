@@ -167,19 +167,31 @@ impl TranslatableComponent {
 
 impl Display for TranslatableComponent {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // this contains the final string will all the ansi escape codes
-        for component in FormattedText::Translatable(self.clone()).into_iter() {
-            let component_text = match &component {
-                FormattedText::Text(c) => c.text.to_string(),
-                FormattedText::Translatable(c) => match c.read() {
-                    Ok(c) => c.to_string(),
-                    Err(_) => c.key.to_string(),
-                },
-            };
-
-            f.write_str(&component_text)?;
+        // the translation, then each sibling (and its siblings) in order.
+        // not through `into_iter`, which clones every subtree once per level
+        match self.read() {
+            Ok(c) => c.fmt(f)?,
+            Err(_) => f.write_str(&self.key)?,
         }
-
+        for sibling in &self.base.siblings {
+            match sibling {
+                FormattedText::Text(c) => c.fmt(f)?,
+                FormattedText::Translatable(c) => match c.read() {
+                    Ok(t) => {
+                        t.fmt(f)?;
+                        for s in &c.base.siblings {
+                            s.fmt(f)?;
+                        }
+                    }
+                    Err(_) => {
+                        f.write_str(&c.key)?;
+                        for s in &c.base.siblings {
+                            s.fmt(f)?;
+                        }
+                    }
+                },
+            }
+        }
         Ok(())
     }
 }

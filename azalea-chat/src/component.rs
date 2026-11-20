@@ -1116,6 +1116,56 @@ mod tests {
 
     #[cfg(all(feature = "azalea-buf", feature = "simdnbt"))]
     #[test]
+    fn long_text_with_legacy_codes_is_linear() {
+        // the longest NBT string (65 535 bytes), with legacy formatting codes
+        let text = "\u{a7}cab".repeat(65535 / 5);
+        let mut buf = vec![8u8];
+        buf.extend_from_slice(&(text.len() as u16).to_be_bytes());
+        buf.extend_from_slice(text.as_bytes());
+        let start = std::time::Instant::now();
+        let c = FormattedText::azalea_read(&mut Cursor::new(&buf[..])).unwrap();
+        let plain = c.to_string();
+        let elapsed = start.elapsed();
+        assert_eq!(plain.len(), 2 * (65535 / 5));
+        assert!(elapsed < std::time::Duration::from_secs(1), "{elapsed:?}");
+    }
+
+    #[cfg(all(feature = "azalea-buf", feature = "simdnbt"))]
+    #[test]
+    fn display_of_deep_chains_is_linear() {
+        on_bot_thread(|| {
+            // 255 levels of `extra` over 40 000 siblings (about what 2 MB
+            // of NBT holds), and a 255-level translate chain over 60 000
+            // characters
+            let mut c = TextComponent::new("leaf");
+            for _ in 0..40_000 {
+                c.base.siblings.push(FormattedText::from("a"));
+            }
+            let mut c = FormattedText::Text(c);
+            for _ in 0..255 {
+                let mut parent = TextComponent::new("x");
+                parent.base.siblings.push(c);
+                c = FormattedText::Text(parent);
+            }
+            let mut t = FormattedText::from("b".repeat(60_000));
+            for _ in 0..255 {
+                t = FormattedText::Translatable(TranslatableComponent::new(
+                    "chat.square_brackets".to_owned(),
+                    vec![PrimitiveOrComponent::FormattedText(t)],
+                ));
+            }
+            let start = std::time::Instant::now();
+            let a = c.to_string();
+            let b = t.to_string();
+            let elapsed = start.elapsed();
+            assert_eq!(a.len(), 255 + 4 + 40_000);
+            assert!(b.len() > 60_000);
+            assert!(elapsed < std::time::Duration::from_secs(1), "{elapsed:?}");
+        });
+    }
+
+    #[cfg(all(feature = "azalea-buf", feature = "simdnbt"))]
+    #[test]
     fn rendering_under_a_big_hover_is_linear() {
         use crate::hover_event::HoverEvent;
         on_bot_thread(|| {

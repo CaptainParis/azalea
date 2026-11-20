@@ -57,22 +57,20 @@ pub fn legacy_color_code_to_text_component(legacy_color_code: &str) -> TextCompo
     let mut cur_component = TextComponent::new("");
 
     // we don't use a normal for loop since we need to be able to skip after
-    // reading the formatter code symbol
+    // reading the formatter code symbol. the chars are collected once:
+    // `chars().nth(i)` in the loop made this quadratic in the text length
+    // (a hang on one long network string containing the symbol)
+    let chars = legacy_color_code.chars().collect::<Vec<char>>();
     let mut i = 0;
-    while i < legacy_color_code.chars().count() {
-        if legacy_color_code.chars().nth(i).unwrap() == LEGACY_FORMATTING_CODE_SYMBOL {
-            let formatting_code = legacy_color_code.chars().nth(i + 1);
-            let Some(formatting_code) = formatting_code else {
+    while let Some(&c) = chars.get(i) {
+        if c == LEGACY_FORMATTING_CODE_SYMBOL {
+            let Some(&formatting_code) = chars.get(i + 1) else {
                 i += 1;
                 continue;
             };
             if formatting_code == '#' {
-                let color = legacy_color_code
-                    .chars()
-                    .skip(i + 1)
-                    // 7 to include the #
-                    .take(7)
-                    .collect::<String>();
+                // 7 to include the #
+                let color = chars.iter().skip(i + 1).take(7).collect::<String>();
 
                 if !cur_component.text.is_empty() {
                     // we need to split this into a new component
@@ -92,9 +90,7 @@ pub fn legacy_color_code_to_text_component(legacy_color_code: &str) -> TextCompo
             }
             i += 1;
         } else {
-            cur_component
-                .text
-                .push(legacy_color_code.chars().nth(i).unwrap());
+            cur_component.text.push(c);
         };
         i += 1;
     }
@@ -135,16 +131,20 @@ impl TextComponent {
 
 impl Display for TextComponent {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // this contains the final string will all the ansi escape codes
-        for component in FormattedText::Text(self.clone()).into_iter() {
-            let component_text = match &component {
-                FormattedText::Text(c) => c.text.to_string(),
-                FormattedText::Translatable(c) => c.read()?.to_string(),
-            };
-
-            f.write_str(&component_text)?;
+        // the text, then each sibling (and its siblings) in order. not
+        // through `into_iter`, which clones every subtree once per level
+        f.write_str(&self.text)?;
+        for sibling in &self.base.siblings {
+            match sibling {
+                FormattedText::Text(c) => c.fmt(f)?,
+                FormattedText::Translatable(c) => {
+                    c.read()?.fmt(f)?;
+                    for s in &c.base.siblings {
+                        s.fmt(f)?;
+                    }
+                }
+            }
         }
-
         Ok(())
     }
 }
