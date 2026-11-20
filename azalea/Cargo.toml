@@ -53,7 +53,12 @@ rand.workspace = true
 bevy_log.workspace = true
 
 [features]
-default = ["log", "serde", "packet-event", "online-mode"]
+default = ["log", "serde", "packet-event", "online-mode", "multi_threaded"]
+# Bevy's multi-threaded executor and parallel queries on the process-wide
+# compute pool. Without it every system of a client's app runs on the thread
+# that runs the app (`par_iter` runs inline), so a hang in one app can't hold
+# a shared pool thread. The IO and async compute pools are threads either way.
+multi_threaded = ["bevy_ecs/multi_threaded"]
 # enables bevy_log::LogPlugin by default
 log = ["azalea-client/log"]
 serde = ["dep:serde", "azalea-registry/serde", "azalea-world/serde"]

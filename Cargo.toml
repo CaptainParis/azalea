@@ -35,9 +35,10 @@ aes = "0.9.3"
 async-compat = "0.2.6"
 base64 = "0.23.1"
 bevy_app = "0.20.0"
-bevy_ecs = { version = "0.20.0", default-features = false, features = [
-    "multi_threaded",
-] }
+# multi_threaded (the parallel executor and par_iter on the shared compute
+# pool) is opt-in through azalea's `multi_threaded` feature; a build that
+# leaves it off runs every system of an app on that app's own thread.
+bevy_ecs = { version = "0.20.0", default-features = false }
 bevy_utils = { version = "0.20.0", default-features = false }
 bevy_log = "0.20.0"
 bevy_tasks = "0.20.0"
