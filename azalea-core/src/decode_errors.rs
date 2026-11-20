@@ -133,6 +133,10 @@ pub enum DecodeErrorKind {
     /// would skip the spawn); it's kept, without a game profile, marked
     /// `MissingProfile` (azalea-client).
     MissingProfile,
+    /// A chunk outside the client's chunk ring (view distance + 3 around the
+    /// chunk cache centre) was refused: the ring can't hold it (WP4 hard cap
+    /// per bot).
+    ChunkCap,
 }
 
 impl DecodeErrorKind {
@@ -228,6 +232,7 @@ kinds! {
     PlaceholderEntity => placeholder_entity,
     TabListStale => tab_list_stale,
     MissingProfile => missing_profile,
+    ChunkCap => chunk_cap,
 }
 
 fn counter(kind: DecodeErrorKind) -> &'static AtomicU64 {

@@ -88,6 +88,19 @@ pub fn handle_receive_chunk_event(
         let mut world = local_player.shared.write();
         let mut partial_world = local_player.partial.write();
 
+        // the ring can't hold a chunk out of its range: refused and counted
+        // (the hard cap per client is the ring's capacity)
+        if !partial_world.chunks.in_range(&pos) {
+            warn!(
+                "Refused chunk {pos:?} out of the chunk ring (centre {:?}, radius {})",
+                partial_world.chunks.view_center(),
+                partial_world.chunks.chunk_radius()
+            );
+            // decode error hook: a chunk past the per-client cap
+            record_decode_error(DecodeErrorKind::ChunkCap);
+            continue;
+        }
+
         // OPTIMIZATION: if we already know about the chunk from the shared
         // world (and not ourselves), then we don't need to parse it
         // again. This is only used when we have a shared world, since

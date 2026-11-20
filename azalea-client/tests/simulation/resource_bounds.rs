@@ -204,3 +204,42 @@ fn worlds_map_bounded_across_dimension_changes() {
     s.with_resource::<azalea_world::Worlds>(|w| live = w.live_count());
     assert_eq!(live, 1);
 }
+
+/// A chunk out of the ring is refused and counted (`ChunkCap`); the ring and
+/// the weak map never hold more than the ring's capacity.
+#[test]
+fn chunk_out_of_ring_refused_and_counted() {
+    use azalea_core::decode_errors::decode_errors;
+
+    let _lock = init_expecting_errors();
+    let mut s = Simulation::new(ConnectionProtocol::Game);
+    // client view distance 7: ring radius 10
+    s.with_component_mut::<azalea_client::ClientInformation>(|mut ci| ci.view_distance = 7);
+    s.receive_packet(default_login_packet());
+    s.tick();
+    let before = decode_errors().chunk_cap;
+    s.receive_packet(make_basic_empty_chunk(ChunkPos::new(10, -10), SECTIONS));
+    s.receive_packet(make_basic_empty_chunk(ChunkPos::new(11, 0), SECTIONS));
+    s.receive_packet(make_basic_empty_chunk(ChunkPos::new(0, -11), SECTIONS));
+    s.tick();
+    assert_eq!(decode_errors().chunk_cap - before, 2);
+    assert_eq!(ring_count(&s), 1);
+    assert_eq!(weak_map_len(&s), 1);
+    assert!(s.chunk(ChunkPos::new(11, 0)).is_none());
+}
+
+/// WP4 ring and view distance: with the hunt config (client view distance 7,
+/// the 2b2t server's), the ring radius is 10 (441 chunks).
+#[test]
+fn ring_radius_is_ten_at_view_distance_seven() {
+    let _lock = init();
+    let mut s = Simulation::new(ConnectionProtocol::Game);
+    s.with_component_mut::<azalea_client::ClientInformation>(|mut ci| ci.view_distance = 7);
+    s.receive_packet(default_login_packet());
+    s.tick();
+    s.with_component::<WorldHolder>(|wh| {
+        let p = wh.partial.read();
+        assert_eq!(p.chunks.chunk_radius(), 10);
+        assert_eq!(p.chunks.capacity(), 441);
+    });
+}
