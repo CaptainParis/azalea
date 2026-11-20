@@ -48,9 +48,17 @@ pub struct SignChatMessageOptions {
     pub message: String,
 
     pub private_key: RsaPrivateKey,
+
+    /// Signatures of the last-seen messages this message acknowledges (at
+    /// most 20, in the order of the last-seen update), as vanilla's
+    /// `LastSeenMessages.updateSignature`.
+    pub last_seen: Vec<MessageSignature>,
 }
 
-pub fn sign_chat_message(opts: &SignChatMessageOptions) -> MessageSignature {
+/// The bytes vanilla signs for a chat message (`PlayerChatMessage.
+/// updateSignature`): version 1, link (sender, session, index), body (salt,
+/// epoch seconds, UTF-8 length and bytes, last seen).
+pub fn chat_signature_payload(opts: &SignChatMessageOptions) -> Vec<u8> {
     let mut data_to_sign = Vec::new();
     // always 1 for some reason
     1i32.azalea_write(&mut data_to_sign).unwrap();
@@ -79,10 +87,18 @@ pub fn sign_chat_message(opts: &SignChatMessageOptions) -> MessageSignature {
     // message bytes
     data_to_sign.extend_from_slice(opts.message.as_bytes());
 
-    // last seen messages length
-    0i32.azalea_write(&mut data_to_sign).unwrap();
-    // signatures of last seen messages
-    // ... not implemented yet
+    // last seen messages: count, then each signature's bytes
+    (opts.last_seen.len() as i32)
+        .azalea_write(&mut data_to_sign)
+        .unwrap();
+    for s in &opts.last_seen {
+        data_to_sign.extend_from_slice(&s.bytes);
+    }
+    data_to_sign
+}
+
+pub fn sign_chat_message(opts: &SignChatMessageOptions) -> MessageSignature {
+    let data_to_sign = chat_signature_payload(opts);
 
     let signing_key = rsa::pkcs1v15::SigningKey::<Sha256>::new(opts.private_key.clone());
     let mut rng = rand::rng();
@@ -95,5 +111,41 @@ pub fn sign_chat_message(opts: &SignChatMessageOptions) -> MessageSignature {
             .as_ref()
             .try_into()
             .expect("signature must be 256 bytes"),
+    }
+}
+
+#[cfg(test)]
+mod chat_tests {
+    use std::time::Duration;
+
+    use super::*;
+
+    #[test]
+    fn payload_layout_matches_vanilla() {
+        let sig = |b: u8| MessageSignature { bytes: [b; 256] };
+        let opts = SignChatMessageOptions {
+            account_uuid: Uuid::from_u128(0x0102),
+            chat_session_uuid: Uuid::from_u128(0x0304),
+            message_index: 7,
+            salt: 0x1122_3344_5566_7788,
+            timestamp: UNIX_EPOCH + Duration::from_millis(1_700_000_000_999),
+            message: "héllo".into(),
+            private_key: RsaPrivateKey::new(&mut rand::rng(), 1024).unwrap(),
+            last_seen: vec![sig(1), sig(2)],
+        };
+        let p = chat_signature_payload(&opts);
+        let mut want = Vec::new();
+        want.extend_from_slice(&1i32.to_be_bytes());
+        want.extend_from_slice(&0x0102u128.to_be_bytes());
+        want.extend_from_slice(&0x0304u128.to_be_bytes());
+        want.extend_from_slice(&7i32.to_be_bytes());
+        want.extend_from_slice(&0x1122_3344_5566_7788u64.to_be_bytes());
+        want.extend_from_slice(&1_700_000_000i64.to_be_bytes());
+        want.extend_from_slice(&6i32.to_be_bytes());
+        want.extend_from_slice("héllo".as_bytes());
+        want.extend_from_slice(&2i32.to_be_bytes());
+        want.extend_from_slice(&[1; 256]);
+        want.extend_from_slice(&[2; 256]);
+        assert_eq!(p, want);
     }
 }

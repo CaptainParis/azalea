@@ -116,6 +116,7 @@ pub fn create_signature(
         timestamp,
         message: message.to_owned(),
         private_key: certs.private_key.clone(),
+        last_seen: Vec::new(),
     });
 
     chat_session.messages_sent += 1;
