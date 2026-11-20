@@ -313,13 +313,25 @@ impl TryFrom<ChatFormatting> for TextColor {
     }
 }
 
+/// The key that a style field is serialized as, which is the field name unless
+/// it was given with `as "key"`.
+macro_rules! style_key {
+    ($field:ident) => {
+        stringify!($field)
+    };
+    ($field:ident, $key:literal) => {
+        $key
+    };
+}
+
 macro_rules! define_style_struct {
-    ($($(#[$doc:meta])* $field:ident : $type:ty),* $(,)?) => {
+    ($($(#[$doc:meta])* $field:ident $(as $key:literal)? : $type:ty),* $(,)?) => {
         #[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
         #[non_exhaustive]
         pub struct Style {
             $(
                 #[serde(skip_serializing_if = "Option::is_none")]
+                $(#[serde(rename = $key)])?
                 $(#[$doc])*
                 pub $field: Option<$type>,
             )*
@@ -339,7 +351,7 @@ macro_rules! define_style_struct {
             {
                 $(
                     if let Some(value) = &self.$field {
-                        state.serialize_entry(stringify!($field), value)?;
+                        state.serialize_entry(style_key!($field $(, $key)?), value)?;
                     }
                 )*
                 Ok(())
@@ -362,7 +374,7 @@ macro_rules! define_style_struct {
 
                 $(
                     if let Some(value) = self.$field {
-                        compound.insert(stringify!($field), value);
+                        compound.insert(style_key!($field $(, $key)?), value);
                     }
                 )*
 
@@ -380,8 +392,8 @@ define_style_struct! {
     underlined: bool,
     strikethrough: bool,
     obfuscated: bool,
-    click_event: ClickEvent,
-    hover_event: HoverEvent,
+    click_event as "clickEvent": ClickEvent,
+    hover_event as "hoverEvent": HoverEvent,
     insertion: String,
     /// Represented as an `Identifier`.
     font: String,
@@ -415,9 +427,8 @@ impl Style {
             underlined: j.get("underlined").and_then(|v| v.as_bool()),
             strikethrough: j.get("strikethrough").and_then(|v| v.as_bool()),
             obfuscated: j.get("obfuscated").and_then(|v| v.as_bool()),
-            // TODO: impl deserialize functions for click_event and hover_event
-            click_event: Default::default(),
-            hover_event: Default::default(),
+            click_event: j.get("clickEvent").and_then(ClickEvent::deserialize),
+            hover_event: j.get("hoverEvent").and_then(HoverEvent::deserialize),
             insertion: j
                 .get("insertion")
                 .and_then(|v| v.as_str())
@@ -599,9 +610,8 @@ impl simdnbt::Deserialize for Style {
         let underlined = get_in_compound(&compound, "underlined").ok();
         let strikethrough = get_in_compound(&compound, "strikethrough").ok();
         let obfuscated = get_in_compound(&compound, "obfuscated").ok();
-        let click_event = get_in_compound(&compound, "click_event").ok();
-        // TODO
-        // let hover_event = get_in_compound(&compound, "hover_event")?;
+        let click_event = get_in_compound(&compound, "clickEvent").ok();
+        let hover_event = get_in_compound(&compound, "hoverEvent").ok();
         let insertion = get_in_compound(&compound, "insertion").ok();
         let font = get_in_compound(&compound, "font").ok();
         Ok(Style {
@@ -613,7 +623,7 @@ impl simdnbt::Deserialize for Style {
             strikethrough,
             obfuscated,
             click_event,
-            hover_event: None,
+            hover_event,
             insertion,
             font,
         })
