@@ -2,8 +2,8 @@ use azalea_core::{game_type::GameMode, tick::GameTick};
 use azalea_entity::{
     Attributes, Physics, indexing::EntityIdIndex, metadata::Sprinting, update_bounding_box,
 };
-use azalea_physics::PhysicsSystems;
-use azalea_protocol::packets::game::ServerboundAttack;
+use azalea_physics::{PhysicsSystems, client_movement::ClientMovementState};
+use azalea_protocol::packets::game::{ServerboundInteract, s_interact};
 use bevy_app::{App, Plugin, Update};
 use bevy_ecs::prelude::*;
 use derive_more::{Deref, DerefMut};
@@ -55,6 +55,7 @@ pub fn handle_attack_queued(
         &AttackQueued,
         &GameMode,
         &EntityIdIndex,
+        &ClientMovementState,
     )>,
 ) {
     for (
@@ -65,6 +66,7 @@ pub fn handle_attack_queued(
         attack_queued,
         &game_mode,
         entity_id_index,
+        movement_state,
     ) in &mut query
     {
         let target_entity = attack_queued.target;
@@ -78,10 +80,14 @@ pub fn handle_attack_queued(
             continue;
         };
 
+        // 1.21.4 MultiPlayerGameMode.attack sends an ATTACK interact packet,
+        // with usingSecondaryAction set to isShiftKeyDown
         commands.trigger(SendGamePacketEvent::new(
             client_entity,
-            ServerboundAttack {
+            ServerboundInteract {
                 entity_id: target_entity_id,
+                action: s_interact::ActionType::Attack,
+                using_secondary_action: movement_state.trying_to_crouch,
             },
         ));
         commands.trigger(SwingArmEvent {
