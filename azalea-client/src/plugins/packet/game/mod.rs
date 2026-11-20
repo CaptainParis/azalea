@@ -50,9 +50,25 @@ use crate::{
     tick_counter::TicksConnected,
 };
 
-/// A function called with every clientbound game packet a client receives,
+/// A function called with every clientbound game packet a client processes,
 /// at the start of [`process_packet`], before Azalea's own handler.
-pub type GamePacketHook = Arc<dyn Fn(Entity, &ClientboundGamePacket) + Send + Sync>;
+pub type GamePacketHook = Arc<dyn Fn(&GamePacketHookContext, &ClientboundGamePacket) + Send + Sync>;
+
+/// What a [`GamePacketHook`] is told besides the packet.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct GamePacketHookContext {
+    /// The client that processes the packet.
+    pub entity: Entity,
+    /// `true` if the server didn't send this packet as it is: the bad packet
+    /// policy built it from the readable fields of a packet that couldn't be
+    /// decoded whole (`keep_alive`, `ping`, `chunk_batch_finished`,
+    /// `block_changed_ack` with bytes left over or cut after those fields)
+    /// and handles it as the server's. The server's bytes for it are in the
+    /// [`BadPacketEvent`](crate::bad_packet::BadPacketEvent) sent for it.
+    /// A hook that records what the server sent (a corpus, a byte count)
+    /// should skip these.
+    pub synthesised: bool,
+}
 
 /// The [`GamePacketHook`]s of an app, called in order. Insert the resource
 /// (or push to it) to observe packets on the thread that processes them, in
@@ -60,10 +76,35 @@ pub type GamePacketHook = Arc<dyn Fn(Entity, &ClientboundGamePacket) + Send + Sy
 #[derive(Clone, Default, Resource)]
 pub struct GamePacketHooks(pub Vec<GamePacketHook>);
 
+/// Handle a game packet the server sent.
 pub fn process_packet(ecs: &mut World, player: Entity, packet: &ClientboundGamePacket) {
+    process_packet_from(ecs, player, packet, false)
+}
+
+/// Handle a game packet the bad packet policy built from a bad one's
+/// readable fields: hooks see it with
+/// [`GamePacketHookContext::synthesised`] set.
+pub(crate) fn process_synthesised_packet(
+    ecs: &mut World,
+    player: Entity,
+    packet: &ClientboundGamePacket,
+) {
+    process_packet_from(ecs, player, packet, true)
+}
+
+fn process_packet_from(
+    ecs: &mut World,
+    player: Entity,
+    packet: &ClientboundGamePacket,
+    synthesised: bool,
+) {
     if let Some(hooks) = ecs.get_resource::<GamePacketHooks>() {
+        let context = GamePacketHookContext {
+            entity: player,
+            synthesised,
+        };
         for hook in &hooks.0 {
-            hook(player, packet);
+            hook(&context, packet);
         }
     }
 

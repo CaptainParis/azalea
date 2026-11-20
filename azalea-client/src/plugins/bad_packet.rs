@@ -721,6 +721,11 @@ pub(crate) fn handle_bad_packet(
 ///   sound; the knockback is applied (`handleExplosion` adds it to our motion),
 ///   the particle and sound (display only) are dropped.
 ///
+/// The game packets built here go through the normal handler, so
+/// [`GamePacketHooks`](crate::packet::game::GamePacketHooks) see them, flagged
+/// [`synthesised`](crate::packet::game::GamePacketHookContext::synthesised).
+/// Configuration packets have no hooks.
+///
 /// `None` if the packet isn't one of these or its fields can't be read.
 fn apply_prefix(
     ecs: &mut World,
@@ -735,13 +740,13 @@ fn apply_prefix(
         (ConnectionProtocol::Game, "keep_alive") => {
             let id = u64::azalea_read(buf).ok()?;
             let p = game::ClientboundGamePacket::KeepAlive(game::ClientboundKeepAlive { id });
-            crate::packet::game::process_packet(ecs, entity, &p);
+            crate::packet::game::process_synthesised_packet(ecs, entity, &p);
             Some("keep-alive answered")
         }
         (ConnectionProtocol::Game, "ping") => {
             let id = u32::azalea_read(buf).ok()?;
             let p = game::ClientboundGamePacket::Ping(game::ClientboundPing { id });
-            crate::packet::game::process_packet(ecs, entity, &p);
+            crate::packet::game::process_synthesised_packet(ecs, entity, &p);
             Some("ping answered")
         }
         (ConnectionProtocol::Game, "chunk_batch_finished") => {
@@ -749,7 +754,7 @@ fn apply_prefix(
             let p = game::ClientboundGamePacket::ChunkBatchFinished(
                 game::ClientboundChunkBatchFinished { batch_size },
             );
-            crate::packet::game::process_packet(ecs, entity, &p);
+            crate::packet::game::process_synthesised_packet(ecs, entity, &p);
             Some("chunk batch acknowledged")
         }
         (ConnectionProtocol::Game, "block_changed_ack") => {
@@ -758,7 +763,7 @@ fn apply_prefix(
                 game::ClientboundGamePacket::BlockChangedAck(game::ClientboundBlockChangedAck {
                     seq,
                 });
-            crate::packet::game::process_packet(ecs, entity, &p);
+            crate::packet::game::process_synthesised_packet(ecs, entity, &p);
             Some("block predictions acknowledged")
         }
         (ConnectionProtocol::Game, "explode") => {
