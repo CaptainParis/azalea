@@ -471,6 +471,8 @@ pub fn fluid_shape(fluid: &FluidState, world: &ChunkStorage, pos: BlockPos) -> &
         ]
     });
 
+    // network-safe: amount is at most 8 (FluidState::from: 8, or 8 - level
+    // saturating), the table has 10
     &FLUID_SHAPES[fluid.amount as usize]
 }
 fn calculate_shape_for_fluid(amount: u8) -> VoxelShape {

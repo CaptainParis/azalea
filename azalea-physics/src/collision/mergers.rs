@@ -35,8 +35,10 @@ impl IndexMerger {
             IndexMerger::NonOverlapping { lower, upper, .. } => (0..self.size())
                 .map(|i| {
                     if i < lower.len() {
+                        // network-safe: i < lower.len() checked
                         lower[i]
                     } else {
+                        // network-safe: i < size() = lower.len() + upper.len()
                         upper[i - lower.len()]
                     }
                 })
@@ -49,6 +51,8 @@ impl IndexMerger {
                 if *result_length <= 1 {
                     Box::new([])
                 } else {
+                    // network-safe: result_length <= result.len(): new_indirect
+                    // adds at most one entry per index step
                     result[..*result_length].into()
                 }
             }
@@ -70,9 +74,14 @@ impl IndexMerger {
                 second_div,
             } => {
                 for var3 in 0..(result.size() - 1) {
+                    // network-safe: DiscreteCube is never built
+                    // (new_discrete_cube's only caller is commented out in
+                    // create_index_merger)
                     if !consumer(
                         (var3 / second_div).try_into().unwrap(),
+                        // network-safe: the same
                         (var3 / first_div).try_into().unwrap(),
+                        // network-safe: the same
                         var3.try_into().unwrap(),
                     ) {
                         return false;
@@ -98,9 +107,13 @@ impl IndexMerger {
                 let var2 = result_length - 1;
 
                 for var3 in 0..var2 {
+                    // network-safe: indexes are -1..len of their coords, var3 <
+                    // result_length <= the arrays' length
                     if !consumer(
                         first_indices[var3].try_into().unwrap(),
+                        // network-safe: the same
                         second_indices[var3].try_into().unwrap(),
+                        // network-safe: the same
                         var3.try_into().unwrap(),
                     ) {
                         return false;
@@ -114,6 +127,8 @@ impl IndexMerger {
     pub fn size(&self) -> usize {
         match self {
             IndexMerger::Identical { coords } => coords.len(),
+            // network-safe: DiscreteCube is never built (see
+            // for_merged_indexes)
             IndexMerger::DiscreteCube { result, .. } => result.size().try_into().unwrap(),
             IndexMerger::NonOverlapping { lower, upper, .. } => lower.len() + upper.len(),
             IndexMerger::Indirect { result_length, .. } => *result_length,
@@ -122,12 +137,16 @@ impl IndexMerger {
 
     pub fn new_discrete_cube(a: u32, b: u32) -> Self {
         let result = CubePointRange {
+            // network-safe: never called (see for_merged_indexes); static shape
+            // resolutions if it were
             parts: (u32::try_from(lcm(a, b)).expect("lcm should be able to fit in a u32"))
                 .try_into()
                 .expect("lcm should not be 0"),
         };
         let gcd = gcd(a, b);
+        // network-safe: the same
         let first_div = a / gcd;
+        // network-safe: the same
         let second_div = b / gcd;
         Self::DiscreteCube {
             result,
@@ -165,6 +184,8 @@ impl IndexMerger {
                     };
                 }
 
+                // network-safe: coords1_index < coords1_len (not at its end),
+                // and coords2_index only read when not at its end
                 iterating_coords1 = !at_end_of_coords1
                     && (at_end_of_coords2
                         || coords1[coords1_index] < coords2[coords2_index] + EPSILON);
@@ -184,20 +205,31 @@ impl IndexMerger {
             let var18: isize = (coords1_index as isize) - 1;
             let var19: isize = (coords2_index as isize) - 1;
             let var20 = if iterating_coords1 {
+                // network-safe: coords1_index was just incremented, so var18 >=
+                // 0 and < coords1_len
                 coords1[usize::try_from(var18).unwrap()]
             } else {
+                // network-safe: coords2_index was just incremented, so var19 >=
+                // 0 and < coords2_len
                 coords2[usize::try_from(var19).unwrap()]
             };
             match var5.partial_cmp(&(var20 - EPSILON)) {
                 None | Some(Ordering::Less) => {
+                    // network-safe: var12 < coords1_len + coords2_len: at most
+                    // one entry per index step
                     result[var12] = var20;
+                    // network-safe: the same
                     first_indices[var12] = var18;
+                    // network-safe: the same
                     second_indices[var12] = var19;
                     var12 += 1;
                     var5 = var20;
                 }
                 _ => {
+                    // network-safe: var12 >= 1: the first step takes the first
+                    // branch (var5 starts NaN)
                     first_indices[var12 - 1] = var18;
+                    // network-safe: the same
                     second_indices[var12 - 1] = var19;
                 }
             }
@@ -210,15 +242,19 @@ pub trait IndexConsumer = FnMut(i32, i32, i32) -> bool;
 fn for_non_swapped_indexes(lower: &[f64], upper: &[f64], mut consumer: impl IndexConsumer) -> bool {
     let var2 = lower.len();
     for var3 in 0..var2 {
+        // network-safe: var3 < lower.len(), a small shape size
         if !consumer(var3.try_into().unwrap(), -1, var3.try_into().unwrap()) {
             return false;
         }
     }
     let var3 = upper.len() - 1;
     for var4 in 0..var3 {
+        // network-safe: small shape sizes
         if !consumer(
             (var2 - 1).try_into().unwrap(),
+            // network-safe: the same
             var4.try_into().unwrap(),
+            // network-safe: the same
             (var2 + var4).try_into().unwrap(),
         ) {
             return false;

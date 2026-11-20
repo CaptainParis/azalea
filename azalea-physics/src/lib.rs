@@ -305,6 +305,8 @@ fn handle_entity_inside_block(
             let block_above = world.get_block_state(block_pos.up(1)).unwrap_or_default();
             let is_block_above_empty =
                 block_above.is_collision_shape_empty() && FluidState::from(block_above).is_empty();
+            // network-safe: BlockKind::BubbleColumn checked above; every bubble
+            // column state has Drag
             let drag_down = block
                 .property::<properties::Drag>()
                 .expect("drag property should always be present on bubble columns");
@@ -345,9 +347,10 @@ pub fn jump_from_ground(
     worlds: &Worlds,
     active_effects: &ActiveEffects,
 ) {
-    let world_lock = worlds
-        .get(world_name)
-        .expect("All entities should be in a valid world");
+    // an entity whose world isn't loaded (yet, or anymore) doesn't jump
+    let Some(world_lock) = worlds.get(world_name) else {
+        return;
+    };
     let world = world_lock.read();
 
     let base_jump = jump_power(&world, position);
@@ -476,6 +479,7 @@ fn get_friction_influenced_speed(
     // TODO: have speed & flying_speed fields in entity
     if physics.on_ground() {
         let speed = attributes.movement_speed.calculate() as f32;
+        // network-safe: float division (f64 and f32 don't panic)
         speed * (0.21600002f32 / (friction * friction * friction))
     } else {
         // entity.flying_speed

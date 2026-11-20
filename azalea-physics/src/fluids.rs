@@ -145,6 +145,7 @@ fn update_fluid_height_and_do_fluid_pushing(
     }
 
     if additional_player_delta.length() > 0. {
+        // network-safe: float division (f64 and f32 don't panic)
         additional_player_delta /= num_fluids_being_touched as f64;
 
         // if entity_kind != EntityKind::Player {
@@ -169,6 +170,7 @@ fn update_fluid_height_and_do_fluid_pushing(
     match checking_fluid {
         FluidKind::Water => physics.water_fluid_height = min_height_touching,
         FluidKind::Lava => physics.lava_fluid_height = min_height_touching,
+        // network-safe: the two callers pass Water and Lava
         FluidKind::Empty => panic!("FluidKind::Empty should not be passed to update_fluid_height"),
     };
 

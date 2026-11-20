@@ -240,10 +240,16 @@ impl BlockWithShape for BlockState {{
     }}
 
     fn is_collision_shape_empty(&self) -> bool {{
+        // network-safe: state ids are at most BlockState::MAX_STATE (checked
+        // when decoded), the map has MAX_STATE + 1 entries (test
+        // every_block_state_has_shape_table_entries)
         BASIC_COLLISION_SHAPES_MAP[self.id() as usize] == 0
     }}
 
     fn is_collision_shape_full(&self) -> bool {{
+        // network-safe: state ids are at most BlockState::MAX_STATE (checked
+        // when decoded), the map has MAX_STATE + 1 entries (test
+        // every_block_state_has_shape_table_entries)
         BASIC_COLLISION_SHAPES_MAP[self.id() as usize] == 1
     }}
 }}

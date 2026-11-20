@@ -95,10 +95,15 @@ impl BitSetDiscreteVoxelShape {
             y_size: y_min,
             z_size: z_min,
 
+            // network-safe: shape sizes are small (see the struct); u32 to
+            // usize is lossless
             storage: BitSet::new((x_min * y_min * z_min).try_into().unwrap()),
             min: Vec3i {
+                // network-safe: shape sizes are small, far below i32::MAX
                 x: z_min.try_into().unwrap(),
+                // network-safe: the same
                 y: z_min.try_into().unwrap(),
+                // network-safe: the same
                 z: z_min.try_into().unwrap(),
             },
             max: Vec3i::ZERO,
@@ -121,9 +126,13 @@ impl BitSetDiscreteVoxelShape {
         for x in min.x..max.x {
             for y in min.y..max.y {
                 for z in min.z..max.z {
+                    // network-safe: x, y, z are in the filled bounds, which are
+                    // inside the shape (non-negative)
                     shape.fill_update_bounds(
                         x.try_into().unwrap(),
+                        // network-safe: the same
                         y.try_into().unwrap(),
+                        // network-safe: the same
                         z.try_into().unwrap(),
                         false,
                     );
@@ -185,38 +194,59 @@ impl BitSetDiscreteVoxelShape {
                         var0.is_full_wide(Vec3i::new(x1, y1, z1)),
                         var1.is_full_wide(Vec3i::new(x2, y2, z2)),
                     ) {
+                        // network-safe: merged indexes are 0..size - 1 of their
+                        // merger (non-negative)
                         var6.storage.set(var6.get_index(
                             x3.try_into().unwrap(),
+                            // network-safe: the same
                             y3.try_into().unwrap(),
+                            // network-safe: the same
                             z3.try_into().unwrap(),
                         ));
+                        // network-safe: constant index into a [i32; 6]
                         var7[2] = cmp::min(var7[2], z3);
+                        // network-safe: the same
                         var7[5] = cmp::max(var7[5], z3);
+                        // network-safe: constant index into a [bool; 1]
                         var13[0] = true;
                     }
 
                     true
                 });
+                // network-safe: constant index into a [bool; 1]
                 if var13[0] {
+                    // network-safe: constant index into a [i32; 6]
                     var7[1] = cmp::min(var7[1], y3);
+                    // network-safe: the same
                     var7[4] = cmp::max(var7[4], y3);
+                    // network-safe: constant index into a [bool; 1]
                     var10[0] = true;
                 }
 
                 true
             });
+            // network-safe: constant index into a [bool; 1]
             if var10[0] {
+                // network-safe: constant index into a [i32; 6]
                 var7[0] = cmp::min(var7[0], x3);
+                // network-safe: the same
                 var7[3] = cmp::max(var7[3], x3);
             }
 
             true
         });
+        // network-safe: constant index into a [i32; 6]
         var6.min.x = var7[0];
+        // network-safe: the same
         var6.min.y = var7[1];
+        // network-safe: the same
         var6.min.z = var7[2];
+        // network-safe: constant index into a [i32; 6]; + 1 on i32::MIN
+        // (nothing full) or a small index
         var6.max.x = var7[3] + 1;
+        // network-safe: the same
         var6.max.y = var7[4] + 1;
+        // network-safe: the same
         var6.max.z = var7[5] + 1;
         var6
     }
@@ -242,17 +272,23 @@ impl BitSetDiscreteVoxelShape {
                     } else if var6.is_some() {
                         let mut var8 = x;
                         let mut var9 = y;
+                        // network-safe: var6 is Some (checked by the branch)
                         var3.clear_z_strip(var6.unwrap(), z, x, y);
+                        // network-safe: the same
                         while var3.is_z_strip_full(var6.unwrap(), z, var8 + 1, y) {
+                            // network-safe: the same
                             var3.clear_z_strip(var6.unwrap(), z, var8 + 1, y);
                             var8 += 1;
                         }
+                        // network-safe: the same
                         while var3.is_xz_rectangle_full(x, var8 + 1, var6.unwrap(), z, var9 + 1) {
                             for var10 in x..=var8 {
+                                // network-safe: the same
                                 var3.clear_z_strip(var6.unwrap(), z, var10, var9 + 1);
                             }
                             var9 += 1;
                         }
+                        // network-safe: the same
                         consumer(x, y, var6.unwrap(), var8 + 1, var9 + 1, z);
                         var6 = None;
                     }

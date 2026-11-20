@@ -24,6 +24,9 @@ pub fn apply_shape_offset(
         return Cow::Borrowed(shape);
     }
 
+    // network-safe: state ids are at most BlockState::MAX_STATE (checked when
+    // decoded), the map has MAX_STATE + 1 entries (test
+    // every_block_state_has_shape_table_entries)
     let offset_kind = RANDOM_SHAPE_OFFSETS_MAP[block.id() as usize];
     if offset_kind == 0 {
         return Cow::Borrowed(shape);
@@ -56,6 +59,7 @@ pub fn apply_shape_offset(
 
             xyz_offset_for_pos(pos, max_horizontal_offset, max_vertical_offset)
         }
+        // network-safe: the generated table only has 0, 1 and 2 (shapes.py)
         _ => unreachable!(),
     };
 
@@ -76,4 +80,26 @@ fn xyz_offset_for_pos(pos: BlockPos, max_horizontal_offset: f64, max_vertical_of
     let z = z.clamp(-max_horizontal_offset, max_horizontal_offset);
 
     Vec3 { x, y, z }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::collision::BlockWithShape;
+
+    // the tables indexed by state id (here and in blocks.rs) cover every state
+    // a decoded block state can have
+    #[test]
+    fn every_block_state_has_shape_table_entries() {
+        assert_eq!(
+            RANDOM_SHAPE_OFFSETS_MAP.len(),
+            BlockState::MAX_STATE as usize + 1
+        );
+        for id in 0..=BlockState::MAX_STATE {
+            let state = BlockState::try_from(id).unwrap();
+            let _ = state.is_collision_shape_empty();
+            let _ = state.is_collision_shape_full();
+            let _ = state.collision_shape(BlockPos::new(i32::MAX, 0, i32::MIN));
+        }
+    }
 }

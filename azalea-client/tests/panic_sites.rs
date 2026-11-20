@@ -47,6 +47,9 @@ const SCANNED: &[&str] = &[
     // the network NBT reader (vendored simdnbt), on every chat component,
     // item and registry entry
     "../vendor/simdnbt/src",
+    // movement, collisions and rays on positions and velocities the server
+    // sets (WP2 diff review round 2)
+    "../azalea-physics/src",
 ];
 
 fn rust_files(path: &Path, out: &mut Vec<PathBuf>) {

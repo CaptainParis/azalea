@@ -126,6 +126,8 @@ impl Shapes {
         op: fn(bool, bool) -> bool,
     ) -> VoxelShape {
         if op(false, false) {
+            // network-safe: op is one of our fixed boolean functions (or, and,
+            // only_first, ...), never true for (false, false)
             panic!("Illegal operation");
         };
         // if (a == b) {
@@ -154,6 +156,9 @@ impl Shapes {
             op_true_false,
             op_false_true,
         );
+        // network-safe: shape structure: sizes and indexes come from the static
+        // block shapes and box_shape (one cell, or at most 8 an axis) and joins
+        // of them; server values only move the f64 coordinates
         let var6 = Self::create_index_merger(
             (var5.size() - 1).try_into().unwrap(),
             a.get_coords(Axis::Y),
@@ -161,6 +166,9 @@ impl Shapes {
             op_true_false,
             op_false_true,
         );
+        // network-safe: shape structure: sizes and indexes come from the static
+        // block shapes and box_shape (one cell, or at most 8 an axis) and joins
+        // of them; server values only move the f64 coordinates
         let var7 = Self::create_index_merger(
             ((var5.size() - 1) * (var6.size() - 1)).try_into().unwrap(),
             a.get_coords(Axis::Z),
@@ -285,12 +293,15 @@ impl Shapes {
         // }
         // }
 
+        // network-safe: coords always have at least one entry (CubeVoxelShape:
+        // 0..=size; ArrayVoxelShape: min and max)
         if coords1[var5] < coords2[0] - EPSILON {
             IndexMerger::NonOverlapping {
                 lower: coords1.into(),
                 upper: coords2.into(),
                 swap: false,
             }
+        // network-safe: the same
         } else if coords2[var6] < coords1[0] - EPSILON {
             IndexMerger::NonOverlapping {
                 lower: coords2.into(),
@@ -319,6 +330,7 @@ impl VoxelShape {
         if first_full >= self.shape().size(axis) as i32 {
             f64::INFINITY
         } else {
+            // network-safe: 0 <= first_full < size checked above
             self.get(axis, first_full.try_into().unwrap())
         }
     }
@@ -327,6 +339,7 @@ impl VoxelShape {
         if last_full <= 0 {
             f64::NEG_INFINITY
         } else {
+            // network-safe: last_full > 0 checked above
             self.get(axis, last_full.try_into().unwrap())
         }
     }
@@ -377,7 +390,10 @@ impl VoxelShape {
     pub fn get(&self, axis: Axis, index: usize) -> f64 {
         // self.get_coords(axis)[index]
         match self {
+            // network-safe: callers pass an index <= the shape's size; coords
+            // have size + 1 entries
             VoxelShape::Array(s) => s.get_coords(axis)[index],
+            // network-safe: the same
             VoxelShape::Cube(s) => s.get_coords(axis)[index],
             // _ => self.get_coords(axis)[index],
         }
@@ -522,12 +538,19 @@ impl VoxelShape {
         let z_coords = self.get_coords(Axis::Z);
         self.shape().for_all_boxes(
             |min_x, min_y, min_z, max_x, max_y, max_z| {
+                // network-safe: for_all_boxes gives indexes in 0..=size; coords
+                // have size + 1 entries
                 consumer(
                     x_coords[min_x as usize],
+                    // network-safe: the same
                     y_coords[min_y as usize],
+                    // network-safe: the same
                     z_coords[min_z as usize],
+                    // network-safe: the same
                     x_coords[max_x as usize],
+                    // network-safe: the same
                     y_coords[max_y as usize],
+                    // network-safe: the same
                     z_coords[max_z as usize],
                 );
             },
@@ -547,6 +570,8 @@ impl VoxelShape {
     }
 
     pub fn bounds(&self) -> Aabb {
+        // network-safe: the only caller (legacy_calculate_solid) checks
+        // is_empty first, on a static block shape
         assert!(!self.is_empty(), "Can't get bounds for empty shape");
         Aabb {
             min: Vec3::new(self.min(Axis::X), self.min(Axis::Y), self.min(Axis::Z)),
@@ -652,6 +677,7 @@ impl CubeVoxelShape {
     fn calculate_coords(shape: &DiscreteVoxelShape, axis: Axis) -> CompactArray<f64> {
         let size = shape.size(axis);
 
+        // network-safe: float division (a size of 0 gives NaN, no panic)
         (0..=size).map(|i| i as f64 / size as f64).collect()
     }
 
@@ -674,6 +700,7 @@ pub struct CubePointRange {
 }
 impl CubePointRange {
     pub fn get_double(&self, index: u32) -> f64 {
+        // network-safe: float division (parts is nonzero)
         index as f64 / self.parts.get() as f64
     }
 
@@ -708,6 +735,7 @@ impl<T: Clone + Copy> CompactArray<T> {
 impl<T: Clone + Copy> From<Box<[T]>> for CompactArray<T> {
     fn from(value: Box<[T]>) -> Self {
         if value.len() == 1 {
+            // network-safe: len() == 1 checked
             Self::Inline([value[0]])
         } else {
             Self::Box(value)
@@ -717,6 +745,7 @@ impl<T: Clone + Copy> From<Box<[T]>> for CompactArray<T> {
 impl<T: Clone + Copy, const N: usize> From<[T; N]> for CompactArray<T> {
     fn from(value: [T; N]) -> Self {
         if value.len() == 1 {
+            // network-safe: len() == 1 checked
             Self::Inline([value[0]])
         } else {
             Self::Box(Box::new(value))

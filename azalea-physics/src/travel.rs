@@ -249,26 +249,32 @@ fn travel_fall_flying(ctx: &mut MoveCtx) {
     movement.y += gravity * (-1.0 + lift_force * 0.75);
     if movement.y < 0.0 && look_horizontal_length > 0.0 {
         let convert = movement.y * -0.1 * lift_force;
+        // network-safe: float division (f64 and f32 don't panic)
         movement += Vec3::new(
             look_angle.x * convert / look_horizontal_length,
             convert,
+            // network-safe: float division (f64 and f32 don't panic)
             look_angle.z * convert / look_horizontal_length,
         );
     }
 
     if lean_angle < 0.0 && look_horizontal_length > 0.0 {
         let convert = move_horizontal_length * -azalea_core::math::sin(lean_angle) as f64 * 0.04;
+        // network-safe: float division (f64 and f32 don't panic)
         movement += Vec3::new(
             -look_angle.x * convert / look_horizontal_length,
             convert * 3.2,
+            // network-safe: float division (f64 and f32 don't panic)
             -look_angle.z * convert / look_horizontal_length,
         );
     }
 
     if look_horizontal_length > 0.0 {
+        // network-safe: float division (f64 and f32 don't panic)
         movement += Vec3::new(
             (look_angle.x / look_horizontal_length * move_horizontal_length - movement.x) * 0.1,
             0.0,
+            // network-safe: float division (f64 and f32 don't panic)
             (look_angle.z / look_horizontal_length * move_horizontal_length - movement.z) * 0.1,
         );
     }

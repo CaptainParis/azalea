@@ -204,8 +204,11 @@ pub fn traverse_blocks<C, T>(
 
     #[rustfmt::skip]
     let percentage_step = Vec3 {
+        // network-safe: float division (f64 and f32 don't panic)
         x: if vec_sign.x == 0. { f64::MAX } else { vec_sign.x / vec.x },
+        // network-safe: float division (f64 and f32 don't panic)
         y: if vec_sign.y == 0. { f64::MAX } else { vec_sign.y / vec.y },
+        // network-safe: float division (f64 and f32 don't panic)
         z: if vec_sign.z == 0. { f64::MAX } else { vec_sign.z / vec.z },
     };
 
@@ -295,16 +298,19 @@ pub fn add_collisions_along_travel(
     let step_x = if direction_x == 0 {
         f64::MAX
     } else {
+        // network-safe: float division (f64 and f32 don't panic)
         direction_x as f64 / delta.x
     };
     let step_y = if direction_y == 0 {
         f64::MAX
     } else {
+        // network-safe: float division (f64 and f32 don't panic)
         direction_y as f64 / delta.y
     };
     let step_z = if direction_z == 0 {
         f64::MAX
     } else {
+        // network-safe: float division (f64 and f32 don't panic)
         direction_z as f64 / delta.z
     };
     let mut cur_x = step_x
