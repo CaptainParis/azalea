@@ -8,8 +8,8 @@ use std::{
 use indexmap::IndexMap;
 
 use crate::{
-    AzBuf, AzBufLimited, AzBufVar, BufReadError, MAX_STRING_LENGTH, UnsizedByteArray, read_bytes,
-    read_utf_with_len, write_utf_with_len,
+    AzBuf, AzBufLimited, AzBufVar, BufReadError, MAX_STRING_LENGTH, UnsizedByteArray, limits,
+    read_bytes, read_utf_with_len, write_utf_with_len,
 };
 
 impl AzBuf for UnsizedByteArray {
@@ -27,10 +27,15 @@ impl AzBuf for UnsizedByteArray {
 macro_rules! impl_for_map_type {
     ($ty: ident) => {
         impl<K: AzBuf + Eq + Hash, V: AzBuf> AzBuf for $ty<K, V> {
+            const MIN_ENCODED_SIZE: usize = 1;
+
             fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
-                let length = i32::azalea_read_var(buf)? as usize;
-                let mut contents = Self::with_capacity(usize::min(length, 65536));
+                let min = K::MIN_ENCODED_SIZE + V::MIN_ENCODED_SIZE;
+                let length = limits::read_collection_len(buf, min)?;
+                let mut contents =
+                    Self::with_capacity(limits::initial_capacity::<(K, V)>(buf, length, min));
                 for _ in 0..length {
+                    limits::charge_element_if_zero_size(min)?;
                     contents.insert(K::azalea_read(buf)?, V::azalea_read(buf)?);
                 }
                 Ok(contents)
@@ -47,8 +52,11 @@ macro_rules! impl_for_map_type {
         }
         impl<K: AzBuf + Eq + Hash, V: AzBufVar> AzBufVar for $ty<K, V> {
             fn azalea_read_var(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
-                let length = i32::azalea_read_var(buf)? as usize;
-                let mut contents = Self::with_capacity(usize::min(length, 65536));
+                // a VarInt is at least one byte
+                let min = K::MIN_ENCODED_SIZE + 1;
+                let length = limits::read_collection_len(buf, min)?;
+                let mut contents =
+                    Self::with_capacity(limits::initial_capacity::<(K, V)>(buf, length, min));
                 for _ in 0..length {
                     contents.insert(K::azalea_read(buf)?, V::azalea_read_var(buf)?);
                 }
@@ -70,17 +78,26 @@ macro_rules! impl_for_map_type {
 impl_for_map_type!(HashMap);
 impl_for_map_type!(IndexMap);
 
+/// Read `length` elements of `T` into a `Vec`, preallocating at most what
+/// [`limits::initial_capacity`] allows.
+fn read_elements<T: AzBuf>(buf: &mut Cursor<&[u8]>, length: usize) -> Result<Vec<T>, BufReadError> {
+    let min = T::MIN_ENCODED_SIZE;
+    let mut contents = Vec::with_capacity(limits::initial_capacity::<T>(buf, length, min));
+    for _ in 0..length {
+        limits::charge_element_if_zero_size(min)?;
+        contents.push(T::azalea_read(buf)?);
+    }
+    Ok(contents)
+}
+
 macro_rules! impl_for_list_type {
     ($ty: ty) => {
         impl<T: AzBuf> AzBuf for $ty {
+            const MIN_ENCODED_SIZE: usize = 1;
+
             default fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
-                let length = u32::azalea_read_var(buf)? as usize;
-                // we limit the capacity to not get exploited into allocating a bunch
-                let mut contents = Vec::with_capacity(usize::min(length, 65536));
-                for _ in 0..length {
-                    contents.push(T::azalea_read(buf)?);
-                }
-                Ok(contents.into())
+                let length = limits::read_collection_len(buf, T::MIN_ENCODED_SIZE)?;
+                Ok(read_elements::<T>(buf, length)?.into())
             }
             default fn azalea_write(&self, buf: &mut impl Write) -> io::Result<()> {
                 (self.len() as u32).azalea_write_var(buf)?;
@@ -92,8 +109,10 @@ macro_rules! impl_for_list_type {
         }
         impl<T: AzBufVar> AzBufVar for $ty {
             fn azalea_read_var(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
-                let length = i32::azalea_read_var(buf)? as usize;
-                let mut contents = Vec::with_capacity(usize::min(length, 65536));
+                // a VarInt is at least one byte
+                let length = limits::read_collection_len(buf, 1)?;
+                let mut contents =
+                    Vec::with_capacity(limits::initial_capacity::<T>(buf, length, 1));
                 for _ in 0..length {
                     contents.push(T::azalea_read_var(buf)?);
                 }
@@ -112,19 +131,17 @@ macro_rules! impl_for_list_type {
                 buf: &mut Cursor<&[u8]>,
                 limit: u32,
             ) -> Result<Self, BufReadError> {
-                let length = u32::azalea_read_var(buf)?;
-                if length > limit {
-                    return Err(BufReadError::VecLengthTooLong {
-                        length: length as u32,
-                        max_length: limit as u32,
-                    });
+                // ByteBufCodecs.readCount
+                let length = limits::read_collection_len(buf, 0)?;
+                if length > limit as usize {
+                    return Err(limits::limit_error(
+                        limits::LimitKind::CollectionLength,
+                        length as u64,
+                        limit as u64,
+                    ));
                 }
-
-                let mut contents = Vec::with_capacity(u32::min(length, 65536) as usize);
-                for _ in 0..length {
-                    contents.push(T::azalea_read(buf)?);
-                }
-                Ok(contents.into())
+                limits::check_collection_len(buf, length, T::MIN_ENCODED_SIZE)?;
+                Ok(read_elements::<T>(buf, length)?.into())
             }
         }
     };
@@ -139,7 +156,7 @@ impl_for_list_type!(Box<[T]>);
 
 impl AzBuf for Vec<u8> {
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
-        let length = i32::azalea_read_var(buf)? as usize;
+        let length = limits::read_collection_len(buf, 1)?;
         read_bytes(buf, length).map(|b| b.to_vec())
     }
     fn azalea_write(&self, buf: &mut impl Write) -> io::Result<()> {
@@ -150,7 +167,7 @@ impl AzBuf for Vec<u8> {
 
 impl AzBuf for Box<[u8]> {
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
-        let length = i32::azalea_read_var(buf)? as usize;
+        let length = limits::read_collection_len(buf, 1)?;
         read_bytes(buf, length).map(Box::from)
     }
     fn azalea_write(&self, buf: &mut impl Write) -> io::Result<()> {
@@ -160,6 +177,8 @@ impl AzBuf for Box<[u8]> {
 }
 
 impl AzBuf for String {
+    const MIN_ENCODED_SIZE: usize = 1;
+
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
         read_utf_with_len(buf, MAX_STRING_LENGTH).map(Into::into)
     }
@@ -174,6 +193,8 @@ impl AzBufLimited for String {
 }
 
 impl AzBuf for Box<str> {
+    const MIN_ENCODED_SIZE: usize = 1;
+
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
         read_utf_with_len(buf, MAX_STRING_LENGTH).map(Into::into)
     }
@@ -189,6 +210,8 @@ impl AzBufLimited for Box<str> {
 }
 
 impl<T: AzBuf> AzBuf for Option<T> {
+    const MIN_ENCODED_SIZE: usize = 1;
+
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
         let present = bool::azalea_read(buf)?;
         Ok(if present {
@@ -239,6 +262,8 @@ impl<T: AzBufLimited> AzBufLimited for Option<T> {
 }
 
 impl<T: AzBuf, const N: usize> AzBuf for [T; N] {
+    const MIN_ENCODED_SIZE: usize = T::MIN_ENCODED_SIZE * N;
+
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
         let mut contents = Vec::with_capacity(N);
         for _ in 0..N {
@@ -296,6 +321,8 @@ impl<T> AzBuf for Box<T>
 where
     T: AzBuf,
 {
+    const MIN_ENCODED_SIZE: usize = T::MIN_ENCODED_SIZE;
+
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
         T::azalea_read(buf).map(Box::new)
     }
@@ -305,6 +332,8 @@ where
 }
 
 impl<A: AzBuf, B: AzBuf> AzBuf for (A, B) {
+    const MIN_ENCODED_SIZE: usize = A::MIN_ENCODED_SIZE + B::MIN_ENCODED_SIZE;
+
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
         let a = A::azalea_read(buf)?;
         let b = B::azalea_read(buf)?;
@@ -317,6 +346,8 @@ impl<A: AzBuf, B: AzBuf> AzBuf for (A, B) {
 }
 
 impl<T: AzBuf> AzBuf for Arc<T> {
+    const MIN_ENCODED_SIZE: usize = T::MIN_ENCODED_SIZE;
+
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
         Ok(Arc::new(T::azalea_read(buf)?))
     }

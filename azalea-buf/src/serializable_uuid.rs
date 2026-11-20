@@ -35,6 +35,8 @@ impl SerializableUuid for Uuid {
 }
 
 impl AzBuf for Uuid {
+    const MIN_ENCODED_SIZE: usize = 16;
+
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
         Ok(Uuid::from_int_array([
             u32::azalea_read(buf)?,

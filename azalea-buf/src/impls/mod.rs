@@ -15,6 +15,15 @@ pub trait AzBuf
 where
     Self: Sized,
 {
+    /// A lower bound on how many bytes [`Self::azalea_read`] consumes.
+    ///
+    /// Collections use it to reject a length prefix the bytes left can't
+    /// hold. It must never be larger than the real minimum; 0 (the default)
+    /// is always correct and makes collections of the type count against the
+    /// packet's element budget instead
+    /// ([`crate::limits::ELEMENT_BUDGET`]).
+    const MIN_ENCODED_SIZE: usize = 0;
+
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError>;
     fn azalea_write(&self, buf: &mut impl Write) -> io::Result<()>;
 }
@@ -52,12 +61,14 @@ pub enum BufReadError {
     InvalidVarLong,
     #[error("Error reading bytes")]
     CouldNotReadBytes,
-    #[error(
-        "The received encoded string buffer length is longer than maximum allowed ({length} > {max_length})"
-    )]
-    StringLengthTooLong { length: u32, max_length: u32 },
-    #[error("The received Vec length is longer than maximum allowed ({length} > {max_length})")]
-    VecLengthTooLong { length: u32, max_length: u32 },
+    /// A size or depth limit from [`crate::limits`] was exceeded. Make these
+    /// with [`crate::limits::limit_error`].
+    #[error("{kind} limit exceeded ({value} > {max})")]
+    Limit {
+        kind: crate::limits::LimitKind,
+        value: u64,
+        max: u64,
+    },
     #[error("{source}")]
     Io {
         #[from]
@@ -107,31 +118,38 @@ pub(crate) fn read_bytes<'a>(
     buf: &'a mut Cursor<&[u8]>,
     length: usize,
 ) -> Result<&'a [u8], BufReadError> {
-    if length > (buf.get_ref().len() - buf.position() as usize) {
+    let data = *buf.get_ref();
+    let initial_position = (buf.position() as usize).min(data.len());
+    let Some(bytes) = data[initial_position..].get(..length) else {
         return Err(BufReadError::UnexpectedEof {
             attempted_read: length,
-            actual_read: buf.get_ref().len() - buf.position() as usize,
+            actual_read: data.len() - initial_position,
             backtrace: Backtrace::capture(),
         });
-    }
-    let initial_position = buf.position() as usize;
-    buf.set_position(buf.position() + length as u64);
-    let data = &buf.get_ref()[initial_position..initial_position + length];
-    Ok(data)
+    };
+    buf.set_position((initial_position + length) as u64);
+    Ok(bytes)
 }
 
 pub(crate) fn read_utf_with_len<'a>(
     buf: &'a mut Cursor<&[u8]>,
     max_length: u32,
 ) -> Result<&'a str, BufReadError> {
-    let length = u32::azalea_read_var(buf)?;
-    // i don't know why it's multiplied by 4 but it's like that in mojang's code
-    // so
-    if length > max_length * 4 {
-        return Err(BufReadError::StringLengthTooLong {
-            length,
-            max_length: max_length * 4,
-        });
+    use crate::limits::{LimitKind, limit_error};
+
+    // Utf8String.read: at most 3 bytes per UTF-16 unit
+    // (ByteBufUtil.utf8MaxBytes), then at most max_length UTF-16 units
+    let max_bytes = max_length as u64 * 3;
+    let length = i32::azalea_read_var(buf)?;
+    if length < 0 {
+        return Err(limit_error(LimitKind::StringLength, length as u64, 0));
+    }
+    if length as u64 > max_bytes {
+        return Err(limit_error(
+            LimitKind::StringLength,
+            length as u64,
+            max_bytes,
+        ));
     }
 
     let buffer = read_bytes(buf, length as usize)?;
@@ -140,8 +158,17 @@ pub(crate) fn read_utf_with_len<'a>(
         lossy: String::from_utf8_lossy(buffer).to_string(),
         // backtrace: Backtrace::capture(),
     })?;
-    if string.len() > length as usize {
-        return Err(BufReadError::StringLengthTooLong { length, max_length });
+    // only count UTF-16 units when the byte length allows more than the
+    // maximum (each unit is at least one byte)
+    if string.len() > max_length as usize {
+        let units = string.encode_utf16().count();
+        if units > max_length as usize {
+            return Err(limit_error(
+                LimitKind::StringLength,
+                units as u64,
+                max_length as u64,
+            ));
+        }
     }
 
     Ok(string)

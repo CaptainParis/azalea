@@ -54,12 +54,14 @@ pub struct GameProfileProperties {
 impl AzBuf for GameProfileProperties {
     fn azalea_read(buf: &mut io::Cursor<&[u8]>) -> Result<Self, BufReadError> {
         let mut properties = IndexMap::new();
-        let properties_len = u32::azalea_read_var(buf)?;
+        // ByteBufCodecs.readCount(buf, 16)
+        let properties_len = azalea_buf::limits::read_collection_len(buf, 0)?;
         if properties_len > 16 {
-            return Err(BufReadError::VecLengthTooLong {
-                length: properties_len,
-                max_length: 16,
-            });
+            return Err(azalea_buf::limits::limit_error(
+                azalea_buf::limits::LimitKind::CollectionLength,
+                properties_len as u64,
+                16,
+            ));
         }
         for _ in 0..properties_len {
             let key = String::azalea_read_limited(buf, 64)?;

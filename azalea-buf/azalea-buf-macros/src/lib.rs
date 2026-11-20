@@ -18,9 +18,11 @@ pub fn derive_azbuf(input: TokenStream) -> TokenStream {
 
     let writable = write::create_fn_azalea_write(&data);
     let readable = read::create_fn_azalea_read(&data);
+    let min_encoded_size = read::create_min_encoded_size(&data);
     quote! {
         #[automatically_derived]
         impl #impl_generics azalea_buf::AzBuf for #ident #ty_generics #where_clause {
+            const MIN_ENCODED_SIZE: usize = #min_encoded_size;
             #writable
             #readable
         }

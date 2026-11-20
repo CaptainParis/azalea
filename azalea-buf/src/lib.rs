@@ -3,8 +3,11 @@
 // this is necessary for thiserror backtraces
 #![feature(error_generic_member_access)]
 
+extern crate self as azalea_buf;
+
 mod definitions;
 pub mod impls;
+pub mod limits;
 mod serializable_uuid;
 
 pub use azalea_buf_macros::*;

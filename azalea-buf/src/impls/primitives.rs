@@ -15,6 +15,8 @@ impl AzBuf for () {
 }
 
 impl AzBuf for i32 {
+    const MIN_ENCODED_SIZE: usize = 4;
+
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
         Ok(buf.read_i32::<BE>()?)
     }
@@ -100,6 +102,8 @@ impl AzBufVar for u64 {
 }
 
 impl AzBuf for u32 {
+    const MIN_ENCODED_SIZE: usize = 4;
+
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
         Ok(i32::azalea_read(buf)? as u32)
     }
@@ -118,6 +122,8 @@ impl AzBufVar for u32 {
 }
 
 impl AzBuf for u16 {
+    const MIN_ENCODED_SIZE: usize = 2;
+
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
         i16::azalea_read(buf).map(|i| i as u16)
     }
@@ -127,6 +133,8 @@ impl AzBuf for u16 {
 }
 
 impl AzBuf for i16 {
+    const MIN_ENCODED_SIZE: usize = 2;
+
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
         Ok(buf.read_i16::<BE>()?)
     }
@@ -145,6 +153,8 @@ impl AzBufVar for u16 {
 }
 
 impl AzBuf for i64 {
+    const MIN_ENCODED_SIZE: usize = 8;
+
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
         Ok(buf.read_i64::<BE>()?)
     }
@@ -154,6 +164,8 @@ impl AzBuf for i64 {
 }
 
 impl AzBuf for u64 {
+    const MIN_ENCODED_SIZE: usize = 8;
+
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
         i64::azalea_read(buf).map(|i| i as u64)
     }
@@ -163,6 +175,8 @@ impl AzBuf for u64 {
 }
 
 impl AzBuf for bool {
+    const MIN_ENCODED_SIZE: usize = 1;
+
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
         let byte = u8::azalea_read(buf)?;
         if byte > 1 {
@@ -177,6 +191,8 @@ impl AzBuf for bool {
 }
 
 impl AzBuf for u8 {
+    const MIN_ENCODED_SIZE: usize = 1;
+
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
         Ok(buf.read_u8()?)
     }
@@ -186,6 +202,8 @@ impl AzBuf for u8 {
 }
 
 impl AzBuf for i8 {
+    const MIN_ENCODED_SIZE: usize = 1;
+
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
         u8::azalea_read(buf).map(|i| i as i8)
     }
@@ -195,6 +213,8 @@ impl AzBuf for i8 {
 }
 
 impl AzBuf for f32 {
+    const MIN_ENCODED_SIZE: usize = 4;
+
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
         Ok(buf.read_f32::<BE>()?)
     }
@@ -204,6 +224,8 @@ impl AzBuf for f32 {
 }
 
 impl AzBuf for f64 {
+    const MIN_ENCODED_SIZE: usize = 8;
+
     fn azalea_read(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
         Ok(buf.read_f64::<BE>()?)
     }

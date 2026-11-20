@@ -218,3 +218,29 @@ fn get_reader_call(f: &Field) -> proc_macro2::TokenStream {
         ),
     }
 }
+
+/// A lower bound on the encoded size of the type, in bytes: the sum of the
+/// fields' lower bounds for a struct, and 1 (the VarInt variant id) for an
+/// enum. Fields read with `#[var]` or `#[limit]` start with at least one byte
+/// (a VarInt, or a length or presence prefix).
+pub fn create_min_encoded_size(data: &Data) -> proc_macro2::TokenStream {
+    match data {
+        syn::Data::Struct(syn::DataStruct { fields, .. }) => {
+            let field_sizes = fields.iter().map(|f| {
+                let special = f
+                    .attrs
+                    .iter()
+                    .any(|a| a.path().is_ident("var") || a.path().is_ident("limit"));
+                if special {
+                    quote! { 1 }
+                } else {
+                    let ty = &f.ty;
+                    quote! { <#ty as azalea_buf::AzBuf>::MIN_ENCODED_SIZE }
+                }
+            });
+            quote! { 0 #(+ #field_sizes)* }
+        }
+        syn::Data::Enum(_) => quote! { 1 },
+        _ => quote! { 0 },
+    }
+}
