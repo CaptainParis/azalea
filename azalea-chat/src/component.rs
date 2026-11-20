@@ -833,6 +833,44 @@ mod tests {
     use super::*;
     use crate::style::TextColor;
 
+    // fuzz finding (chat_component, WP2 gate): `with` lists of shorts, floats
+    // or doubles (NbtOps writes a homogeneous list of them as a typed list)
+    // didn't read back, so a component with such an argument (or nested in
+    // one) lost it on our own round trip. Vanilla's ARG_CODEC reads every
+    // primitive in the list.
+    #[cfg(feature = "azalea-buf")]
+    #[test]
+    fn primitive_translate_args_round_trip() {
+        use azalea_buf::AzBuf;
+        for args in [
+            vec![PrimitiveOrComponent::Float(0.)],
+            vec![PrimitiveOrComponent::Short(256), PrimitiveOrComponent::Short(-1)],
+            vec![PrimitiveOrComponent::Double(1.5)],
+            vec![PrimitiveOrComponent::Boolean(true)],
+            vec![PrimitiveOrComponent::Integer(3)],
+            vec![PrimitiveOrComponent::Long(7)],
+            vec![
+                PrimitiveOrComponent::String("a".to_owned()),
+                PrimitiveOrComponent::FormattedText(FormattedText::Translatable(
+                    TranslatableComponent::new(
+                        "chat.square_brackets".to_owned(),
+                        vec![PrimitiveOrComponent::Float(8.)],
+                    ),
+                )),
+            ],
+        ] {
+            let text = FormattedText::Translatable(TranslatableComponent::new(
+                "multiplayer.player.joined".to_owned(),
+                args,
+            ));
+            let mut bytes = Vec::new();
+            text.azalea_write(&mut bytes).unwrap();
+            let back = FormattedText::azalea_read(&mut std::io::Cursor::new(&bytes[..]))
+                .unwrap_or_else(|e| panic!("{text:?}: {e}"));
+            assert_eq!(back, text);
+        }
+    }
+
     #[test]
     fn deserialize_translation() {
         let j: Value =
