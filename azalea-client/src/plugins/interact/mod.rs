@@ -4,11 +4,10 @@ use std::collections::HashMap;
 
 use azalea_block::BlockState;
 use azalea_core::{
-    delta::LpVec3,
     direction::Direction,
     game_type::GameMode,
     hit_result::{BlockHitResult, HitResult},
-    position::{BlockPos, Vec3},
+    position::{BlockPos, Vec3, Vec3f32},
     tick::GameTick,
 };
 use azalea_entity::{
@@ -26,7 +25,8 @@ use azalea_physics::{
     collision::entity_collisions::update_last_bounding_box,
 };
 use azalea_protocol::packets::game::{
-    ServerboundInteract, ServerboundUseItem, s_interact::InteractionHand,
+    ServerboundInteract, ServerboundUseItem,
+    s_interact::{self, InteractionHand},
     s_swing::ServerboundSwing, s_use_item_on::ServerboundUseItemOn,
 };
 use azalea_world::World;
@@ -330,6 +330,11 @@ pub fn handle_entity_interact(
         return;
     };
 
+    let Ok(target_position) = target_query.get(trigger.target) else {
+        warn!("tried to interact with an entity without the entity having a position");
+        return;
+    };
+
     let location = if let Some(l) = trigger.location {
         l
     } else {
@@ -341,29 +346,41 @@ pub fn handle_entity_interact(
         } else {
             // if we're not looking at the entity, make up a value that's good
             // enough by using the entity's position
-            let Ok(target_position) = target_query.get(trigger.target) else {
-                warn!("tried to look at an entity without the entity having a position");
-                return;
-            };
             **target_position
         }
     };
 
-    let interact = ServerboundInteract {
-        entity_id,
-        hand: InteractionHand::MainHand,
-        location: LpVec3::from(location),
-        using_secondary_action: physics_state.trying_to_crouch,
-    };
-    commands.trigger(SendGamePacketEvent::new(trigger.client, interact.clone()));
+    let using_secondary_action = physics_state.trying_to_crouch;
+    let hand = InteractionHand::MainHand;
+
+    // 1.21.4 Minecraft.startUseItem calls MultiPlayerGameMode.interactAt, which
+    // sends the hit location relative to the entity...
+    commands.trigger(SendGamePacketEvent::new(
+        trigger.client,
+        ServerboundInteract {
+            entity_id,
+            action: s_interact::ActionType::InteractAt {
+                location: Vec3f32::from(location - **target_position),
+                hand,
+            },
+            using_secondary_action,
+        },
+    ));
 
     // TODO: this is true if the interaction failed, which i think can only
     // happen in certain cases when interacting with armor stands
     let consumes_action = false;
     if !consumes_action {
-        // but yes, most of the time vanilla really does send two identical
-        // interact packets like this
-        commands.trigger(SendGamePacketEvent::new(trigger.client, interact));
+        // ...and then MultiPlayerGameMode.interact if that didn't consume the
+        // action
+        commands.trigger(SendGamePacketEvent::new(
+            trigger.client,
+            ServerboundInteract {
+                entity_id,
+                action: s_interact::ActionType::Interact { hand },
+                using_secondary_action,
+            },
+        ));
     }
 }
 
