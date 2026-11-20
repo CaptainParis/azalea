@@ -29,7 +29,7 @@ use tokio::{
     net::tcp::OwnedWriteHalf,
     sync::mpsc::{self},
 };
-use tracing::{debug, error, info, trace};
+use tracing::{debug, error, info, trace, warn};
 
 use super::packet::{
     config::ReceiveConfigPacketEvent, game::ReceiveGamePacketEvent, login::ReceiveLoginPacketEvent,
@@ -200,9 +200,9 @@ impl RawConnection {
         let (network_packet_writer_tx, network_packet_writer_rx) =
             mpsc::unbounded_channel::<Box<[u8]>>();
 
-        let writer_task = crate::task_pool::owner::spawn_io(write_task(
-            network_packet_writer_rx,
-            writer.write_stream,
+        // Compat: the per-write time cap needs a tokio timer
+        let writer_task = crate::task_pool::owner::spawn_io(async_compat::Compat::new(
+            write_task(network_packet_writer_rx, writer.write_stream),
         ));
 
         let mut conn = Self::new_networkless(state);
@@ -364,11 +364,19 @@ async fn write_task(
     mut network_packet_writer_rx: mpsc::UnboundedReceiver<Box<[u8]>>,
     mut write_half: OwnedWriteHalf,
 ) {
+    let cap = crate::task_pool::owner::WRITE_CAP;
     while let Some(network_packet) = network_packet_writer_rx.recv().await {
-        if let Err(e) = write_half.write_all(&network_packet).await {
-            debug!("Error writing packet to server: {e}");
-            break;
-        };
+        match tokio::time::timeout(cap, write_half.write_all(&network_packet)).await {
+            Ok(Ok(())) => {}
+            Ok(Err(e)) => {
+                debug!("Error writing packet to server: {e}");
+                break;
+            }
+            Err(_) => {
+                warn!("Writing a packet to the server took longer than {cap:?}");
+                break;
+            }
+        }
     }
 
     trace!("write task is done");

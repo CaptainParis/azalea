@@ -11,6 +11,8 @@ pub enum FetchCertificatesError {
     Http(#[from] reqwest::Error),
     #[error("Couldn't parse pkcs8 private key: {0}")]
     Pkcs8(#[from] rsa::pkcs8::Error),
+    #[error("Fetching certificates took longer than {0:?}")]
+    TimedOut(std::time::Duration),
 }
 
 /// Fetch the Mojang-provided key-pair for your player, which is used for

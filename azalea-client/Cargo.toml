@@ -34,7 +34,7 @@ regex.workspace = true
 reqwest = { workspace = true, optional = true, features = ["socks"] }
 simdnbt.workspace = true
 thiserror.workspace = true
-tokio = { workspace = true, features = ["sync"] }
+tokio = { workspace = true, features = ["sync", "time"] }
 tracing.workspace = true
 uuid.workspace = true
 # TODO: this is here to make bevy show system names in conflict warnings.

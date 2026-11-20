@@ -126,8 +126,11 @@ pub fn request_certs_if_needed(
 
         if should_refresh && let Some(access_token) = account.access_token() {
             debug!("Started task to fetch certs");
+            let cap = crate::task_pool::owner::CERTS_CAP;
             let task = crate::task_pool::owner::spawn_io(async_compat::Compat::new(async move {
-                azalea_auth::certs::fetch_certificates(&access_token).await
+                tokio::time::timeout(cap, azalea_auth::certs::fetch_certificates(&access_token))
+                    .await
+                    .unwrap_or(Err(azalea_auth::certs::FetchCertificatesError::TimedOut(cap)))
             }));
             commands
                 .entity(entity)

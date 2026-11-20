@@ -160,6 +160,20 @@ pub fn handle_start_join_server_event(
 async fn create_conn_and_send_intention_packet(
     opts: ConnectOpts,
 ) -> Result<LoginConn, ConnectionError> {
+    let cap = crate::task_pool::owner::CONNECT_CAP;
+    tokio::time::timeout(cap, connect_and_send_intention_packet(opts))
+        .await
+        .unwrap_or_else(|_| {
+            Err(ConnectionError::Io(std::io::Error::new(
+                std::io::ErrorKind::TimedOut,
+                format!("connecting took longer than {cap:?}"),
+            )))
+        })
+}
+
+async fn connect_and_send_intention_packet(
+    opts: ConnectOpts,
+) -> Result<LoginConn, ConnectionError> {
     let mut conn = if let Some(proxy) = opts.server_proxy {
         Connection::new_with_proxy(&opts.address.socket, proxy).await?
     } else {

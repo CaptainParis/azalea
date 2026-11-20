@@ -148,6 +148,13 @@ where
 
         // check for timeout every ~10ms
         if num_nodes.is_multiple_of(10_000) {
+            // a hard cap whatever the options say (node-count timeouts
+            // included): the search runs on the shared async compute pool,
+            // which the tick watchdog doesn't see
+            if start_time.elapsed() >= SEARCH_TIME_CAP {
+                warn!("A* search hit the {SEARCH_TIME_CAP:?} cap, returning best path");
+                break;
+            }
             let min_timeout_reached = match min_timeout {
                 PathfinderTimeout::Time(max_duration) => start_time.elapsed() >= max_duration,
                 PathfinderTimeout::Nodes(max_nodes) => num_nodes >= max_nodes,
@@ -291,6 +298,9 @@ impl<P: Hash + Copy + Clone, M: Clone> Clone for Movement<P, M> {
         }
     }
 }
+
+/// The longest one search may take, whatever its [`PathfinderTimeout`]s.
+pub const SEARCH_TIME_CAP: Duration = Duration::from_secs(60);
 
 /// A timeout that the pathfinder will consider when calculating a path.
 ///

@@ -44,9 +44,12 @@ fn handle_receive_hello_event(
         None
     };
 
-    let task = crate::task_pool::owner::spawn_io(async {
-        auth_with_account(account, packet, connect_opts).await
-    });
+    let cap = crate::task_pool::owner::AUTH_CAP;
+    let task = crate::task_pool::owner::spawn_io(async_compat::Compat::new(async move {
+        tokio::time::timeout(cap, auth_with_account(account, packet, connect_opts))
+            .await
+            .unwrap_or(Err(AuthWithAccountError::TimedOut(cap)))
+    }));
     commands.entity(client).insert(AuthTask(task));
 }
 
@@ -97,6 +100,8 @@ pub struct AuthTask(Task<Result<(ServerboundKey, PrivateKey), AuthWithAccountErr
 pub enum AuthWithAccountError {
     #[error("Failed to encrypt the challenge from the server for {0:?}")]
     Encryption(ClientboundHello),
+    #[error("Authenticating took longer than {0:?}")]
+    TimedOut(std::time::Duration),
     #[cfg(feature = "online-mode")]
     #[error("{0}")]
     SessionServer(#[from] ClientSessionServerError),

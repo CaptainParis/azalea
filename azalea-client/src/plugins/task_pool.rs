@@ -200,6 +200,19 @@ pub mod owner {
 
     use bevy_tasks::{AsyncComputeTaskPool, IoTaskPool, Task};
 
+    use std::time::Duration;
+
+    /// Time cap of the TCP connect and handshake task (WP3's `Connecting`).
+    pub const CONNECT_CAP: Duration = Duration::from_secs(30);
+    /// Time cap of the session server join task (WP3's `Authenticating`).
+    pub const AUTH_CAP: Duration = Duration::from_secs(60);
+    /// Time cap of the chat signing certificate fetch.
+    pub const CERTS_CAP: Duration = Duration::from_secs(60);
+    /// Time cap of one write of the packet writer task; past it the server
+    /// isn't reading (vanilla kicks a silent client after 30 s) and the
+    /// connection ends.
+    pub const WRITE_CAP: Duration = Duration::from_secs(60);
+
     thread_local! {
         static OWNER: Cell<Option<u64>> = const { Cell::new(None) };
     }
