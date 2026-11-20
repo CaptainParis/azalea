@@ -167,6 +167,12 @@ const NOT_DECODE_ERRORS: &[(&str, &str, usize, &str)] = &[
     // into an error) to the caller instead of skipping, so the failure reaches
     // RegistryType::append_nbt, which counts it
     (
+        "../azalea-core/src/registry_holder/dimension_type.rs",
+        "let Some(logical_height) = self.logical_height() else {",
+        1,
+        "out_of_bounds returns the reason; RegistryType::append_nbt counts it as DimensionType",
+    ),
+    (
         "../azalea-core/src/registry_holder/components.rs",
         "let Ok(nbt) = nbt.list(\"CrossbowChargingSounds\") else {",
         1,
