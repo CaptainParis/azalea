@@ -79,6 +79,18 @@ pub enum DecodeErrorKind {
     /// min_y, logical height); the entry is rejected before any chunk
     /// storage is sized from it.
     DimensionType,
+    /// A panic on a bot's own thread, or in a task it spawned on a shared
+    /// pool (the task carries the bot's id). The bot's connection is closed
+    /// and its app dropped; it's never resumed.
+    ///
+    /// Not a decode error, but a fault the same zero check must see.
+    Panic,
+    /// A panic on a thread that doesn't belong to any bot (a task spawned
+    /// without a bot id): a process-level fault.
+    ProcessPanic,
+    /// A bot whose game tick didn't advance for the watchdog's stall time:
+    /// its connection is closed and its thread abandoned.
+    Stall,
 }
 
 impl DecodeErrorKind {
@@ -159,6 +171,9 @@ kinds! {
     NbtSize => nbt_size,
     NestingDepth => nesting_depth,
     DimensionType => dimension_type,
+    Panic => panic,
+    ProcessPanic => process_panic,
+    Stall => stall,
 }
 
 fn counter(kind: DecodeErrorKind) -> &'static AtomicU64 {
