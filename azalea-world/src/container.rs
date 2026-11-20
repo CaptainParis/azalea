@@ -48,6 +48,18 @@ impl Worlds {
         self.map.get(name).and_then(|world| world.upgrade())
     }
 
+    /// Forget the worlds no client holds anymore; returns how many.
+    pub fn prune(&mut self) -> usize {
+        let before = self.map.len();
+        self.map.retain(|_, w| w.strong_count() > 0);
+        before - self.map.len()
+    }
+
+    /// How many worlds are in use (live entries).
+    pub fn live_count(&self) -> usize {
+        self.map.values().filter(|w| w.strong_count() > 0).count()
+    }
+
     /// Add an empty world to the container (unless it already exists) and
     /// returns a strong reference to the world.
     #[must_use = "the world will be immediately forgotten if unused"]
@@ -76,6 +88,9 @@ impl Worlds {
                 existing_lock.clone()
             }
             _ => {
+                // worlds no client holds anymore go, so the map stays bounded
+                // by the worlds in use
+                self.prune();
                 let world = Arc::new(RwLock::new(World {
                     chunks: ChunkStorage::new(height, min_y),
                     entities_by_chunk: HashMap::new(),
@@ -111,5 +126,40 @@ impl Display for WorldName {
 impl From<Identifier> for WorldName {
     fn from(ident: Identifier) -> Self {
         Self(ident)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use azalea_core::registry_holder::RegistryHolder;
+
+    use super::*;
+
+    /// A world no client holds is forgotten when another is added (and by
+    /// `prune`), so the map is bounded by the worlds in use.
+    #[test]
+    fn worlds_without_holders_are_pruned() {
+        let mut worlds = Worlds::new();
+        let r = RegistryHolder::default();
+        let mut held = Vec::new();
+        for name in [
+            "minecraft:overworld",
+            "minecraft:the_nether",
+            "minecraft:the_end",
+        ] {
+            held.push(worlds.get_or_insert(WorldName::new(name), 384, -64, &r));
+        }
+        assert_eq!(worlds.map.len(), 3);
+        // the client moves on: only one world held at a time
+        held.clear();
+        for i in 0..20 {
+            let name = format!("minecraft:dim{}", i % 4);
+            let w = worlds.get_or_insert(WorldName::new(&name), 384, -64, &r);
+            assert!(worlds.map.len() <= 1, "{}", worlds.map.len());
+            drop(w);
+        }
+        assert_eq!(worlds.live_count(), 0);
+        assert_eq!(worlds.prune(), 1);
+        assert!(worlds.map.is_empty());
     }
 }

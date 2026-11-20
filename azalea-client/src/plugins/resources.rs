@@ -6,6 +6,8 @@
 //!   ring eviction), and every [`ResourceBounds::sweep_every`] a sweep forgets
 //!   the entries whose chunk nothing holds anymore (another holder may have
 //!   dropped it later).
+//! - The [`Worlds`] map keeps a `Weak` per world: worlds no client holds are
+//!   forgotten when another world is added and by the sweep.
 //! - `PartialEntityInfos::updates_received` has entries only for entities the
 //!   client knows: an entity's entry goes when the server removes it, and the
 //!   sweep drops entries of ids no longer in the client's [`EntityIdIndex`].
@@ -42,7 +44,9 @@ pub struct ResourcesPlugin;
 impl Plugin for ResourcesPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<ResourceBounds>()
-            .add_systems(Update, sweep_chunk_maps);
+            // only forgets what nothing holds: its order against other
+            // systems doesn't matter
+            .add_systems(Update, sweep_chunk_maps.ambiguous_with_all());
     }
 }
 
@@ -54,7 +58,7 @@ pub struct LastSweep(Option<Instant>);
 /// whose chunk nothing holds.
 pub fn sweep_chunk_maps(
     bounds: Res<ResourceBounds>,
-    worlds: Res<Worlds>,
+    mut worlds: ResMut<Worlds>,
     players: Query<(&WorldHolder, &EntityIdIndex)>,
     mut last: Local<LastSweep>,
 ) {
@@ -66,6 +70,7 @@ pub fn sweep_chunk_maps(
         return;
     }
     last.0 = Some(now);
+    worlds.prune();
     for weak in worlds.map.values() {
         if let Some(world) = weak.upgrade() {
             world.write().chunks.sweep();

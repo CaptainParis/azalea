@@ -174,3 +174,33 @@ fn updates_received_forgets_removed_entities() {
     s.tick();
     assert_eq!(counted(&s), vec![101]);
 }
+
+/// Changing dimension back and forth keeps the `Worlds` map at the worlds in
+/// use (at most overworld, nether and end).
+#[test]
+fn worlds_map_bounded_across_dimension_changes() {
+    use azalea_registry::{DataRegistry, data::DimensionKind, identifier::Identifier};
+
+    let _lock = init();
+    let mut s = Simulation::new(ConnectionProtocol::Game);
+    s.receive_packet(default_login_packet());
+    s.tick();
+    let names = [
+        "minecraft:the_nether",
+        "minecraft:the_end",
+        "minecraft:overworld",
+    ];
+    for i in 0..12 {
+        s.receive_packet(make_basic_respawn_packet(
+            DimensionKind::new_raw(0),
+            Identifier::new(names[i % 3]),
+        ));
+        s.tick();
+        let mut n = 0;
+        s.with_resource::<azalea_world::Worlds>(|w| n = w.map.len());
+        assert!(n <= 3, "{n} worlds after {i} changes");
+    }
+    let mut live = 0;
+    s.with_resource::<azalea_world::Worlds>(|w| live = w.live_count());
+    assert_eq!(live, 1);
+}
