@@ -126,16 +126,18 @@ impl<'a> BlockCollisionsState<'a> {
     }
 
     pub fn new(world: &'a World, aabb: &'a Aabb, context: EntityCollisionContext) -> Self {
+        // saturating: a position the server set can be far outside i32 (the
+        // cast saturates, then -1 overflowed); Cursor3d bounds the volume
         let origin = BlockPos {
-            x: (aabb.min.x - EPSILON).floor() as i32 - 1,
-            y: (aabb.min.y - EPSILON).floor() as i32 - 1,
-            z: (aabb.min.z - EPSILON).floor() as i32 - 1,
+            x: ((aabb.min.x - EPSILON).floor() as i32).saturating_sub(1),
+            y: ((aabb.min.y - EPSILON).floor() as i32).saturating_sub(1),
+            z: ((aabb.min.z - EPSILON).floor() as i32).saturating_sub(1),
         };
 
         let end = BlockPos {
-            x: (aabb.max.x + EPSILON).floor() as i32 + 1,
-            y: (aabb.max.y + EPSILON).floor() as i32 + 1,
-            z: (aabb.max.z + EPSILON).floor() as i32 + 1,
+            x: ((aabb.max.x + EPSILON).floor() as i32).saturating_add(1),
+            y: ((aabb.max.y + EPSILON).floor() as i32).saturating_add(1),
+            z: ((aabb.max.z + EPSILON).floor() as i32).saturating_add(1),
         };
 
         let cursor = Cursor3d::new(origin, end);
@@ -275,8 +277,8 @@ impl CanStandOnFluidPredicate {
     pub fn matches(&self, _state: &FluidState) -> bool {
         match self {
             Self::AlwaysTrue => true,
-            // minecraft sometimes returns true for striders here, false for every other entity
-            // though
+            // minecraft sometimes returns true for striders here, false for
+            // every other entity though
             Self::PassToEntity => false,
         }
     }
@@ -300,6 +302,22 @@ pub fn for_entities_in_chunks_colliding_with(
     let min_chunk = ChunkPos::from(min_section);
     let max_chunk = ChunkPos::from(max_section);
 
+    // A box from a huge server-set position or velocity can span billions of
+    // chunks; then go through the chunks that have entities instead (as
+    // vanilla's section storage does), so the cost is bounded either way.
+    let area = (max_chunk.x as i64 - min_chunk.x as i64 + 1).max(0)
+        * (max_chunk.z as i64 - min_chunk.z as i64 + 1).max(0);
+    if area > world.entities_by_chunk.len() as i64 {
+        for (&chunk_pos, entities) in &world.entities_by_chunk {
+            if (min_chunk.x..=max_chunk.x).contains(&chunk_pos.x)
+                && (min_chunk.z..=max_chunk.z).contains(&chunk_pos.z)
+            {
+                consumer(chunk_pos, entities);
+            }
+        }
+        return;
+    }
+
     for chunk_x in min_chunk.x..=max_chunk.x {
         for chunk_z in min_chunk.z..=max_chunk.z {
             let chunk_pos = ChunkPos::new(chunk_x, chunk_z);
@@ -307,5 +325,59 @@ pub fn for_entities_in_chunks_colliding_with(
                 consumer(chunk_pos, entities);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::{Duration, Instant};
+
+    use super::*;
+
+    // fuzz: handler_sequence (timeout): a box over a huge range of chunks
+    // walked every chunk position
+    #[test]
+    fn entity_lookup_over_a_huge_box_is_bounded() {
+        let mut world = World::default();
+        world
+            .entities_by_chunk
+            .insert(ChunkPos::new(3, -4), HashSet::from([Entity::PLACEHOLDER]));
+        let aabb = Aabb {
+            min: Vec3::new(-1e9, 0., -1e9),
+            max: Vec3::new(1e9, 10., 1e9),
+        };
+        let start = Instant::now();
+        let mut seen = Vec::new();
+        for_entities_in_chunks_colliding_with(&world, &aabb, |pos, _| seen.push(pos));
+        assert!(start.elapsed() < Duration::from_secs(1));
+        assert_eq!(seen, vec![ChunkPos::new(3, -4)]);
+
+        // a small box still finds what's in range, and only that
+        let aabb = Aabb {
+            min: Vec3::new(40., 0., -70.),
+            max: Vec3::new(60., 10., -60.),
+        };
+        let mut seen = Vec::new();
+        for_entities_in_chunks_colliding_with(&world, &aabb, |pos, _| seen.push(pos));
+        assert_eq!(seen, vec![ChunkPos::new(3, -4)]);
+        let far = Aabb {
+            min: Vec3::new(400., 0., 400.),
+            max: Vec3::new(401., 1., 401.),
+        };
+        let mut seen = Vec::new();
+        for_entities_in_chunks_colliding_with(&world, &far, |pos, _| seen.push(pos));
+        assert!(seen.is_empty());
+    }
+
+    // fuzz: handler_sequence (crash): a position past i32 saturated in the
+    // cast, then `- 1` overflowed
+    #[test]
+    fn block_collisions_at_a_position_past_i32_dont_overflow() {
+        let world = World::default();
+        let aabb = Aabb {
+            min: Vec3::new(-1e300, -1e300, -1e300),
+            max: Vec3::new(1e300, 1e300, 1e300),
+        };
+        let _ = BlockCollisionsState::new(&world, &aabb, EntityCollisionContext::of(None));
     }
 }

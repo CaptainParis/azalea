@@ -188,6 +188,13 @@ pub fn traverse_blocks<C, T>(
     }
 
     let vec = right_after_end - right_before_start;
+    // a ray through non-finite coordinates never reaches its end (NaN
+    // compares false), and one between far-apart positions would walk every
+    // block on the way; a ray crosses at most |dx| + |dy| + |dz| + 3 blocks
+    if !(vec.x.is_finite() && vec.y.is_finite() && vec.z.is_finite()) {
+        return get_miss_result(&context);
+    }
+    let mut steps_left = (vec.x.abs() + vec.y.abs() + vec.z.abs()).min(1e6) as u32 + 4;
 
     let vec_sign = Vec3 {
         x: math::sign(vec.x),
@@ -224,23 +231,25 @@ pub fn traverse_blocks<C, T>(
     };
 
     loop {
-        if percentage.x > 1. && percentage.y > 1. && percentage.z > 1. {
+        if percentage.x > 1. && percentage.y > 1. && percentage.z > 1. || steps_left == 0 {
             return get_miss_result(&context);
         }
+        steps_left -= 1;
 
+        // wrapping, as Java's int arithmetic in vanilla
         if percentage.x < percentage.y {
             if percentage.x < percentage.z {
-                current_block.x += vec_sign.x as i32;
+                current_block.x = current_block.x.wrapping_add(vec_sign.x as i32);
                 percentage.x += percentage_step.x;
             } else {
-                current_block.z += vec_sign.z as i32;
+                current_block.z = current_block.z.wrapping_add(vec_sign.z as i32);
                 percentage.z += percentage_step.z;
             }
         } else if percentage.y < percentage.z {
-            current_block.y += vec_sign.y as i32;
+            current_block.y = current_block.y.wrapping_add(vec_sign.y as i32);
             percentage.y += percentage_step.y;
         } else {
-            current_block.z += vec_sign.z as i32;
+            current_block.z = current_block.z.wrapping_add(vec_sign.z as i32);
             percentage.z += percentage_step.z;
         }
 
@@ -319,19 +328,20 @@ pub fn add_collisions_along_travel(
     let mut step_count = 0;
 
     while cur_x <= 1. || cur_y <= 1. || cur_z <= 1. {
+        // wrapping, as Java's int arithmetic in vanilla
         if cur_x < cur_y {
             if cur_x < cur_z {
-                min_x += direction_x;
+                min_x = min_x.wrapping_add(direction_x);
                 cur_x += step_x;
             } else {
-                min_z += direction_z;
+                min_z = min_z.wrapping_add(direction_z);
                 cur_z += step_z;
             }
         } else if cur_y < cur_z {
-            min_y += direction_y;
+            min_y = min_y.wrapping_add(direction_y);
             cur_y += step_y;
         } else {
-            min_z += direction_z;
+            min_z = min_z.wrapping_add(direction_z);
             cur_z += step_z;
         }
 
@@ -342,7 +352,11 @@ pub fn add_collisions_along_travel(
 
         let Some(clip_location) = Aabb::clip_with_from_and_to(
             Vec3::new(min_x as f64, min_y as f64, min_z as f64),
-            Vec3::new((min_x + 1) as f64, (min_y + 1) as f64, (min_z + 1) as f64),
+            Vec3::new(
+                min_x.wrapping_add(1) as f64,
+                min_y.wrapping_add(1) as f64,
+                min_z.wrapping_add(1) as f64,
+            ),
             from,
             to,
         ) else {
@@ -369,5 +383,68 @@ pub fn add_collisions_along_travel(
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::{Duration, Instant};
+
+    use super::*;
+
+    // fuzz: handler_sequence (crash): block steps past i32::MAX overflowed
+    #[test]
+    fn travel_at_the_edge_of_i32_wraps_as_vanilla() {
+        let edge = i32::MAX as f64 - 0.5;
+        let aabb = Aabb {
+            min: Vec3::new(edge, 64., 0.),
+            max: Vec3::new(edge + 0.6, 65.8, 0.6),
+        };
+        let _ = box_traverse_blocks(
+            Vec3::new(edge - 3., 64., 0.),
+            Vec3::new(edge + 3., 64., 0.),
+            &aabb,
+        );
+        let n = traverse_blocks(
+            Vec3::new(edge - 3., 64., 0.),
+            Vec3::new(edge + 3., 64., 0.),
+            (),
+            |_, _| None::<()>,
+            |_| (),
+        );
+        let _ = n;
+    }
+
+    // a ray through NaN, or between far-apart points, ends
+    #[test]
+    fn traverse_blocks_is_bounded() {
+        let start = Instant::now();
+        let count = std::cell::Cell::new(0u64);
+        traverse_blocks(
+            Vec3::new(0., 0., 0.),
+            Vec3::new(f64::NAN, 1., 1.),
+            (),
+            |_, _| {
+                count.set(count.get() + 1);
+                None::<()>
+            },
+            |_| (),
+        );
+        traverse_blocks(
+            Vec3::new(-1e12, 0., 0.),
+            Vec3::new(1e12, 0., 0.),
+            (),
+            |_, _| {
+                count.set(count.get() + 1);
+                None::<()>
+            },
+            |_| (),
+        );
+        assert!(
+            start.elapsed() < Duration::from_secs(1),
+            "{:?}",
+            start.elapsed()
+        );
+        assert!(count.get() <= 2_000_010, "{}", count.get());
     }
 }
