@@ -66,6 +66,27 @@ where
     }
 }
 
+/// Read one component and wrap it in the union, in a function of its own:
+/// generated `match`es over every kind would otherwise hold a stack slot for
+/// each kind's value at once (in debug builds), and nested item stacks recurse
+/// through them.
+#[inline(never)]
+fn read_component_as<T: AzBuf>(
+    buf: &mut Cursor<&[u8]>,
+    wrap: impl FnOnce(T) -> DataComponentUnion,
+) -> Result<DataComponentUnion, BufReadError> {
+    Ok(wrap(T::azalea_read(buf)?))
+}
+
+/// See [`read_component_as`].
+#[inline(never)]
+fn clone_component_as<T: Clone>(
+    value: &ManuallyDrop<T>,
+    wrap: impl FnOnce(T) -> DataComponentUnion,
+) -> DataComponentUnion {
+    wrap(T::clone(value))
+}
+
 #[macro_export]
 macro_rules! define_data_components {
     ( $( $x:ident ),* $(,)? ) => {
@@ -117,12 +138,13 @@ macro_rules! define_data_components {
             ) -> Result<Self, BufReadError> {
                 trace!("Reading data component {kind}");
 
-                Ok(match kind {
+                // each kind is read in its own function, so this match's
+                // stack frame stays small (item stacks nest through it)
+                match kind {
                     $( DataComponentKind::$x => {
-                        let v = $x::azalea_read(buf)?;
-                        Self { $x: ManuallyDrop::new(v) }
+                        read_component_as::<$x>(buf, |v| Self { $x: ManuallyDrop::new(v) })
                     }, )*
-                })
+                }
             }
             /// # Safety
             ///
@@ -149,7 +171,7 @@ macro_rules! define_data_components {
             ) -> Self {
                 match kind {
                     $( DataComponentKind::$x => {
-                        Self { $x: unsafe { self.$x.clone() } }
+                        clone_component_as::<$x>(unsafe { &self.$x }, |v| Self { $x: ManuallyDrop::new(v) })
                     }, )*
                 }
             }
