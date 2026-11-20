@@ -17,25 +17,11 @@ use crate::{
 
 #[derive(Clone, Debug)]
 pub enum ValueEffect {
-    Set {
-        value: LevelBasedValue,
-    },
-    Add {
-        value: LevelBasedValue,
-    },
-    Multiply {
-        factor: LevelBasedValue,
-    },
-    RemoveBinomial {
-        chance: LevelBasedValue,
-    },
-    AllOf {
-        effects: Vec<ValueEffect>,
-    },
-    Exponential {
-        base: LevelBasedValue,
-        exponent: LevelBasedValue,
-    },
+    Set { value: LevelBasedValue },
+    Add { value: LevelBasedValue },
+    Multiply { factor: LevelBasedValue },
+    RemoveBinomial { chance: LevelBasedValue },
+    AllOf { effects: Vec<ValueEffect> },
 }
 
 impl simdnbt::Deserialize for ValueEffect {
@@ -62,11 +48,6 @@ impl simdnbt::Deserialize for ValueEffect {
                 let effects = get_in_compound(&nbt, "effects")?;
                 Self::AllOf { effects }
             }
-            ValueEffectKind::Exponential => {
-                let base = get_in_compound(&nbt, "base")?;
-                let exponent = get_in_compound(&nbt, "exponent")?;
-                Self::Exponential { base, exponent }
-            }
         };
         Ok(value)
     }
@@ -85,10 +66,6 @@ impl_from_effect_nbt_tag!(AttributeEffect);
 #[derive(Clone, Debug)]
 pub enum LevelBasedValue {
     Constant(f32),
-    Exponent {
-        base: Box<LevelBasedValue>,
-        power: Box<LevelBasedValue>,
-    },
     Linear {
         base: f32,
         per_level_above_first: f32,
@@ -114,9 +91,6 @@ impl LevelBasedValue {
     pub fn calculate(&self, n: i32) -> f32 {
         match self {
             LevelBasedValue::Constant(v) => *v,
-            LevelBasedValue::Exponent { base, power } => {
-                (base.calculate(n) as f64).powf(power.calculate(n) as f64) as f32
-            }
             LevelBasedValue::Linear {
                 base,
                 per_level_above_first,
@@ -163,11 +137,6 @@ impl LevelBasedValue {
     fn from_compound(nbt: NbtCompound) -> Result<Self, DeserializeError> {
         let kind = get_in_compound(&nbt, "type")?;
         let value = match kind {
-            LevelBasedValueKind::Exponent => {
-                let base = Box::new(get_in_compound(&nbt, "base")?);
-                let power = Box::new(get_in_compound(&nbt, "power")?);
-                return Ok(Self::Exponent { base, power });
-            }
             LevelBasedValueKind::Linear => {
                 let base = get_in_compound(&nbt, "base")?;
                 let per_level_above_first = get_in_compound(&nbt, "per_level_above_first")?;

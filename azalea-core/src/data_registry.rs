@@ -69,13 +69,6 @@ define_deserializes_to! {
 
 define_default_deserializes_to! {
     data::DamageKind,
-    data::Dialog,
-    data::WolfSoundVariant,
-    data::CowVariant,
-    data::ChickenVariant,
-    data::FrogVariant,
-    data::CatVariant,
-    data::PigVariant,
     data::PaintingVariant,
     data::WolfVariant,
     data::Biome,

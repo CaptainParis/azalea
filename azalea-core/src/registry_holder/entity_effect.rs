@@ -31,8 +31,6 @@ pub enum EntityEffect {
     DamageEntity(DamageEntity),
     Explode(Explode),
     Ignite(Ignite),
-    ApplyImpulse(ApplyEntityImpulse),
-    ApplyExhaustion(ApplyExhaustion),
     PlaySound(PlaySound),
     ReplaceBlock(ReplaceBlock),
     ReplaceDisk(ReplaceDisk),
@@ -58,12 +56,6 @@ impl Deserialize for EntityEffect {
             }
             EntityEffectKind::Explode => Deserialize::from_compound(nbt).map(Self::Explode),
             EntityEffectKind::Ignite => Deserialize::from_compound(nbt).map(Self::Ignite),
-            EntityEffectKind::ApplyImpulse => {
-                Deserialize::from_compound(nbt).map(Self::ApplyImpulse)
-            }
-            EntityEffectKind::ApplyExhaustion => {
-                Deserialize::from_compound(nbt).map(Self::ApplyExhaustion)
-            }
             EntityEffectKind::PlaySound => Deserialize::from_compound(nbt).map(Self::PlaySound),
             EntityEffectKind::ReplaceBlock => {
                 Deserialize::from_compound(nbt).map(Self::ReplaceBlock)
@@ -155,18 +147,6 @@ pub struct Explode {
 #[derive(Clone, Debug, simdnbt::Deserialize)]
 pub struct Ignite {
     pub duration: LevelBasedValue,
-}
-
-#[derive(Clone, Debug, simdnbt::Deserialize)]
-pub struct ApplyEntityImpulse {
-    pub direction: Vec3,
-    pub coordinate_scale: Vec3,
-    pub magnitude: LevelBasedValue,
-}
-
-#[derive(Clone, Debug, simdnbt::Deserialize)]
-pub struct ApplyExhaustion {
-    pub amount: LevelBasedValue,
 }
 
 #[derive(Clone, Debug)]
