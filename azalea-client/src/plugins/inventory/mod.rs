@@ -6,8 +6,7 @@ use azalea_entity::{PlayerAbilities, inventory::Inventory as Inv};
 use azalea_inventory::operations::ClickOperation;
 pub use azalea_inventory::*;
 use azalea_protocol::packets::game::{
-    s_container_click::ServerboundContainerClick,
-    s_container_close::ServerboundContainerClose,
+    s_container_click::ServerboundContainerClick, s_container_close::ServerboundContainerClose,
     s_set_carried_item::ServerboundSetCarriedItem,
 };
 use azalea_registry::builtin::MenuKind;
@@ -17,8 +16,9 @@ use indexmap::IndexMap;
 use tracing::{error, warn};
 
 use crate::{
+    bad_packet::InventoryUnknown,
     inventory::equipment_effects::{collect_equipment_changes, handle_equipment_changes},
-    bad_packet::InventoryUnknown, packet::game::SendGamePacketEvent,
+    packet::game::SendGamePacketEvent,
 };
 
 // TODO: when this is removed, remove the Inv alias above (which just exists to
@@ -193,7 +193,12 @@ impl ContainerClickEvent {
 pub fn handle_container_click_event(
     container_click: On<ContainerClickEvent>,
     mut commands: Commands,
-    mut query: Query<(Entity, &mut Inv, Option<&PlayerAbilities>, Has<InventoryUnknown>)>,
+    mut query: Query<(
+        Entity,
+        &mut Inv,
+        Option<&PlayerAbilities>,
+        Has<InventoryUnknown>,
+    )>,
 ) {
     let Ok((entity, mut inventory, player_abilities, unknown)) =
         query.get_mut(container_click.entity)
@@ -206,6 +211,21 @@ pub fn handle_container_click_event(
         let (window_id, operation) = (container_click.window_id, container_click.operation.clone());
         commands.queue(move |ecs: &mut World| {
             crate::bad_packet::defer_click(ecs, entity, window_id, operation);
+        });
+        return;
+    }
+    if container_click.reflex && container_click.window_id == 0 && inventory.id != 0 {
+        // a reflex written for the player's inventory while a container is
+        // open (perhaps one the server opened with a packet we couldn't
+        // decode): the server ignores clicks for another container id, so
+        // close the container first, as a player would, then click
+        let open = inventory.id;
+        commands.trigger(CloseContainerEvent { entity, id: open });
+        commands.trigger(ContainerClickEvent {
+            entity,
+            window_id: 0,
+            operation: container_click.operation.clone(),
+            reflex: true,
         });
         return;
     }

@@ -50,6 +50,7 @@ use std::{
 };
 
 use azalea_buf::{AzBuf, AzBufVar};
+use azalea_chat::FormattedText;
 use azalea_core::{
     decode_errors::{DecodeErrorKind, record_decode_error},
     delta::QuantizedVelocity,
@@ -57,15 +58,21 @@ use azalea_core::{
     position::{BlockPos, ChunkPos, ChunkSectionPos, Vec3},
 };
 use azalea_entity::{InLoadedChunk, indexing::EntityIdIndex, inventory::Inventory};
-use azalea_inventory::operations::{ClickOperation, ClickType};
+use azalea_inventory::{
+    ItemStack,
+    operations::{ClickOperation, ClickType},
+};
 use azalea_protocol::{
     packets::{
         ConnectionProtocol,
-        game::{ClientboundAddEntity, s_container_click::ServerboundContainerClick},
+        game::{
+            ClientboundAddEntity, ServerboundContainerClose,
+            s_container_click::ServerboundContainerClick,
+        },
     },
     read::ReadPacketError,
 };
-use azalea_registry::builtin::EntityKind;
+use azalea_registry::builtin::{EntityKind, MenuKind};
 use bevy_app::{App, Plugin, Update};
 use bevy_ecs::prelude::*;
 use indexmap::IndexMap;
@@ -75,7 +82,7 @@ use uuid::Uuid;
 use crate::{
     chunks::handle_receive_chunk_event,
     connection::{ConnectionSocket, RawConnection},
-    inventory::ContainerClickEvent,
+    inventory::{ClientsideCloseContainerEvent, ContainerClickEvent, MenuOpenedEvent},
     local_player::WorldHolder,
     packet::game::{GamePacketHandler, SendGamePacketEvent},
 };
@@ -618,7 +625,12 @@ pub(crate) fn handle_bad_packet(
             record_decode_error(DecodeErrorKind::BadPacketDropped);
             BadPacketAction::Dropped
         }
-        Some(PacketClass::Inventory) => start_inventory_resync(ecs, entity),
+        Some(PacketClass::Inventory) => match packet_name.as_deref() {
+            Some(name @ ("open_screen" | "horse_screen_open")) => {
+                open_screen_failed(ecs, entity, name, body)
+            }
+            _ => start_inventory_resync(ecs, entity),
+        },
         Some(PacketClass::Entity) => {
             let ids = entity_ids(packet_name.as_deref().unwrap_or_default(), body);
             let own = ecs.get::<MinecraftEntityId>(entity).copied();
@@ -768,6 +780,71 @@ fn start_inventory_resync(ecs: &mut World, entity: Entity) -> BadPacketAction {
         send_resync_click(ecs, entity);
     }
     BadPacketAction::InventoryResync { container_id }
+}
+
+/// An `open_screen` or `horse_screen_open` that couldn't be decoded: the
+/// server has opened a new menu, whose container id is the body's first
+/// VarInt (vanilla `readContainerId`), and our clicks for any other id would
+/// be ignored (`handleContainerClick` checks the id).
+///
+/// - Id and menu type readable (`open_screen`, only the title is bad): the menu
+///   is opened as the server has it (no title) and resynced by its id.
+/// - Only the id readable, or a horse menu (Azalea doesn't model horse
+///   inventories): we can't model the menu, so we close it as vanilla's
+///   `closeContainer` does (`container_close` with its id: the server is back
+///   to the player's inventory) and resync the inventory (container 0).
+/// - Not even the id: resync whatever we believe is open.
+fn open_screen_failed(ecs: &mut World, entity: Entity, name: &str, body: &[u8]) -> BadPacketAction {
+    let mut buf = Cursor::new(body);
+    let Ok(container_id) = i32::azalea_read_var(&mut buf) else {
+        return start_inventory_resync(ecs, entity);
+    };
+    let menu_type = if name == "open_screen" {
+        MenuKind::azalea_read(&mut buf).ok()
+    } else {
+        None
+    };
+    // a new menu: start a new resync for it (one for an older menu is moot)
+    ecs.entity_mut(entity).remove::<InventoryUnknown>();
+    match menu_type {
+        Some(menu_type) => {
+            ecs.trigger(MenuOpenedEvent {
+                entity,
+                window_id: container_id,
+                menu_type,
+                title: FormattedText::default(),
+            });
+            // vanilla's menu shows the player's own inventory in its player
+            // slots; the server's content for it may be what we lost, so
+            // start from our inventory (closing the menu copies these back)
+            if let Some(mut inventory) = ecs.get_mut::<Inventory>(entity) {
+                let player = inventory.inventory_menu.slots();
+                let player = player
+                    .get(inventory.inventory_menu.player_slots_range())
+                    .map(<[ItemStack]>::to_vec)
+                    .unwrap_or_default();
+                if let Some(menu) = inventory.container_menu.as_mut() {
+                    let range = menu.player_slots_range();
+                    for (i, item) in range.zip(player) {
+                        if let Some(slot) = menu.slot_mut(i) {
+                            *slot = item;
+                        }
+                    }
+                }
+            }
+        }
+        None => {
+            ecs.trigger(SendGamePacketEvent::new(
+                entity,
+                ServerboundContainerClose { container_id },
+            ));
+            // the server's new menu replaced any we had open
+            if ecs.get::<Inventory>(entity).is_some_and(|i| i.id != 0) {
+                ecs.trigger(ClientsideCloseContainerEvent { entity });
+            }
+        }
+    }
+    start_inventory_resync(ecs, entity)
 }
 
 /// The resync click: slot -1, PICKUP, button 0 (changes nothing on the

@@ -4,7 +4,9 @@
 //! A reflex click (totem swap) still runs at once, an ordinary click waits
 //! for the resync, the full content clears "unknown" and keeps the carried
 //! item; with no resync the click is retried once, then the connection is
-//! closed.
+//! closed. A bad `open_screen` resyncs the container id read from its body
+//! (or closes a menu it can't model), and a reflex for the player's
+//! inventory while a container is open closes the container first.
 
 use std::time::Duration;
 
@@ -95,7 +97,10 @@ fn bad_container_packet_resyncs_the_inventory() {
     simulation.receive_raw_packet(bad_slot_packet());
     simulation.tick();
 
-    assert_eq!(decode_errors().inventory_unknown, before.inventory_unknown + 1);
+    assert_eq!(
+        decode_errors().inventory_unknown,
+        before.inventory_unknown + 1
+    );
     assert!(simulation.has_component::<InventoryUnknown>());
     {
         let events = events.lock();
@@ -166,7 +171,10 @@ fn bad_container_packet_resyncs_the_inventory() {
         inv.inventory_menu.slots()[9],
         ItemStack::new(ItemKind::Stick, 2)
     );
-    assert_eq!(decode_errors().inventory_resync_failed, before.inventory_resync_failed);
+    assert_eq!(
+        decode_errors().inventory_resync_failed,
+        before.inventory_resync_failed
+    );
     assert_eq!(decode_errors().policy_close, before.policy_close);
 }
 
@@ -205,7 +213,10 @@ fn inventory_resync_retries_once_then_closes() {
     simulation.tick();
     assert!(clicks(&sent).is_empty(), "no third click");
     let after = decode_errors();
-    assert_eq!(after.inventory_resync_failed, before.inventory_resync_failed + 1);
+    assert_eq!(
+        after.inventory_resync_failed,
+        before.inventory_resync_failed + 1
+    );
     assert_eq!(after.policy_close, before.policy_close + 1);
     let disconnects = disconnects.lock();
     assert_eq!(disconnects.len(), 1, "{disconnects:?}");
@@ -222,4 +233,120 @@ fn inventory_resync_retries_once_then_closes() {
     );
     // the second bad packet with the same id alerted too
     assert!(alerts.iter().any(|a| a.reason == AlertReason::Repeated));
+}
+
+fn bad_open_screen(keep: usize) -> Box<[u8]> {
+    truncated_packet(
+        azalea_protocol::packets::game::ClientboundOpenScreen {
+            container_id: 3,
+            menu_type: azalea_registry::builtin::MenuKind::Generic9x3,
+            title: "Chest".into(),
+        },
+        keep,
+    )
+}
+
+fn sent_closes(
+    sent: &SentPackets,
+) -> (
+    Vec<i32>,
+    Vec<azalea_protocol::packets::game::ServerboundContainerClick>,
+) {
+    let mut closes = Vec::new();
+    let mut clicks = Vec::new();
+    while let Some(p) = sent.next() {
+        match p {
+            ServerboundGamePacket::ContainerClose(c) => closes.push(c.container_id),
+            ServerboundGamePacket::ContainerClick(c) => clicks.push(c),
+            _ => {}
+        }
+    }
+    (closes, clicks)
+}
+
+#[test]
+fn bad_open_screen_opens_the_menu_and_resyncs_its_id() {
+    let _lock = init_expecting_errors();
+    let (mut simulation, sent) = setup();
+    let events = simulation.record_messages::<BadPacketEvent>();
+
+    // id (1 byte) and menu type (1 byte) are there, the title is cut
+    simulation.receive_raw_packet(bad_open_screen(3));
+    simulation.tick();
+
+    let inv = simulation.component::<Inventory>();
+    assert_eq!(inv.id, 3);
+    assert!(
+        inv.container_menu.is_some(),
+        "the menu is open, as on the server"
+    );
+    assert!(simulation.has_component::<InventoryUnknown>());
+    assert_eq!(
+        events.lock()[0].action,
+        BadPacketAction::InventoryResync { container_id: 3 }
+    );
+    let (closes, c) = sent_closes(&sent);
+    assert!(closes.is_empty());
+    assert_eq!(c.len(), 1, "{c:?}");
+    assert_eq!(c[0].container_id, 3);
+    assert_eq!(c[0].slot_num, -1);
+
+    // a reflex written for the player's inventory (container 0) while the
+    // server has container 3 open: the container is closed first, then the
+    // click goes to container 0, where the server takes it
+    simulation.trigger(ContainerClickEvent::reflex(
+        simulation.entity,
+        0,
+        SwapClick {
+            source_slot: 36,
+            target_slot: 40,
+        },
+    ));
+    simulation.tick();
+    let mut order = Vec::new();
+    while let Some(p) = sent.next() {
+        match p {
+            ServerboundGamePacket::ContainerClose(c) => order.push(("close", c.container_id)),
+            ServerboundGamePacket::ContainerClick(c) => order.push(("click", c.container_id)),
+            _ => {}
+        }
+    }
+    assert_eq!(order, vec![("close", 3), ("click", 0)]);
+    let inv = simulation.component::<Inventory>();
+    assert_eq!(inv.id, 0);
+    assert_eq!(
+        inv.inventory_menu.slots()[45],
+        ItemStack::new(ItemKind::TotemOfUndying, 1)
+    );
+
+    // the click resyncs the inventory (its state id is stale): known again
+    let mut full = full_inventory(9, ItemStack::Empty);
+    full.items.swap(36, 45);
+    simulation.receive_packet(full);
+    simulation.tick();
+    assert!(!simulation.has_component::<InventoryUnknown>());
+}
+
+#[test]
+fn bad_open_screen_with_only_its_id_closes_it_and_resyncs_the_inventory() {
+    let _lock = init_expecting_errors();
+    let (mut simulation, sent) = setup();
+    let events = simulation.record_messages::<BadPacketEvent>();
+
+    simulation.receive_raw_packet(bad_open_screen(1));
+    simulation.tick();
+
+    let inv = simulation.component::<Inventory>();
+    assert_eq!(inv.id, 0);
+    assert!(inv.container_menu.is_none());
+    assert!(simulation.has_component::<InventoryUnknown>());
+    assert_eq!(
+        events.lock()[0].action,
+        BadPacketAction::InventoryResync { container_id: 0 }
+    );
+    // closed as vanilla's closeContainer, then the resync for container 0
+    let (closes, c) = sent_closes(&sent);
+    assert_eq!(closes, vec![3]);
+    assert_eq!(c.len(), 1, "{c:?}");
+    assert!(is_resync_click(&c[0], 4), "{:?}", c[0]);
 }
