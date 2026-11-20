@@ -28,7 +28,33 @@ pub enum DecodeErrorKind {
     /// Chunk data (sections, paletted containers, heightmaps) couldn't be
     /// parsed, or had to be ignored.
     Chunk,
+    /// A packet handler couldn't find our own player's components (for
+    /// example the `EntityIdIndex` or `Physics` of the client the packet
+    /// arrived on), so the packet was dropped.
+    HandlerState,
+    /// A packet referred to an entity id that isn't in our entity index.
+    ///
+    /// With one client this means we missed or mis-decoded an add or remove;
+    /// with several clients sharing a world it can be a despawn race, so
+    /// multi-client tests may allow it explicitly with
+    /// [`DecodeErrorCounts::total_except`].
+    UnknownEntity,
+    /// The entity indexes disagree with the ECS: an indexed entity is missing
+    /// from the world or lacks components every entity has.
+    EntityIndex,
 }
+
+const ALL_KINDS: [DecodeErrorKind; 9] = [
+    DecodeErrorKind::Frame,
+    DecodeErrorKind::UnknownPacketId,
+    DecodeErrorKind::PacketBody,
+    DecodeErrorKind::PacketHandler,
+    DecodeErrorKind::Registry,
+    DecodeErrorKind::Chunk,
+    DecodeErrorKind::HandlerState,
+    DecodeErrorKind::UnknownEntity,
+    DecodeErrorKind::EntityIndex,
+];
 
 static FRAME: AtomicU64 = AtomicU64::new(0);
 static UNKNOWN_PACKET_ID: AtomicU64 = AtomicU64::new(0);
@@ -36,6 +62,9 @@ static PACKET_BODY: AtomicU64 = AtomicU64::new(0);
 static PACKET_HANDLER: AtomicU64 = AtomicU64::new(0);
 static REGISTRY: AtomicU64 = AtomicU64::new(0);
 static CHUNK: AtomicU64 = AtomicU64::new(0);
+static HANDLER_STATE: AtomicU64 = AtomicU64::new(0);
+static UNKNOWN_ENTITY: AtomicU64 = AtomicU64::new(0);
+static ENTITY_INDEX: AtomicU64 = AtomicU64::new(0);
 
 fn counter(kind: DecodeErrorKind) -> &'static AtomicU64 {
     match kind {
@@ -45,6 +74,9 @@ fn counter(kind: DecodeErrorKind) -> &'static AtomicU64 {
         DecodeErrorKind::PacketHandler => &PACKET_HANDLER,
         DecodeErrorKind::Registry => &REGISTRY,
         DecodeErrorKind::Chunk => &CHUNK,
+        DecodeErrorKind::HandlerState => &HANDLER_STATE,
+        DecodeErrorKind::UnknownEntity => &UNKNOWN_ENTITY,
+        DecodeErrorKind::EntityIndex => &ENTITY_INDEX,
     }
 }
 
@@ -64,6 +96,9 @@ pub struct DecodeErrorCounts {
     pub packet_handler: u64,
     pub registry: u64,
     pub chunk: u64,
+    pub handler_state: u64,
+    pub unknown_entity: u64,
+    pub entity_index: u64,
 }
 impl DecodeErrorCounts {
     pub fn get(&self, kind: DecodeErrorKind) -> u64 {
@@ -74,17 +109,26 @@ impl DecodeErrorCounts {
             DecodeErrorKind::PacketHandler => self.packet_handler,
             DecodeErrorKind::Registry => self.registry,
             DecodeErrorKind::Chunk => self.chunk,
+            DecodeErrorKind::HandlerState => self.handler_state,
+            DecodeErrorKind::UnknownEntity => self.unknown_entity,
+            DecodeErrorKind::EntityIndex => self.entity_index,
         }
     }
 
     /// The sum of every counter.
     pub fn total(&self) -> u64 {
-        self.frame
-            + self.unknown_packet_id
-            + self.packet_body
-            + self.packet_handler
-            + self.registry
-            + self.chunk
+        ALL_KINDS.iter().map(|&k| self.get(k)).sum()
+    }
+
+    /// The sum of every counter except the given kinds, for tests that
+    /// explicitly expect some errors of those kinds (for example
+    /// [`DecodeErrorKind::UnknownEntity`] with several clients).
+    pub fn total_except(&self, allowed: &[DecodeErrorKind]) -> u64 {
+        ALL_KINDS
+            .iter()
+            .filter(|k| !allowed.contains(k))
+            .map(|&k| self.get(k))
+            .sum()
     }
 }
 
@@ -98,19 +142,15 @@ pub fn decode_errors() -> DecodeErrorCounts {
         packet_handler: load(DecodeErrorKind::PacketHandler),
         registry: load(DecodeErrorKind::Registry),
         chunk: load(DecodeErrorKind::Chunk),
+        handler_state: load(DecodeErrorKind::HandlerState),
+        unknown_entity: load(DecodeErrorKind::UnknownEntity),
+        entity_index: load(DecodeErrorKind::EntityIndex),
     }
 }
 
 /// Set every counter back to 0.
 pub fn reset_decode_errors() {
-    for kind in [
-        DecodeErrorKind::Frame,
-        DecodeErrorKind::UnknownPacketId,
-        DecodeErrorKind::PacketBody,
-        DecodeErrorKind::PacketHandler,
-        DecodeErrorKind::Registry,
-        DecodeErrorKind::Chunk,
-    ] {
+    for kind in ALL_KINDS {
         counter(kind).store(0, Ordering::Relaxed);
     }
 }
