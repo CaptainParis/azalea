@@ -27,8 +27,7 @@ use azalea_physics::{
 use azalea_protocol::packets::game::{
     ServerboundInteract, ServerboundUseItem,
     s_interact::{self, InteractionHand},
-    s_swing::ServerboundSwing,
-    s_use_item_on::ServerboundUseItemOn,
+    s_swing::ServerboundSwing, s_use_item_on::ServerboundUseItemOn,
 };
 use azalea_world::World;
 use bevy_app::{App, Plugin, Update};

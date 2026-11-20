@@ -58,14 +58,7 @@ fn bad_state_free_packet_is_dropped_and_counted() {
     }
     // once is no alert
     assert!(alerts.lock().is_empty());
-    assert!(
-        simulation
-            .app
-            .world()
-            .get::<RawConnection>(simulation.entity)
-            .unwrap()
-            .is_alive()
-    );
+    assert!(simulation.app.world().get::<RawConnection>(simulation.entity).unwrap().is_alive());
     assert!(disconnects.lock().is_empty());
 
     // a good packet of the same kind still works, and other state-free ids
@@ -89,13 +82,6 @@ fn bad_state_free_packet_is_dropped_and_counted() {
     assert_eq!(alerts[0].reason, AlertReason::Repeated);
     assert_eq!(alerts[0].count_in_window, 2);
     assert_eq!(alerts[0].packet_name.as_deref(), Some("sound"));
-    assert!(
-        simulation
-            .app
-            .world()
-            .get::<RawConnection>(simulation.entity)
-            .unwrap()
-            .is_alive()
-    );
+    assert!(simulation.app.world().get::<RawConnection>(simulation.entity).unwrap().is_alive());
     assert_eq!(decode_errors().policy_close, before.policy_close);
 }

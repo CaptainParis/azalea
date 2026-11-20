@@ -163,8 +163,7 @@ pub struct TaskPoolThreadAssignmentPolicy {
 impl TaskPoolThreadAssignmentPolicy {
     /// Determine the number of threads to use for this task pool
     fn get_number_of_threads(&self, remaining_threads: usize, total_threads: usize) -> usize {
-        // network-safe: percent comes from our own TaskPoolOptions (constants),
-        // not network data
+        // network-safe: percent comes from our own TaskPoolOptions (constants), not network data
         assert!(self.percent >= 0.0);
         let mut desired = (total_threads as f32 * self.percent).round() as usize;
 
@@ -198,10 +197,11 @@ pub mod owner {
         pin::Pin,
         sync::OnceLock,
         task::{Context, Poll},
-        time::Duration,
     };
 
     use bevy_tasks::{AsyncComputeTaskPool, IoTaskPool, Task};
+
+    use std::time::Duration;
 
     /// Time cap of the TCP connect and handshake task (WP3's `Connecting`).
     pub const CONNECT_CAP: Duration = Duration::from_secs(30);

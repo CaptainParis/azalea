@@ -644,16 +644,14 @@ impl GamePacketHandler<'_> {
                 };
 
                 for uuid in &p.profile_ids {
-                    // network-safe: TabList (a map) remove by uuid, not an
-                    // index
+                    // network-safe: TabList (a map) remove by uuid, not an index
                     if let Some(info) = tab_list.remove(uuid) {
                         remove_player_events.write(RemovePlayerEvent {
                             entity: self.player,
                             info,
                         });
                     }
-                    // network-safe: TabListResource (a map) remove by uuid, not
-                    // an index
+                    // network-safe: TabListResource (a map) remove by uuid, not an index
                     tab_list_resource.remove(uuid);
                 }
             },

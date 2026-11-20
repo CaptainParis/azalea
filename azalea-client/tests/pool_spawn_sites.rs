@@ -49,11 +49,7 @@ fn pool_spawns_go_through_the_owned_wrapper() {
     assert!(files.len() > 100, "found only {} source files", files.len());
     let mut bad = Vec::new();
     for f in files {
-        let rel = f
-            .strip_prefix(&root)
-            .unwrap()
-            .to_string_lossy()
-            .replace('\\', "/");
+        let rel = f.strip_prefix(&root).unwrap().to_string_lossy().replace('\\', "/");
         if ALLOWED.contains(&rel.as_str()) {
             continue;
         }

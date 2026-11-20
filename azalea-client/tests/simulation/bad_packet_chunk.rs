@@ -20,10 +20,7 @@ fn bad_block_update_makes_the_chunk_unknown() {
     let mut simulation = Simulation::new(ConnectionProtocol::Game);
     simulation.receive_packet(default_login_packet());
     simulation.receive_packet(make_basic_empty_chunk(ChunkPos::new(0, 0), (384 + 64) / 16));
-    simulation.receive_packet(make_basic_empty_chunk(
-        ChunkPos::new(-1, 0),
-        (384 + 64) / 16,
-    ));
+    simulation.receive_packet(make_basic_empty_chunk(ChunkPos::new(-1, 0), (384 + 64) / 16));
     simulation.tick();
     assert!(simulation.chunk(ChunkPos::new(-1, 0)).is_some());
     let events = simulation.record_messages::<BadPacketEvent>();
@@ -57,11 +54,7 @@ fn bad_block_update_makes_the_chunk_unknown() {
     }
     // treated as unloaded; the other chunk is untouched
     assert!(simulation.chunk(ChunkPos::new(-1, 0)).is_none());
-    assert!(
-        simulation
-            .get_block_state(BlockPos::new(-3, 70, 5))
-            .is_none()
-    );
+    assert!(simulation.get_block_state(BlockPos::new(-3, 70, 5)).is_none());
     assert!(simulation.chunk(ChunkPos::new(0, 0)).is_some());
     assert!(
         simulation
@@ -69,20 +62,10 @@ fn bad_block_update_makes_the_chunk_unknown() {
             .chunks
             .contains(&ChunkPos::new(-1, 0))
     );
-    assert!(
-        simulation
-            .app
-            .world()
-            .get::<RawConnection>(simulation.entity)
-            .unwrap()
-            .is_alive()
-    );
+    assert!(simulation.app.world().get::<RawConnection>(simulation.entity).unwrap().is_alive());
 
     // the server sends it again: known
-    simulation.receive_packet(make_basic_empty_chunk(
-        ChunkPos::new(-1, 0),
-        (384 + 64) / 16,
-    ));
+    simulation.receive_packet(make_basic_empty_chunk(ChunkPos::new(-1, 0), (384 + 64) / 16));
     simulation.tick();
     assert!(simulation.chunk(ChunkPos::new(-1, 0)).is_some());
     assert!(simulation.component::<UnknownChunks>().chunks.is_empty());
