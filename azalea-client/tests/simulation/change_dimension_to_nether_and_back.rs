@@ -36,9 +36,8 @@ fn generic_test_change_dimension_to_nether_and_back(using_respawn: bool) {
         registry_id: Identifier::new("minecraft:dimension_type"),
         entries: vec![
             (
-                // this dimension should never be created. it just exists to
-                // make sure we're not hard-coding the dimension type id
-                // anywhere.
+                // this dimension should never be created. it just exists to make sure we're not
+                // hard-coding the dimension type id anywhere.
                 Identifier::new("azalea:fakedimension"),
                 Some(NbtCompound::from_values(vec![
                     ("height".into(), NbtTag::Int(16)),

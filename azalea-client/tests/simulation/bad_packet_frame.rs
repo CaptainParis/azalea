@@ -60,8 +60,7 @@ fn frame_error_closes_the_connection() {
         server.flush().await.unwrap();
     });
     let t0 = Instant::now();
-    while decode_errors().frame_length == before.frame_length
-        && t0.elapsed() < Duration::from_secs(2)
+    while decode_errors().frame_length == before.frame_length && t0.elapsed() < Duration::from_secs(2)
     {
         simulation.tick();
         std::thread::sleep(Duration::from_millis(10));

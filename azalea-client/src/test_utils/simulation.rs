@@ -124,10 +124,12 @@ impl Simulation {
     pub fn record_messages<M: Message + Clone>(&mut self) -> Arc<Mutex<Vec<M>>> {
         let log = Arc::new(Mutex::new(Vec::new()));
         let l = log.clone();
-        self.app
-            .add_systems(bevy_app::PostUpdate, move |mut reader: MessageReader<M>| {
+        self.app.add_systems(
+            bevy_app::PostUpdate,
+            move |mut reader: MessageReader<M>| {
                 l.lock().extend(reader.read().cloned());
-            });
+            },
+        );
         log
     }
     /// The reason of every `DisconnectEvent` from now on (`None` for one
@@ -138,11 +140,8 @@ impl Simulation {
         self.app.add_systems(
             bevy_app::Last,
             move |mut reader: MessageReader<DisconnectEvent>| {
-                l.lock().extend(
-                    reader
-                        .read()
-                        .map(|d| d.reason.as_ref().map(|r| r.to_string())),
-                );
+                l.lock()
+                    .extend(reader.read().map(|d| d.reason.as_ref().map(|r| r.to_string())));
             },
         );
         log
@@ -360,10 +359,7 @@ fn tick_app(app: &mut App) {
 
 /// A packet's bytes (id and body) cut after `keep` body bytes, so the body
 /// can't be decoded.
-pub fn truncated_packet<P: ProtocolPacket + Debug>(
-    packet: impl Packet<P>,
-    keep: usize,
-) -> Box<[u8]> {
+pub fn truncated_packet<P: ProtocolPacket + Debug>(packet: impl Packet<P>, keep: usize) -> Box<[u8]> {
     let raw = azalea_protocol::write::serialize_packet(&packet.into_variant()).unwrap();
     let id_len = raw.iter().position(|b| b & 0x80 == 0).unwrap() + 1;
     let end = (id_len + keep).min(raw.len() - 1);

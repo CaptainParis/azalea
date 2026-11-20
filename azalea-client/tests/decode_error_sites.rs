@@ -242,10 +242,7 @@ fn blank_non_code(src: &str) -> Vec<u8> {
     while i < b.len() {
         match b[i] {
             b'/' if b.get(i + 1) == Some(&b'/') => {
-                let end = b[i..]
-                    .iter()
-                    .position(|&c| c == b'\n')
-                    .map_or(b.len(), |n| i + n);
+                let end = b[i..].iter().position(|&c| c == b'\n').map_or(b.len(), |n| i + n);
                 blank(&mut out, i, end);
                 i = end;
             }
@@ -254,10 +251,7 @@ fn blank_non_code(src: &str) -> Vec<u8> {
                 blank(&mut out, i, end);
                 i = end;
             }
-            b'r' if b.get(i + 1) == Some(&b'#')
-                || (b.get(i + 1) == Some(&b'"')
-                    && (i == 0 || !b[i - 1].is_ascii_alphanumeric() && b[i - 1] != b'_')) =>
-            {
+            b'r' if b.get(i + 1) == Some(&b'#') || (b.get(i + 1) == Some(&b'"') && (i == 0 || !b[i - 1].is_ascii_alphanumeric() && b[i - 1] != b'_')) => {
                 // raw string r"..." or r#"..."#
                 let mut j = i + 1;
                 let mut hashes = 0;
@@ -270,9 +264,7 @@ fn blank_non_code(src: &str) -> Vec<u8> {
                     continue;
                 }
                 let close = format!("\"{}", "#".repeat(hashes));
-                let end = src[j + 1..]
-                    .find(&close)
-                    .map_or(b.len(), |n| j + 1 + n + close.len());
+                let end = src[j + 1..].find(&close).map_or(b.len(), |n| j + 1 + n + close.len());
                 blank(&mut out, j + 1, end.saturating_sub(close.len()).max(j + 1));
                 i = end;
             }
@@ -330,9 +322,8 @@ fn site_block(code: &[u8], at: usize) -> (usize, usize) {
             b'(' | b'[' => parens += 1,
             b')' | b']' => parens -= 1,
             b'{' if parens <= 0 => {
-                // a struct pattern or literal inside the expression (`Foo { ..
-                // }`) is not the site's block: those only appear inside parens
-                // here
+                // a struct pattern or literal inside the expression (`Foo { .. }`)
+                // is not the site's block: those only appear inside parens here
                 return (j, matching_close(j));
             }
             b';' | b'}' if parens <= 0 => break,
@@ -478,9 +469,7 @@ fn every_skip_is_counted_or_explained() {
         .iter()
         .zip(found)
         .filter(|((_, _, count, _), found)| found < count)
-        .map(|((f, text, count, _), found)| {
-            format!("{f}: {text} (expected {count}, found {found})")
-        })
+        .map(|((f, text, count, _), found)| format!("{f}: {text} (expected {count}, found {found})"))
         .collect::<Vec<_>>();
     assert!(
         stale.is_empty(),

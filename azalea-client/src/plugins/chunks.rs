@@ -21,8 +21,10 @@ use bevy_ecs::prelude::*;
 use tracing::{error, trace, warn};
 
 use crate::{
-    bad_packet::UnknownChunks, inventory::InventorySystems, local_player::WorldHolder,
-    packet::game::SendGamePacketEvent, respawn::perform_respawn,
+    inventory::InventorySystems,
+    local_player::WorldHolder,
+    bad_packet::UnknownChunks, packet::game::SendGamePacketEvent,
+    respawn::perform_respawn,
 };
 
 pub struct ChunksPlugin;

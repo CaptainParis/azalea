@@ -244,10 +244,9 @@ impl RawConnection {
             mpsc::unbounded_channel::<Box<[u8]>>();
 
         // Compat: the per-write time cap needs a tokio timer
-        let writer_task = crate::task_pool::owner::spawn_io(async_compat::Compat::new(write_task(
-            network_packet_writer_rx,
-            writer.write_stream,
-        )));
+        let writer_task = crate::task_pool::owner::spawn_io(async_compat::Compat::new(
+            write_task(network_packet_writer_rx, writer.write_stream),
+        ));
 
         let mut conn = Self::new_networkless(state);
         conn.network = Some(NetworkConnection {
