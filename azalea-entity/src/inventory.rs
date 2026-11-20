@@ -427,79 +427,94 @@ impl Inventory {
                 }
             }
             ClickOperation::Swap(s) => {
-                let source_slot_index = s.source_slot as usize;
-                let target_slot_index = s.target_slot as usize;
-
-                let Some(source_slot) = self.menu().slot(source_slot_index) else {
+                // 1.21.4 AbstractContainerMenu.doClick, SWAP: the button is a
+                // player inventory index (hotbar 0..9, or 40 for the offhand),
+                // swapped with the clicked menu slot
+                let slot_index = s.source_slot as usize;
+                let button = s.target_slot as usize;
+                if !(button < 9 || button == 40) {
+                    return;
+                }
+                // where inventory index `button` is: in the open menu, or (the
+                // offhand while a container is open) only in the inventory menu
+                let in_open_menu = button != 40 || self.id == 0;
+                let inventory_slot_index = if button == 40 {
+                    45
+                } else {
+                    *self.menu().hotbar_slots_range().start() + button
+                };
+                let Some(slot_item) = self.menu().slot(slot_index).cloned() else {
                     return;
                 };
-                let Some(target_slot) = self.menu().slot(target_slot_index) else {
+                let inventory_item = if in_open_menu {
+                    self.menu().slot(inventory_slot_index).cloned()
+                } else {
+                    self.inventory_menu.slot(inventory_slot_index).cloned()
+                };
+                let Some(inventory_item) = inventory_item else {
                     return;
                 };
-                if source_slot.is_empty() && target_slot.is_empty() {
+                if inventory_item.is_empty() && slot_item.is_empty() {
                     return;
                 }
 
-                if target_slot.is_empty() {
-                    if self.menu().may_pickup(source_slot_index) {
-                        let source_slot = source_slot.clone();
-                        // network-safe: both slots were checked at the top
-                        let target_slot = self.menu_mut().slot_mut(target_slot_index).unwrap();
-                        *target_slot = source_slot;
+                let (new_inventory_item, new_slot_item) = if inventory_item.is_empty() {
+                    if !self.menu().may_pickup(slot_index) {
+                        return;
                     }
-                } else if source_slot.is_empty() {
-                    let target_item = target_slot
-                        .as_present()
-                        // network-safe: both empty returned above
-                        .expect("target slot was already checked to not be empty");
-                    if self.menu().may_place(source_slot_index, target_item) {
-                        // get the target_item but mutable
-                        let source_max_stack_size = self.menu().max_stack_size(source_slot_index);
-
-                        // network-safe: (these three) both slots were checked
-                        // at the top, and max_stack_size is 64
-                        let target_slot = self.menu_mut().slot_mut(target_slot_index).unwrap();
-                        // network-safe: max_stack_size is 64
-                        let new_source_slot =
-                            target_slot.split(source_max_stack_size.try_into().unwrap());
-                        // network-safe: checked at the top
-                        *self.menu_mut().slot_mut(source_slot_index).unwrap() = new_source_slot;
-                    }
-                } else if self.menu().may_pickup(source_slot_index) {
-                    let ItemStack::Present(target_item) = target_slot else {
-                        // network-safe: not empty, so present
-                        unreachable!("target slot is not empty but is not present");
+                    (slot_item, ItemStack::Empty)
+                } else if slot_item.is_empty() {
+                    let ItemStack::Present(item) = &inventory_item else {
+                        return;
                     };
-                    if self.menu().may_place(source_slot_index, target_item) {
-                        let source_max_stack = self.menu().max_stack_size(source_slot_index);
-                        if target_slot.count() > source_max_stack {
-                            // if there's more than the max stack size in the
-                            // target slot
-
-                            // network-safe: checked at the top
-                            let target_slot = self.menu_mut().slot_mut(target_slot_index).unwrap();
-                            // network-safe: max_stack_size is 64
-                            let new_source_slot =
-                                target_slot.split(source_max_stack.try_into().unwrap());
-                            // network-safe: checked at the top
-                            *self.menu_mut().slot_mut(source_slot_index).unwrap() = new_source_slot;
-                            // if !self.inventory_menu.add(new_source_slot) {
-                            //     player.drop(new_source_slot, true);
-                            // }
-                        } else {
-                            // normal swap
-                            let new_target_slot = source_slot.clone();
-                            let new_source_slot = target_slot.clone();
-
-                            // network-safe: checked at the top
-                            let target_slot = self.menu_mut().slot_mut(target_slot_index).unwrap();
-                            *target_slot = new_target_slot;
-
-                            // network-safe: checked at the top
-                            let source_slot = self.menu_mut().slot_mut(source_slot_index).unwrap();
-                            *source_slot = new_source_slot;
-                        }
+                    if !self.menu().may_place(slot_index, item) {
+                        return;
                     }
+                    let max = self
+                        .menu()
+                        .max_stack_size(slot_index)
+                        .min(item.kind.max_stack_size());
+                    let mut rest = inventory_item.clone();
+                    if item.count > max {
+                        let placed = rest.split(max.max(0) as u32);
+                        (rest, placed)
+                    } else {
+                        (ItemStack::Empty, rest)
+                    }
+                } else {
+                    let ItemStack::Present(item) = &inventory_item else {
+                        return;
+                    };
+                    if !self.menu().may_pickup(slot_index) || !self.menu().may_place(slot_index, item)
+                    {
+                        return;
+                    }
+                    let max = self
+                        .menu()
+                        .max_stack_size(slot_index)
+                        .min(item.kind.max_stack_size());
+                    if item.count > max {
+                        // vanilla puts the slot's item back into the
+                        // inventory (or drops it); the server's answer
+                        // corrects us if this differs
+                        let mut rest = inventory_item.clone();
+                        let placed = rest.split(max.max(0) as u32);
+                        (rest, placed)
+                    } else {
+                        (slot_item, inventory_item)
+                    }
+                };
+
+                if let Some(slot) = self.menu_mut().slot_mut(slot_index) {
+                    *slot = new_slot_item;
+                }
+                let target = if in_open_menu {
+                    self.menu_mut().slot_mut(inventory_slot_index)
+                } else {
+                    self.inventory_menu.slot_mut(inventory_slot_index)
+                };
+                if let Some(target) = target {
+                    *target = new_inventory_item;
                 }
             }
             ClickOperation::Clone(CloneClick { slot }) => {
@@ -768,7 +783,7 @@ impl Default for Inventory {
 
 #[cfg(test)]
 mod tests {
-    use azalea_inventory::SlotList;
+    use azalea_inventory::{SlotList, operations::SwapClick};
     use azalea_registry::builtin::ItemKind;
 
     use super::*;
@@ -868,6 +883,80 @@ mod tests {
         assert_eq!(slots[5], ItemStack::new(ItemKind::Obsidian, 32));
         assert_eq!(slots[62], ItemStack::Empty);
         assert_eq!(slots[0], ItemStack::Empty);
+    }
+
+    // 1.21.4 doClick SWAP: the button is a player inventory index (40 is the
+    // offhand), swapped with the clicked slot; nothing is duplicated
+    #[test]
+    fn test_swap_to_offhand_in_inventory_menu() {
+        let mut inventory = Inventory::default();
+        *inventory.inventory_menu.slot_mut(20).unwrap() = ItemStack::new(ItemKind::TotemOfUndying, 1);
+        *inventory.inventory_menu.slot_mut(45).unwrap() = ItemStack::new(ItemKind::Dirt, 3);
+        inventory.simulate_click(
+            &ClickOperation::Swap(SwapClick {
+                source_slot: 20,
+                target_slot: 40,
+            }),
+            &PlayerAbilities::default(),
+        );
+        let slots = inventory.menu().slots();
+        assert_eq!(slots[45], ItemStack::new(ItemKind::TotemOfUndying, 1));
+        assert_eq!(slots[20], ItemStack::new(ItemKind::Dirt, 3));
+
+        // into an empty hotbar slot: moved, not copied
+        inventory.simulate_click(
+            &ClickOperation::Swap(SwapClick {
+                source_slot: 45,
+                target_slot: 2,
+            }),
+            &PlayerAbilities::default(),
+        );
+        let slots = inventory.menu().slots();
+        assert_eq!(slots[38], ItemStack::new(ItemKind::TotemOfUndying, 1));
+        assert_eq!(slots[45], ItemStack::Empty);
+
+        // a button that isn't a hotbar index or the offhand does nothing
+        let before = inventory.menu().slots();
+        inventory.simulate_click(
+            &ClickOperation::Swap(SwapClick {
+                source_slot: 20,
+                target_slot: 12,
+            }),
+            &PlayerAbilities::default(),
+        );
+        assert_eq!(inventory.menu().slots(), before);
+    }
+
+    #[test]
+    fn test_swap_with_container_open() {
+        let mut inventory = with_shulker(
+            &[(3, ItemStack::new(ItemKind::TotemOfUndying, 1))],
+            // hotbar 0 of the shulker menu
+            &[(54, ItemStack::new(ItemKind::Stone, 64))],
+        );
+        inventory.simulate_click(
+            &ClickOperation::Swap(SwapClick {
+                source_slot: 3,
+                target_slot: 0,
+            }),
+            &PlayerAbilities::default(),
+        );
+        let slots = inventory.menu().slots();
+        assert_eq!(slots[3], ItemStack::new(ItemKind::Stone, 64));
+        assert_eq!(slots[54], ItemStack::new(ItemKind::TotemOfUndying, 1));
+        // the offhand isn't in the shulker menu: it's the inventory menu's
+        inventory.simulate_click(
+            &ClickOperation::Swap(SwapClick {
+                source_slot: 54,
+                target_slot: 40,
+            }),
+            &PlayerAbilities::default(),
+        );
+        assert_eq!(inventory.menu().slots()[54], ItemStack::Empty);
+        assert_eq!(
+            inventory.inventory_menu.slots()[45],
+            ItemStack::new(ItemKind::TotemOfUndying, 1)
+        );
     }
 
     // 1.21.4 Inventory.setItem (ClientboundSetPlayerInventory): items 0..36
