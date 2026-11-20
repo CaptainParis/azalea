@@ -25,8 +25,10 @@ impl AzBuf for NumberFormat {
         let kind = NumberFormatKind::azalea_read(buf)?;
         match kind {
             NumberFormatKind::Blank => Ok(NumberFormat::Blank),
+            // Style.Serializer.TRUSTED_STREAM_CODEC: unnamed network NBT, as
+            // it's written
             NumberFormatKind::Styled => Ok(NumberFormat::Styled {
-                style: simdnbt::owned::read(buf)?,
+                style: Nbt::azalea_read(buf)?,
             }),
             NumberFormatKind::Fixed => Ok(NumberFormat::Fixed {
                 value: FormattedText::azalea_read(buf)?,
@@ -46,5 +48,29 @@ impl AzBuf for NumberFormat {
             }
         }
         Ok(())
+    }
+}
+
+#[cfg(all(test, feature = "azalea-buf"))]
+mod tests {
+    use std::io::Cursor;
+
+    use azalea_buf::AzBuf;
+    use simdnbt::owned::{Nbt, NbtCompound};
+
+    use super::NumberFormat;
+
+    #[test]
+    fn styled_number_format_round_trips() {
+        let mut style = NbtCompound::new();
+        style.insert("color", "red");
+        let format = NumberFormat::Styled {
+            style: Nbt::Some(simdnbt::owned::BaseNbt::new("", style)),
+        };
+        let mut buf = Vec::new();
+        format.azalea_write(&mut buf).unwrap();
+        let mut cursor = Cursor::new(&buf[..]);
+        assert_eq!(NumberFormat::azalea_read(&mut cursor).unwrap(), format);
+        assert_eq!(cursor.position() as usize, buf.len());
     }
 }
