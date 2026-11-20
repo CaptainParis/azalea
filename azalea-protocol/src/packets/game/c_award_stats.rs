@@ -1,13 +1,12 @@
-use std::collections::HashMap;
-
 use azalea_buf::AzBuf;
 use azalea_protocol_macros::ClientboundGamePacket;
 use azalea_registry::builtin::{BlockKind, CustomStat, EntityKind, ItemKind};
+use indexmap::IndexMap;
 
 #[derive(AzBuf, ClientboundGamePacket, Clone, Debug, PartialEq)]
 pub struct ClientboundAwardStats {
     #[var]
-    pub stats: HashMap<Stat, i32>,
+    pub stats: IndexMap<Stat, i32>,
 }
 
 #[derive(AzBuf, Clone, Copy, Debug, Eq, Hash, PartialEq)]

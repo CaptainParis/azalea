@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    io::{self, Cursor, Write},
-};
+use std::io::{self, Cursor, Write};
 
 use azalea_buf::AzBuf;
 use azalea_chat::FormattedText;
@@ -104,7 +101,7 @@ pub enum FrameType {
     Goal = 2,
 }
 
-pub type AdvancementProgress = HashMap<String, CriterionProgress>;
+pub type AdvancementProgress = IndexMap<String, CriterionProgress>;
 
 #[derive(AzBuf, Clone, Debug, PartialEq)]
 pub struct CriterionProgress {
