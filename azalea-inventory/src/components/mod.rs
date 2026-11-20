@@ -24,9 +24,9 @@ use azalea_registry::{
     Holder, HolderSet,
     builtin::{
         Attribute, BlockKind, DataComponentKind, EntityKind, ItemKind, MobEffect, Potion,
-        SoundEvent, VillagerKind,
+        SoundEvent,
     },
-    data::{self, BannerPatternKind, DamageKind, Enchantment, TrimMaterial, TrimPattern},
+    data::{DamageKind, Enchantment, TrimMaterial, TrimPattern},
     identifier::Identifier,
 };
 pub use profile::*;
@@ -211,7 +211,8 @@ define_data_components!(
     CanBreak,
     AttributeModifiers,
     CustomModelData,
-    TooltipDisplay,
+    HideAdditionalTooltip,
+    HideTooltip,
     RepairCost,
     CreativeSlotLock,
     EnchantmentGlintOverride,
@@ -222,14 +223,12 @@ define_data_components!(
     UseCooldown,
     DamageResistant,
     Tool,
-    Weapon,
     Enchantable,
     Equippable,
     Repairable,
     Glider,
     TooltipStyle,
     DeathProtection,
-    BlocksAttacks,
     StoredEnchantments,
     DyedColor,
     MapColor,
@@ -239,7 +238,6 @@ define_data_components!(
     ChargedProjectiles,
     BundleContents,
     PotionContents,
-    PotionDurationScale,
     SuspiciousStewEffects,
     WritableBookContent,
     WrittenBookContent,
@@ -249,10 +247,8 @@ define_data_components!(
     BucketEntityData,
     BlockEntityData,
     Instrument,
-    ProvidesTrimMaterial,
     OminousBottleAmplifier,
     JukeboxPlayable,
-    ProvidesBannerPatterns,
     Recipes,
     LodestoneTracker,
     FireworkExplosion,
@@ -267,46 +263,6 @@ define_data_components!(
     Bees,
     Lock,
     ContainerLoot,
-    BreakSound,
-    VillagerVariant,
-    WolfVariant,
-    WolfSoundVariant,
-    WolfCollar,
-    FoxVariant,
-    SalmonSize,
-    ParrotVariant,
-    TropicalFishPattern,
-    TropicalFishBaseColor,
-    TropicalFishPatternColor,
-    MooshroomVariant,
-    RabbitVariant,
-    PigVariant,
-    CowVariant,
-    ChickenVariant,
-    FrogVariant,
-    HorseVariant,
-    PaintingVariant,
-    LlamaVariant,
-    AxolotlVariant,
-    CatVariant,
-    CatCollar,
-    SheepColor,
-    ShulkerColor,
-    UseEffects,
-    MinimumAttackCharge,
-    DamageType,
-    PiercingWeapon,
-    KineticWeapon,
-    SwingAnimation,
-    ZombieNautilusVariant,
-    AttackRange,
-    AdditionalTradeCost,
-    Dye,
-    PigSoundVariant,
-    CowSoundVariant,
-    ChickenSoundVariant,
-    CatSoundVariant,
-    SulfurCubeContent,
 );
 
 #[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
@@ -492,6 +448,12 @@ pub struct RepairCost {
     #[var]
     pub cost: u32,
 }
+
+#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
+pub struct HideAdditionalTooltip;
+
+#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
+pub struct HideTooltip;
 
 #[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
 pub struct CreativeSlotLock;
@@ -1075,18 +1037,9 @@ pub struct Equippable {
     pub swappable: bool,
     #[serde(skip_serializing_if = "is_true")]
     pub damage_on_hurt: bool,
-    #[serde(skip_serializing_if = "is_default")]
-    pub equip_on_interact: bool,
-    #[serde(skip_serializing_if = "is_default")]
-    pub can_be_sheared: bool,
-    #[serde(skip_serializing_if = "is_default_shearing_sound")]
-    pub shearing_sound: SoundEvent,
 }
 fn is_default_equip_sound(sound: &SoundEvent) -> bool {
     matches!(sound, SoundEvent::ItemArmorEquipGeneric)
-}
-fn is_default_shearing_sound(sound: &SoundEvent) -> bool {
-    matches!(sound, SoundEvent::ItemShearsSnip)
 }
 
 impl Equippable {
@@ -1100,9 +1053,6 @@ impl Equippable {
             dispensable: true,
             swappable: true,
             damage_on_hurt: true,
-            equip_on_interact: false,
-            can_be_sheared: false,
-            shearing_sound: SoundEvent::ItemShearsSnip,
         }
     }
 }
@@ -1124,7 +1074,6 @@ pub enum EquipmentSlot {
     Head,
     /// This is for animal armor, use [`Self::Chest`] for the chestplate slot.
     Body,
-    Saddle,
 }
 impl EquipmentSlot {
     #[must_use]
@@ -1137,12 +1086,11 @@ impl EquipmentSlot {
             4 => Self::Chest,
             5 => Self::Head,
             6 => Self::Body,
-            7 => Self::Saddle,
             _ => return None,
         };
         Some(value)
     }
-    pub fn values() -> [Self; 8] {
+    pub fn values() -> [Self; 7] {
         [
             Self::Mainhand,
             Self::Offhand,
@@ -1151,7 +1099,6 @@ impl EquipmentSlot {
             Self::Chest,
             Self::Head,
             Self::Body,
-            Self::Saddle,
         ]
     }
     /// Get the display name for the equipment slot, like "mainhand".
@@ -1164,7 +1111,6 @@ impl EquipmentSlot {
             Self::Chest => "chest",
             Self::Head => "head",
             Self::Body => "body",
-            Self::Saddle => "saddle",
         }
     }
 }
@@ -1186,62 +1132,6 @@ pub struct TooltipStyle {
 #[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
 pub struct DeathProtection {
     pub death_effects: Vec<ConsumeEffect>,
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-pub struct Weapon {
-    #[var]
-    #[serde(skip_serializing_if = "is_default_item_damage_per_attack")]
-    pub item_damage_per_attack: i32,
-    #[serde(skip_serializing_if = "is_default")]
-    pub disable_blocking_for_seconds: f32,
-}
-fn is_default_item_damage_per_attack(value: &i32) -> bool {
-    *value == 1
-}
-
-impl Weapon {
-    pub const fn new() -> Self {
-        Self {
-            item_damage_per_attack: 1,
-            disable_blocking_for_seconds: 0.,
-        }
-    }
-}
-impl Default for Weapon {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct PotionDurationScale {
-    pub value: f32,
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct VillagerVariant {
-    pub variant: VillagerKind,
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct WolfVariant {
-    pub variant: data::WolfVariant,
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct WolfCollar {
-    pub color: DyeColor,
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct FoxVariant {
-    pub variant: FoxVariantKind,
 }
 
 #[derive(AzBuf, Clone, Copy, Debug, Default, PartialEq)]
@@ -1267,19 +1157,6 @@ impl Serialize for FoxVariantKind {
     }
 }
 
-#[derive(AzBuf, Clone, Copy, Debug, PartialEq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum SalmonSize {
-    Small,
-    Medium,
-    Large,
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct ParrotVariant {
-    pub variant: ParrotVariantKind,
-}
 #[derive(AzBuf, Clone, Copy, Debug, PartialEq)]
 pub enum ParrotVariantKind {
     RedBlue,
@@ -1308,40 +1185,6 @@ impl Serialize for ParrotVariantKind {
     }
 }
 
-#[derive(AzBuf, Clone, Copy, Debug, PartialEq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum TropicalFishPattern {
-    Kob,
-    Sunstreak,
-    Snooper,
-    Dasher,
-    Brinely,
-    Spotty,
-    Flopper,
-    Stripey,
-    Glitter,
-    Blockfish,
-    Betty,
-    Clayfish,
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct TropicalFishBaseColor {
-    pub color: DyeColor,
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct TropicalFishPatternColor {
-    pub color: DyeColor,
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct MooshroomVariant {
-    pub variant: MooshroomVariantKind,
-}
 #[derive(AzBuf, Clone, Copy, Debug, Default, PartialEq)]
 pub enum MooshroomVariantKind {
     #[default]
@@ -1365,11 +1208,6 @@ impl Serialize for MooshroomVariantKind {
     }
 }
 
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct RabbitVariant {
-    pub variant: RabbitVariantKind,
-}
 #[derive(AzBuf, Clone, Copy, Debug, Default, PartialEq)]
 pub enum RabbitVariantKind {
     #[default]
@@ -1403,23 +1241,6 @@ impl Serialize for RabbitVariantKind {
     }
 }
 
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct PigVariant {
-    pub variant: data::PigVariant,
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct FrogVariant {
-    pub variant: data::FrogVariant,
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct HorseVariant {
-    pub variant: HorseVariantKind,
-}
 #[derive(AzBuf, Clone, Copy, Debug, Default, PartialEq)]
 pub enum HorseVariantKind {
     #[default]
@@ -1454,12 +1275,6 @@ impl Serialize for HorseVariantKind {
 }
 
 #[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct PaintingVariant {
-    pub variant: Holder<data::PaintingVariant, PaintingVariantData>,
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
 pub struct PaintingVariantData {
     #[var]
     pub width: i32,
@@ -1472,11 +1287,6 @@ pub struct PaintingVariantData {
     pub author: Option<FormattedText>,
 }
 
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct LlamaVariant {
-    pub variant: LlamaVariantKind,
-}
 #[derive(AzBuf, Clone, Copy, Debug, Default, PartialEq)]
 pub enum LlamaVariantKind {
     #[default]
@@ -1504,11 +1314,6 @@ impl Serialize for LlamaVariantKind {
     }
 }
 
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct AxolotlVariant {
-    pub variant: AxolotlVariantKind,
-}
 #[derive(AzBuf, Clone, Copy, Debug, Default, PartialEq)]
 pub enum AxolotlVariantKind {
     #[default]
@@ -1535,97 +1340,6 @@ impl Serialize for AxolotlVariantKind {
         S: Serializer,
     {
         serializer.serialize_str(&self.to_string())
-    }
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct CatVariant {
-    pub variant: data::CatVariant,
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct CatCollar {
-    pub color: DyeColor,
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct SheepColor {
-    pub color: DyeColor,
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct ShulkerColor {
-    pub color: DyeColor,
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-pub struct TooltipDisplay {
-    #[serde(skip_serializing_if = "is_default")]
-    pub hide_tooltip: bool,
-    #[serde(skip_serializing_if = "is_default")]
-    pub hidden_components: Vec<DataComponentKind>,
-}
-
-impl TooltipDisplay {
-    pub const fn new() -> Self {
-        Self {
-            hide_tooltip: false,
-            hidden_components: Vec::new(),
-        }
-    }
-}
-impl Default for TooltipDisplay {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-pub struct BlocksAttacks {
-    #[serde(skip_serializing_if = "is_default")]
-    pub block_delay_seconds: f32,
-    #[serde(skip_serializing_if = "is_default_disable_cooldown_scale")]
-    pub disable_cooldown_scale: f32,
-    #[serde(skip_serializing_if = "is_default")]
-    pub damage_reductions: Vec<DamageReduction>,
-    #[serde(skip_serializing_if = "is_default")]
-    pub item_damage: ItemDamageFunction,
-    #[serde(skip_serializing_if = "is_default")]
-    pub bypassed_by: Option<HolderSet<DamageKind, Identifier>>,
-    #[serde(skip_serializing_if = "is_default")]
-    pub block_sound: Option<azalea_registry::Holder<SoundEvent, CustomSound>>,
-    #[serde(skip_serializing_if = "is_default")]
-    pub disabled_sound: Option<azalea_registry::Holder<SoundEvent, CustomSound>>,
-}
-fn is_default_disable_cooldown_scale(value: &f32) -> bool {
-    *value == 1.
-}
-
-impl BlocksAttacks {
-    pub fn new() -> Self {
-        Self {
-            block_delay_seconds: 0.,
-            disable_cooldown_scale: 1.,
-            damage_reductions: vec![DamageReduction {
-                horizontal_blocking_angle: 90.,
-                kind: None,
-                base: 0.,
-                factor: 1.,
-            }],
-            item_damage: ItemDamageFunction::default(),
-            bypassed_by: None,
-            block_sound: None,
-            disabled_sound: None,
-        }
-    }
-}
-impl Default for BlocksAttacks {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -1658,12 +1372,6 @@ impl Default for ItemDamageFunction {
 }
 
 #[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct ProvidesTrimMaterial {
-    pub value: Holder<azalea_registry::data::TrimMaterial, DirectTrimMaterial>,
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
 pub struct DirectTrimMaterial {
     #[serde(flatten)]
     pub assets: MaterialAssetGroup,
@@ -1680,133 +1388,6 @@ pub struct MaterialAssetGroup {
 #[serde(transparent)]
 pub struct AssetInfo {
     pub suffix: String,
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct ProvidesBannerPatterns {
-    pub key: HolderSet<BannerPatternKind, Identifier>,
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct BreakSound {
-    pub sound: azalea_registry::Holder<SoundEvent, CustomSound>,
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct WolfSoundVariant {
-    pub variant: azalea_registry::data::WolfSoundVariant,
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct CowVariant {
-    pub variant: azalea_registry::data::CowVariant,
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct ChickenVariant {
-    pub data: azalea_registry::data::ChickenVariant,
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct ZombieNautilusVariant {
-    pub value: azalea_registry::data::ZombieNautilusVariant,
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-pub struct UseEffects {
-    pub can_sprint: bool,
-    pub interact_vibrations: bool,
-    pub speed_multiplier: f32,
-}
-impl UseEffects {
-    pub const fn new() -> Self {
-        Self {
-            can_sprint: false,
-            interact_vibrations: true,
-            speed_multiplier: 0.2,
-        }
-    }
-}
-impl Default for UseEffects {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct MinimumAttackCharge {
-    pub value: f32,
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct DamageType {
-    pub value: azalea_registry::data::DamageKind,
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-pub struct PiercingWeapon {
-    pub deals_knockback: bool,
-    pub dismounts: bool,
-    pub sound: Option<Holder<SoundEvent, azalea_core::sound::CustomSound>>,
-    pub hit_sound: Option<Holder<SoundEvent, azalea_core::sound::CustomSound>>,
-}
-impl PiercingWeapon {
-    pub const fn new() -> Self {
-        Self {
-            deals_knockback: true,
-            dismounts: false,
-            sound: None,
-            hit_sound: None,
-        }
-    }
-}
-impl Default for PiercingWeapon {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-pub struct KineticWeapon {
-    #[var]
-    pub contact_cooldown_ticks: i32,
-    #[var]
-    pub delay_ticks: i32,
-    pub dismount_conditions: Option<KineticWeaponCondition>,
-    pub knockback_conditions: Option<KineticWeaponCondition>,
-    pub damage_conditions: Option<KineticWeaponCondition>,
-    pub forward_movement: f32,
-    pub damage_multiplier: f32,
-    pub sound: Option<Holder<SoundEvent, azalea_core::sound::CustomSound>>,
-    pub hit_sound: Option<Holder<SoundEvent, azalea_core::sound::CustomSound>>,
-}
-impl KineticWeapon {
-    pub const fn new() -> Self {
-        Self {
-            contact_cooldown_ticks: 10,
-            delay_ticks: 0,
-            dismount_conditions: None,
-            knockback_conditions: None,
-            damage_conditions: None,
-            forward_movement: 0.,
-            damage_multiplier: 1.,
-            sound: None,
-            hit_sound: None,
-        }
-    }
-}
-impl Default for KineticWeapon {
-    fn default() -> Self {
-        Self::new()
-    }
 }
 
 #[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
@@ -1831,101 +1412,10 @@ impl Default for KineticWeaponCondition {
     }
 }
 
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-pub struct SwingAnimation {
-    #[serde(rename = "type")]
-    pub kind: SwingAnimationKind,
-    #[var]
-    pub duration: i32,
-}
-impl SwingAnimation {
-    pub const fn new() -> Self {
-        Self {
-            kind: SwingAnimationKind::Whack,
-            duration: 6,
-        }
-    }
-}
-impl Default for SwingAnimation {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 #[derive(AzBuf, Clone, Copy, Debug, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SwingAnimationKind {
     None,
     Whack,
     Stab,
-}
-
-#[derive(AzBuf, Clone, Debug, PartialEq, Serialize)]
-pub struct AttackRange {
-    pub min_reach: f32,
-    pub max_reach: f32,
-    pub min_creative_reach: f32,
-    pub max_creative_reach: f32,
-    pub hitbox_margin: f32,
-    pub mob_factor: f32,
-}
-impl AttackRange {
-    pub const fn new() -> Self {
-        Self {
-            min_reach: 0.,
-            max_reach: 3.,
-            min_creative_reach: 0.,
-            max_creative_reach: 5.,
-            hitbox_margin: 0.3,
-            mob_factor: 1.,
-        }
-    }
-}
-impl Default for AttackRange {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[derive(Clone, PartialEq, AzBuf, Debug, Serialize)]
-#[serde(transparent)]
-pub struct AdditionalTradeCost {
-    #[var]
-    pub cost: i32,
-}
-
-#[derive(Clone, PartialEq, AzBuf, Debug, Serialize)]
-#[serde(transparent)]
-pub struct Dye {
-    pub color: DyeColor,
-}
-
-#[derive(Clone, PartialEq, AzBuf, Debug, Serialize)]
-#[serde(transparent)]
-pub struct PigSoundVariant {
-    pub value: azalea_registry::data::PigSoundVariant,
-}
-
-#[derive(Clone, PartialEq, AzBuf, Debug, Serialize)]
-#[serde(transparent)]
-pub struct CowSoundVariant {
-    pub value: azalea_registry::data::CowSoundVariant,
-}
-
-#[derive(Clone, PartialEq, AzBuf, Debug, Serialize)]
-#[serde(transparent)]
-pub struct ChickenSoundVariant {
-    pub value: azalea_registry::data::ChickenSoundVariant,
-}
-
-#[derive(Clone, PartialEq, AzBuf, Debug, Serialize)]
-#[serde(transparent)]
-pub struct CatSoundVariant {
-    pub value: azalea_registry::data::CatSoundVariant,
-}
-
-#[derive(Clone, PartialEq, AzBuf, Debug, Serialize)]
-#[serde(transparent)]
-pub struct SulfurCubeContent {
-    pub absorbed_block_item_stack: ItemStack,
 }

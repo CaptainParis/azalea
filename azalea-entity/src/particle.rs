@@ -1,6 +1,10 @@
 use azalea_block::BlockState;
 use azalea_buf::AzBuf;
-use azalea_core::{color::RgbColor, entity_id::MinecraftEntityId, position::BlockPos};
+use azalea_core::{
+    color::RgbColor,
+    entity_id::MinecraftEntityId,
+    position::{BlockPos, Vec3},
+};
 use azalea_inventory::ItemStack;
 use azalea_registry::builtin::ParticleKind;
 
@@ -15,15 +19,7 @@ pub enum Particle {
     Block(BlockParticle),
     BlockMarker(BlockParticle),
     Bubble,
-    SulfurBubbles,
-    NoxiousGas,
-    NoxiousGasCloud,
-    Geyser(GeyserParticle),
-    GeyserBase(GeyserBaseParticle),
-    GeyserPoof(GeyserBaseParticle),
-    GeyserPlume(GeyserParticle),
     Cloud,
-    CopperFireFlame,
     Crit,
     DamageIndicator,
     DragonBreath,
@@ -54,7 +50,6 @@ pub enum Particle {
     Infested,
     CherryLeaves,
     PaleOakLeaves,
-    TintedLeaves,
     SculkSoul,
     SculkCharge(SculkChargeParticle),
     SculkChargePop,
@@ -67,9 +62,7 @@ pub enum Particle {
     InstantEffect,
     Item(ItemParticle),
     Vibration(Box<VibrationParticle>),
-    Trail,
-    PauseMobGrowth,
-    ResetMobGrowth,
+    Trail(Box<TrailParticle>),
     ItemSlime,
     ItemCobweb,
     ItemSnowball,
@@ -129,13 +122,11 @@ pub enum Particle {
     TrialSpawnerDetection,
     TrialSpawnerDetectionOminous,
     VaultConnection,
-    DustPillar,
+    DustPillar(BlockParticle),
     OminousSpawning,
     RaidOmen,
     TrialOmen,
-    BlockCrumble,
-    Firefly,
-    SulfurCubeGoo,
+    BlockCrumble(BlockParticle),
 }
 
 impl From<ParticleKind> for Particle {
@@ -180,7 +171,6 @@ impl From<ParticleKind> for Particle {
             ParticleKind::Flame => Self::Flame,
             ParticleKind::CherryLeaves => Self::CherryLeaves,
             ParticleKind::PaleOakLeaves => Self::PaleOakLeaves,
-            ParticleKind::TintedLeaves => Self::TintedLeaves,
             ParticleKind::SculkSoul => Self::SculkSoul,
             ParticleKind::SculkCharge => Self::SculkCharge(SculkChargeParticle::default()),
             ParticleKind::SculkChargePop => Self::SculkChargePop,
@@ -256,24 +246,12 @@ impl From<ParticleKind> for Particle {
             ParticleKind::TrialSpawnerDetection => Self::TrialSpawnerDetection,
             ParticleKind::TrialSpawnerDetectionOminous => Self::TrialSpawnerDetectionOminous,
             ParticleKind::VaultConnection => Self::VaultConnection,
-            ParticleKind::DustPillar => Self::DustPillar,
+            ParticleKind::DustPillar => Self::DustPillar(BlockParticle::default()),
             ParticleKind::OminousSpawning => Self::OminousSpawning,
             ParticleKind::RaidOmen => Self::RaidOmen,
             ParticleKind::TrialOmen => Self::TrialOmen,
-            ParticleKind::Trail => Self::Trail,
-            ParticleKind::BlockCrumble => Self::BlockCrumble,
-            ParticleKind::Firefly => Self::Firefly,
-            ParticleKind::CopperFireFlame => Self::CopperFireFlame,
-            ParticleKind::PauseMobGrowth => Self::PauseMobGrowth,
-            ParticleKind::ResetMobGrowth => Self::ResetMobGrowth,
-            ParticleKind::SulfurBubbles => Self::SulfurBubbles,
-            ParticleKind::NoxiousGas => Self::NoxiousGas,
-            ParticleKind::NoxiousGasCloud => Self::NoxiousGasCloud,
-            ParticleKind::Geyser => Self::Geyser(GeyserParticle::default()),
-            ParticleKind::GeyserBase => Self::GeyserBase(GeyserBaseParticle::default()),
-            ParticleKind::GeyserPoof => Self::GeyserPoof(GeyserBaseParticle::default()),
-            ParticleKind::GeyserPlume => Self::GeyserPlume(GeyserParticle::default()),
-            ParticleKind::SulfurCubeGoo => Self::SulfurCubeGoo,
+            ParticleKind::Trail => Self::Trail(Default::default()),
+            ParticleKind::BlockCrumble => Self::BlockCrumble(BlockParticle::default()),
         }
     }
 }
@@ -349,12 +327,9 @@ pub struct ShriekParticle {
 }
 
 #[derive(AzBuf, Clone, Debug, Default, PartialEq)]
-pub struct GeyserParticle {
-    pub water_blocks: i32,
-}
-
-#[derive(AzBuf, Clone, Debug, Default, PartialEq)]
-pub struct GeyserBaseParticle {
-    pub water_blocks: i32,
-    pub burst_impulse_base: f32,
+pub struct TrailParticle {
+    pub target: Vec3,
+    pub color: RgbColor,
+    #[var]
+    pub duration: i32,
 }

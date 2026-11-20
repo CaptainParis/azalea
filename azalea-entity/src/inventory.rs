@@ -619,10 +619,6 @@ impl Inventory {
                 // maybe they should be a separate field in `Inventory`?
                 return None;
             }
-            EquipmentSlot::Saddle => {
-                // TODO: implement riding entities, see above
-                return None;
-            }
         };
         Some(item)
     }

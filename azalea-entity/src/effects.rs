@@ -152,14 +152,6 @@ pub fn attribute_modifier_for_effect(id: MobEffect) -> Option<(Attribute, Attrib
                 AttributeModifierOperation::AddValue,
             ),
         ),
-        MobEffect::Invisibility => (
-            Attribute::WaypointTransmitRange,
-            AttributeTemplate::new(
-                "effect.waypoint_transmit_range_hide",
-                -1.0,
-                AttributeModifierOperation::AddMultipliedTotal,
-            ),
-        ),
         MobEffect::Weakness => (
             Attribute::AttackDamage,
             AttributeTemplate::new(

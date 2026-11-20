@@ -11,7 +11,7 @@ use azalea_core::{
     direction::Direction,
     position::{BlockPos, GlobalPos, Vec3f32},
 };
-use azalea_inventory::{ItemStack, components};
+use azalea_inventory::ItemStack;
 use azalea_registry::builtin::{VillagerKind, VillagerProfession};
 use derive_more::Deref;
 use enum_as_inner::EnumAsInner;
@@ -82,9 +82,9 @@ pub enum EntityDataValue {
     // 0 for absent; 1 + actual value otherwise. Used for entity IDs.
     OptionalUnsignedInt(OptionalUnsignedInt),
     Pose(Pose),
-    CatVariant(azalea_registry::data::CatVariant),
+    CatVariant(azalea_registry::builtin::CatVariant),
     WolfVariant(azalea_registry::data::WolfVariant),
-    FrogVariant(azalea_registry::data::FrogVariant),
+    FrogVariant(azalea_registry::builtin::FrogVariant),
     OptionalGlobalPos(Option<Box<GlobalPos>>),
     PaintingVariant(azalea_registry::data::PaintingVariant),
     SnifferState(SnifferStateKind),

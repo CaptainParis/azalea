@@ -20,6 +20,7 @@ derive_more.workspace = true
 enum-as-inner.workspace = true
 nohash-hasher.workspace = true
 parking_lot.workspace = true
+simdnbt.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 uuid.workspace = true
