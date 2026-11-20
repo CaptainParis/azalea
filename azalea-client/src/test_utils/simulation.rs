@@ -4,7 +4,7 @@ use azalea_auth::game_profile::GameProfile;
 use azalea_block::BlockState;
 use azalea_buf::AzBuf;
 use azalea_core::{
-    delta::LpVec3,
+    delta::QuantizedVelocity,
     entity_id::MinecraftEntityId,
     game_type::{GameMode, OptionalGameType},
     position::{BlockPos, ChunkPos, Vec3},
@@ -356,7 +356,6 @@ pub fn make_basic_login_packet(
             sea_level: 63,
         },
         enforces_secure_chat: false,
-        online_mode: false,
     }
 }
 
@@ -390,12 +389,14 @@ pub fn make_basic_empty_chunk(
     for _ in 0..section_count {
         sections.push(Section {
             block_count: 0,
-            fluid_count: 0,
             states: PalettedContainer::<BlockState>::new(),
             biomes: PalettedContainer::<Biome>::new(),
         });
     }
-    sections.azalea_write(&mut chunk_bytes).unwrap();
+    // the sections aren't prefixed with their count
+    for section in &sections {
+        section.azalea_write(&mut chunk_bytes).unwrap();
+    }
 
     ClientboundLevelChunkWithLight {
         x: pos.x,
@@ -423,6 +424,6 @@ pub fn make_basic_add_entity(
         y_rot: 0,
         y_head_rot: 0,
         data: 0,
-        movement: LpVec3::Zero,
+        movement: QuantizedVelocity::default(),
     }
 }
