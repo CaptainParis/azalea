@@ -41,7 +41,6 @@ pub fn update_in_water_state_and_do_fluid_pushing(
         let is_ultrawarm = world
             .registries
             .dimension_type
-            .map
             .get(&**world_name)
             .and_then(|i| i.ultrawarm)
             .unwrap_or_default();

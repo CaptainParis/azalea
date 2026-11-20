@@ -108,7 +108,7 @@ pub static GUESSED_DEFAULT_REGISTRIES_FOR_CHAT: LazyLock<RegistryHolder> =
             RegistryType {
                 map: ChatKindKey::ALL
                     .iter()
-                    .map(|k| (k.clone().into_ident(), NbtCompound::new()))
+                    .map(|k| (k.clone().into_ident(), Some(NbtCompound::new())))
                     .collect(),
             },
         )]

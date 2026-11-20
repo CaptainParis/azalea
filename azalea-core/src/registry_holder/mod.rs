@@ -135,9 +135,31 @@ enum NbtToSerializableTypeError {
 }
 
 /// A collection of values for a certain type of registry data.
+///
+/// The protocol id of an entry is its index in `map`, so every entry the
+/// server sent has a place here, in the order it was sent. An entry whose
+/// data couldn't be parsed is kept as `None` (a placeholder, counted as a
+/// [`DecodeErrorKind::Registry`] decode error): leaving it out would give
+/// every later entry the protocol id of the one before it.
 #[derive(Clone, Debug)]
 pub struct RegistryType<T: simdnbt::Deserialize> {
-    pub map: IndexMap<Identifier, T>,
+    pub map: IndexMap<Identifier, Option<T>>,
+}
+
+impl<T: simdnbt::Deserialize> RegistryType<T> {
+    /// The parsed entry with this key, or `None` if there's no such entry or
+    /// it's a placeholder for data that couldn't be parsed.
+    pub fn get(&self, key: &Identifier) -> Option<&T> {
+        self.map.get(key).and_then(Option::as_ref)
+    }
+
+    /// The key and parsed entry at this protocol id, or `None` if there's no
+    /// such entry or it's a placeholder for data that couldn't be parsed.
+    pub fn get_index(&self, protocol_id: usize) -> Option<(&Identifier, &T)> {
+        self.map
+            .get_index(protocol_id)
+            .and_then(|(k, v)| v.as_ref().map(|v| (k, v)))
+    }
 }
 
 impl<T: simdnbt::Deserialize> Default for RegistryType<T> {
@@ -178,13 +200,15 @@ impl<T: simdnbt::Deserialize + RegistryEntryBounds> RegistryType<T> {
                             // protocol id but never resolved
                             record_decode_error(T::out_of_bounds_kind());
                         }
-                        map.insert(key, value);
+                        map.insert(key, Some(value));
                     }
                     Err(err) => {
                         error!("Error deserializing {id} entry {key}: {err:?}\n{value:?}");
-                        // decode error hook: registry entries that fail to
-                        // parse are left out
+                        // decode error hook: an entry that fails to parse is
+                        // kept as a placeholder, so the entries after it keep
+                        // their protocol ids
                         record_decode_error(DecodeErrorKind::Registry);
+                        map.insert(key, None);
                     }
                 }
             } else {
@@ -211,7 +235,6 @@ impl RegistryDeserializesTo for NbtCompound {
         registries
             .extra
             .get(&Identifier::new(registry_name))?
-            .map
             .get_index(protocol_id as usize)
     }
 }
@@ -228,7 +251,6 @@ impl RegistryDeserializesTo for dimension_type::DimensionKindElement {
         );
         registries
             .dimension_type
-            .map
             .get_index(protocol_id as usize)
             // a dimension type outside vanilla's bounds was counted when it
             // was received, and nothing may be sized from it
@@ -246,7 +268,7 @@ impl RegistryDeserializesTo for enchantment::EnchantmentData {
             registry_name == "enchantment",
             "called RegistryDeserializesTo::get_for_registry with the wrong registry: {registry_name}"
         );
-        registries.enchantment.map.get_index(protocol_id as usize)
+        registries.enchantment.get_index(protocol_id as usize)
     }
 }
 
@@ -301,5 +323,46 @@ mod tests {
         assert_eq!(get(1), None);
         // the entry after the rejected one keeps its protocol id
         assert_eq!(get(2).as_deref(), Some("a:also_ok"));
+    }
+
+    // a dimension type without `min_y` fails to parse in either mode
+    #[cfg(not(feature = "strict_registry"))]
+    #[test]
+    fn unparsable_entry_keeps_a_placeholder_so_later_ids_stay_aligned() {
+        let mut broken = NbtCompound::new();
+        broken.insert("height", 384);
+        let mut registries = RegistryHolder::default();
+        let before = decode_errors();
+        registries.append(
+            Identifier::new("minecraft:dimension_type"),
+            vec![
+                (Identifier::new("a:ok"), Some(dimension(384, -64, 384))),
+                (Identifier::new("a:broken"), Some(broken)),
+                (Identifier::new("a:also_ok"), Some(dimension(256, 0, 128))),
+            ],
+        );
+        assert!(decode_errors().registry > before.registry);
+        assert_eq!(registries.dimension_type.map.len(), 3);
+        let get = |id| {
+            <dimension_type::DimensionKindElement as RegistryDeserializesTo>::get_for_registry(
+                &registries,
+                "dimension_type",
+                id,
+            )
+            .map(|(k, d)| (k.to_string(), d.height))
+        };
+        assert_eq!(get(0), Some(("a:ok".to_string(), 384)));
+        // the placeholder has its id (and key) but never resolves
+        assert_eq!(get(1), None);
+        assert_eq!(
+            registries
+                .protocol_id_to_identifier(Identifier::new("minecraft:dimension_type"), 1)
+                .map(|k| k.to_string())
+                .as_deref(),
+            Some("a:broken")
+        );
+        // without the placeholder this would be None and id 1 would be
+        // a:also_ok
+        assert_eq!(get(2), Some(("a:also_ok".to_string(), 256)));
     }
 }

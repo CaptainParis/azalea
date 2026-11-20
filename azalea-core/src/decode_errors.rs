@@ -1,10 +1,10 @@
 //! A process-wide count of data that we received but couldn't decode.
 //!
 //! Some decode failures don't stop the connection: a packet that fails to
-//! parse is logged and skipped, a registry entry that fails to parse is left
-//! out, and so on. Every one of those places calls [`record_decode_error`],
-//! so tests (and bots) can check [`decode_errors`] to see whether anything was
-//! silently dropped.
+//! parse is logged and skipped, a registry entry that fails to parse is kept
+//! as a placeholder, and so on. Every one of those places calls
+//! [`record_decode_error`], so tests (and bots) can check [`decode_errors`] to
+//! see whether anything was silently dropped.
 //!
 //! The counters are global atomics, shared by every client in the process.
 
