@@ -84,6 +84,7 @@ use crate::{
     connection::{ConnectionSocket, RawConnection},
     inventory::{ClientsideCloseContainerEvent, ContainerClickEvent, MenuOpenedEvent},
     local_player::WorldHolder,
+    movement::{KnockbackData, KnockbackEvent},
     packet::game::{GamePacketHandler, SendGamePacketEvent},
 };
 
@@ -148,6 +149,9 @@ pub fn classify_game(name: &str) -> Option<PacketClass> {
         | "recipe_book_settings"
         | "reset_score"
         | "resource_pack_pop"
+        // Azalea doesn't model passengers (its handler does nothing), so no
+        // model state is lost, even when it's about our own entity
+        | "set_passengers"
         | "select_advancements_tab"
         | "server_data"
         | "set_action_bar_text"
@@ -205,7 +209,6 @@ pub fn classify_game(name: &str) -> Option<PacketClass> {
         | "set_entity_link"
         | "set_entity_motion"
         | "set_equipment"
-        | "set_passengers"
         | "take_item_entity"
         | "teleport_entity"
         | "update_attributes"
@@ -221,7 +224,10 @@ pub fn classify_game(name: &str) -> Option<PacketClass> {
 
         // login, respawn, teleport, start configuration, our own player, and
         // packets the server waits for an answer to or that size the world
-        // view
+        // view. keep_alive, ping, chunk_batch_finished and block_changed_ack
+        // are answered, and explode's knockback applied, from the readable
+        // start of the body when it can be read ([`apply_prefix`]); only if
+        // it can't, they close
         "login"
         | "respawn"
         | "player_position"
@@ -291,7 +297,8 @@ pub fn classify_config(name: &str) -> Option<PacketClass> {
         // select_known_packs: the server waits for our answer, and the answer
         // decides which registry data it sends
         | "select_known_packs"
-        // keep_alive and ping: the server waits for the answer
+        // keep_alive and ping: the server waits for the answer (given from
+        // the readable id if there is one, see [`apply_prefix`])
         | "keep_alive" | "ping"
         // cookie_request and resource_pack_push: the server waits for an
         // answer about a key or a pack id we couldn't read
@@ -327,6 +334,9 @@ pub enum BadPacketAction {
     ChunkUnknown { chunks: Vec<ChunkPos> },
     /// The tab list is stale ([`TabListStale`]).
     TabListStale,
+    /// The readable start of the body was applied as vanilla would have
+    /// applied the packet ([`apply_prefix`]); what it did.
+    PrefixApplied { applied: &'static str },
     /// The connection was closed for a reconnect.
     Closed { reason: String },
 }
@@ -619,7 +629,16 @@ pub(crate) fn handle_bad_packet(
     );
 
     let tab_list_newly_stale = ecs.get::<TabListStale>(entity).is_none();
+    let prefix = match &packet_name {
+        Some(name) => apply_prefix(ecs, entity, state, name, body),
+        None => None,
+    };
     let action = match class {
+        _ if let Some(applied) = prefix => {
+            // decode error hook: applied from the readable start of the body
+            record_decode_error(DecodeErrorKind::PrefixApplied);
+            BadPacketAction::PrefixApplied { applied }
+        }
         Some(PacketClass::StateFree) => {
             // decode error hook: a state-free packet, dropped
             record_decode_error(DecodeErrorKind::BadPacketDropped);
@@ -687,6 +706,92 @@ pub(crate) fn handle_bad_packet(
         },
         alert,
     );
+}
+
+/// Packets with no safe repair whose first fields are all that matters: if
+/// those can be read (the body is cut after them, or has bytes left over),
+/// apply them as the vanilla 1.21.4 handler would, and drop the rest.
+///
+/// - `keep_alive` (play and configuration): answered with the same id
+///   (`ClientCommonPacketListenerImpl.handleKeepAlive`), so the server doesn't
+///   time us out;
+/// - `ping` (play and configuration): answered with a pong of the same id;
+/// - `chunk_batch_finished`: the batch size goes to the chunk rate and the
+///   `chunk_batch_received` answer is sent (`handleChunkBatchFinished`),
+///   without which the server stops sending chunks;
+/// - `block_changed_ack`: our block predictions up to the sequence end
+///   (`handleBlockChangedAck`);
+/// - `explode`: the centre and our knockback come before the particle and
+///   sound; the knockback is applied (`handleExplosion` adds it to our motion),
+///   the particle and sound (display only) are dropped.
+///
+/// `None` if the packet isn't one of these or its fields can't be read.
+fn apply_prefix(
+    ecs: &mut World,
+    entity: Entity,
+    state: ConnectionProtocol,
+    name: &str,
+    body: &[u8],
+) -> Option<&'static str> {
+    use azalea_protocol::packets::{config, game};
+    let buf = &mut Cursor::new(body);
+    match (state, name) {
+        (ConnectionProtocol::Game, "keep_alive") => {
+            let id = u64::azalea_read(buf).ok()?;
+            let p = game::ClientboundGamePacket::KeepAlive(game::ClientboundKeepAlive { id });
+            crate::packet::game::process_packet(ecs, entity, &p);
+            Some("keep-alive answered")
+        }
+        (ConnectionProtocol::Game, "ping") => {
+            let id = u32::azalea_read(buf).ok()?;
+            let p = game::ClientboundGamePacket::Ping(game::ClientboundPing { id });
+            crate::packet::game::process_packet(ecs, entity, &p);
+            Some("ping answered")
+        }
+        (ConnectionProtocol::Game, "chunk_batch_finished") => {
+            let batch_size = u32::azalea_read_var(buf).ok()?;
+            let p = game::ClientboundGamePacket::ChunkBatchFinished(
+                game::ClientboundChunkBatchFinished { batch_size },
+            );
+            crate::packet::game::process_packet(ecs, entity, &p);
+            Some("chunk batch acknowledged")
+        }
+        (ConnectionProtocol::Game, "block_changed_ack") => {
+            let seq = u32::azalea_read_var(buf).ok()?;
+            let p =
+                game::ClientboundGamePacket::BlockChangedAck(game::ClientboundBlockChangedAck {
+                    seq,
+                });
+            crate::packet::game::process_packet(ecs, entity, &p);
+            Some("block predictions acknowledged")
+        }
+        (ConnectionProtocol::Game, "explode") => {
+            let _center = Vec3::azalea_read(buf).ok()?;
+            let knockback = Option::<Vec3>::azalea_read(buf).ok()?;
+            if let Some(knockback) = knockback {
+                ecs.trigger(KnockbackEvent {
+                    entity,
+                    data: KnockbackData::Add(knockback),
+                });
+                Some("explosion knockback applied")
+            } else {
+                Some("explosion without knockback dropped")
+            }
+        }
+        (ConnectionProtocol::Configuration, "keep_alive") => {
+            let id = u64::azalea_read(buf).ok()?;
+            let p = config::ClientboundConfigPacket::KeepAlive(config::ClientboundKeepAlive { id });
+            crate::packet::config::process_packet(ecs, entity, &p);
+            Some("keep-alive answered")
+        }
+        (ConnectionProtocol::Configuration, "ping") => {
+            let id = u32::azalea_read(buf).ok()?;
+            let p = config::ClientboundConfigPacket::Ping(config::ClientboundPing { id });
+            crate::packet::config::process_packet(ecs, entity, &p);
+            Some("ping answered")
+        }
+        _ => None,
+    }
 }
 
 /// Log (at most once per packet id per log interval), count the packet id in

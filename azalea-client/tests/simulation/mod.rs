@@ -6,6 +6,7 @@ mod bad_packet_critical;
 mod bad_packet_entity;
 mod bad_packet_frame;
 mod bad_packet_inventory;
+mod bad_packet_prefix;
 mod bad_packet_state_free;
 mod bad_packet_tab_list;
 mod change_dimension_to_nether_and_back;
