@@ -414,16 +414,6 @@ impl Default for BadPacketConfig {
     }
 }
 
-/// A function that may change a raw clientbound packet (id and body, after
-/// decompression) before it's decoded. For tests that corrupt a packet in
-/// the stream; it's never set by Azalea itself.
-pub type RawPacketHook = Arc<dyn Fn(Entity, ConnectionProtocol, &mut Vec<u8>) + Send + Sync>;
-
-/// The [`RawPacketHook`]s of an app, called in order on every clientbound
-/// packet before it's decoded.
-#[derive(Clone, Default, Resource)]
-pub struct RawPacketHooks(pub Vec<RawPacketHook>);
-
 /// Our inventory may not match the server's: an inventory or container
 /// packet couldn't be decoded. Removed when the server sends the full
 /// content of the container we have open.
@@ -552,26 +542,6 @@ impl Plugin for BadPacketPlugin {
                 ),
             );
     }
-}
-
-/// A raw packet read from the server, after the [`RawPacketHooks`].
-pub(crate) fn apply_raw_packet_hooks(
-    ecs: &World,
-    entity: Entity,
-    state: ConnectionProtocol,
-    raw: Arc<[u8]>,
-) -> Arc<[u8]> {
-    let Some(hooks) = ecs.get_resource::<RawPacketHooks>() else {
-        return raw;
-    };
-    if hooks.0.is_empty() {
-        return raw;
-    }
-    let mut bytes = raw.to_vec();
-    for hook in &hooks.0 {
-        hook(entity, state, &mut bytes);
-    }
-    bytes.into()
 }
 
 /// Close the connection of `entity` so that the supervisor reconnects:

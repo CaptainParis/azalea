@@ -145,8 +145,14 @@ pub fn read_packets(ecs: &mut World) {
     queued_packet_events.write_messages(ecs);
 }
 
-/// Decode and handle one raw packet (after the test hooks); a packet that
-/// can't be decoded goes to the bad packet policy.
+/// Decode and handle one raw packet; a packet that can't be decoded goes to
+/// the bad packet policy.
+///
+/// There's deliberately no hook to change the bytes here: tests corrupt
+/// packets either in the networkless simulation
+/// (`Simulation::receive_raw_packet`) or on the wire, in a proxy between the
+/// client and the server (the hunt rig's fault proxy), so nothing in a real
+/// connection's path can be told to alter packets (P10).
 fn read_one_packet(
     ecs: &mut World,
     raw_packet: Arc<[u8]>,
@@ -154,7 +160,6 @@ fn read_one_packet(
     state: ConnectionProtocol,
     queued_packet_events: &mut QueuedPacketEvents,
 ) {
-    let raw_packet = bad_packet::apply_raw_packet_hooks(ecs, entity, state, raw_packet);
     if let Err(e) = handle_raw_packet(ecs, &raw_packet, entity, state, queued_packet_events) {
         bad_packet::handle_bad_packet(ecs, entity, state, raw_packet, &e);
     }
