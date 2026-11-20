@@ -47,7 +47,7 @@ use azalea_entity::{LocalEntity, Position, inventory::Inventory, metadata::Playe
 use azalea_world::{WorldName, Worlds};
 use bevy_app::{PreUpdate, Update};
 use bevy_ecs::prelude::*;
-use bevy_tasks::{AsyncComputeTaskPool, Task};
+use bevy_tasks::Task;
 use custom_state::{CustomPathfinderState, CustomPathfinderStateRef};
 use futures_lite::future;
 pub use goto_event::{GotoEvent, PathfinderOpts};
@@ -312,8 +312,6 @@ pub fn goto_listener(
     )>,
     worlds: Res<Worlds>,
 ) {
-    let thread_pool = AsyncComputeTaskPool::get();
-
     for event in events.read() {
         let Ok((
             mut pathfinder,
@@ -474,7 +472,7 @@ pub fn goto_listener(
         }
 
         let mining_cache = MiningCache::new(inventory_menu);
-        let task = thread_pool.spawn(async move {
+        let task = azalea_client::task_pool::owner::spawn_async_compute(async move {
             calculate_path(CalculatePathCtx {
                 entity,
                 start,

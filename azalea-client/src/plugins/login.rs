@@ -6,7 +6,7 @@ use azalea_protocol::{
 };
 use bevy_app::prelude::*;
 use bevy_ecs::prelude::*;
-use bevy_tasks::{IoTaskPool, Task, futures_lite::future};
+use bevy_tasks::{Task, futures_lite::future};
 use thiserror::Error;
 use tracing::{debug, error, trace, warn};
 
@@ -30,8 +30,6 @@ fn handle_receive_hello_event(
     mut commands: Commands,
     query: Query<&ConnectOpts>,
 ) {
-    let task_pool = IoTaskPool::get();
-
     let account = receive_hello.account.clone();
     let packet = receive_hello.packet.clone();
     let client = receive_hello.entity;
@@ -46,7 +44,9 @@ fn handle_receive_hello_event(
         None
     };
 
-    let task = task_pool.spawn(async { auth_with_account(account, packet, connect_opts).await });
+    let task = crate::task_pool::owner::spawn_io(async {
+        auth_with_account(account, packet, connect_opts).await
+    });
     commands.entity(client).insert(AuthTask(task));
 }
 

@@ -7,7 +7,7 @@ use azalea_protocol::packets::game::{
 };
 use bevy_app::prelude::*;
 use bevy_ecs::prelude::*;
-use bevy_tasks::{IoTaskPool, Task, futures_lite::future};
+use bevy_tasks::{Task, futures_lite::future};
 use chrono::Utc;
 use tracing::{debug, error};
 use uuid::Uuid;
@@ -125,10 +125,8 @@ pub fn request_certs_if_needed(
         };
 
         if should_refresh && let Some(access_token) = account.access_token() {
-            let task_pool = IoTaskPool::get();
-
             debug!("Started task to fetch certs");
-            let task = task_pool.spawn(async_compat::Compat::new(async move {
+            let task = crate::task_pool::owner::spawn_io(async_compat::Compat::new(async move {
                 azalea_auth::certs::fetch_certificates(&access_token).await
             }));
             commands

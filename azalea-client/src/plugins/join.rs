@@ -14,7 +14,7 @@ use azalea_protocol::{
 use azalea_world::World;
 use bevy_app::prelude::*;
 use bevy_ecs::prelude::*;
-use bevy_tasks::{IoTaskPool, Task, futures_lite::future};
+use bevy_tasks::{Task, futures_lite::future};
 use parking_lot::RwLock;
 use tokio::sync::mpsc;
 use tracing::{debug, warn};
@@ -148,9 +148,8 @@ pub fn handle_start_join_server_event(
             // immediately when the connection is created
         ));
 
-        let task_pool = IoTaskPool::get();
         let connect_opts = event.connect_opts.clone();
-        let task = task_pool.spawn(async_compat::Compat::new(
+        let task = crate::task_pool::owner::spawn_io(async_compat::Compat::new(
             create_conn_and_send_intention_packet(connect_opts),
         ));
 

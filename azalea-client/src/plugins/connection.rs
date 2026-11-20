@@ -22,7 +22,7 @@ use azalea_protocol::{
 };
 use bevy_app::prelude::*;
 use bevy_ecs::prelude::*;
-use bevy_tasks::{IoTaskPool, futures_lite::future};
+use bevy_tasks::futures_lite::future;
 use thiserror::Error;
 use tokio::{
     io::AsyncWriteExt,
@@ -197,13 +197,13 @@ impl RawConnection {
         writer: RawWriteConnection,
         state: ConnectionProtocol,
     ) -> Self {
-        let task_pool = IoTaskPool::get();
-
         let (network_packet_writer_tx, network_packet_writer_rx) =
             mpsc::unbounded_channel::<Box<[u8]>>();
 
-        let writer_task =
-            task_pool.spawn(write_task(network_packet_writer_rx, writer.write_stream));
+        let writer_task = crate::task_pool::owner::spawn_io(write_task(
+            network_packet_writer_rx,
+            writer.write_stream,
+        ));
 
         let mut conn = Self::new_networkless(state);
         conn.network = Some(NetworkConnection {
