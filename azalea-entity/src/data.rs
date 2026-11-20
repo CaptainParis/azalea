@@ -57,6 +57,7 @@ impl AzBuf for EntityMetadataItems {
 // codegen/lib/code/entity.py
 #[derive(AzBuf, Clone, Debug, EnumAsInner, PartialEq)]
 pub enum EntityDataValue {
+    // Order and set are those of 1.21.4's EntityDataSerializers (protocol 769).
     Byte(u8),
     Int(#[var] i32),
     Long(#[var] i64),
@@ -70,10 +71,11 @@ pub enum EntityDataValue {
     BlockPos(BlockPos),
     OptionalBlockPos(Option<BlockPos>),
     Direction(Direction),
-    OptionalLivingEntityReference(Option<Uuid>),
+    OptionalUuid(Option<Uuid>),
     BlockState(azalea_block::BlockState),
     /// If this is air, that means it's absent,
     OptionalBlockState(azalea_block::BlockState),
+    CompoundTag(Box<simdnbt::owned::NbtCompound>),
     Particle(Particle),
     Particles(Box<[Particle]>),
     VillagerData(VillagerData),
@@ -81,27 +83,14 @@ pub enum EntityDataValue {
     OptionalUnsignedInt(OptionalUnsignedInt),
     Pose(Pose),
     CatVariant(azalea_registry::data::CatVariant),
-    CatSoundVariant(azalea_registry::data::CatSoundVariant),
-    CowVariant(azalea_registry::data::CowVariant),
-    CowSoundVariant(azalea_registry::data::CowSoundVariant),
     WolfVariant(azalea_registry::data::WolfVariant),
-    WolfSoundVariant(azalea_registry::data::WolfSoundVariant),
     FrogVariant(azalea_registry::data::FrogVariant),
-    PigVariant(azalea_registry::data::PigVariant),
-    PigSoundVariant(azalea_registry::data::PigSoundVariant),
-    ChickenVariant(azalea_registry::data::ChickenVariant),
-    ChickenSoundVariant(azalea_registry::data::ChickenSoundVariant),
-    ZombieNautilusVariant(azalea_registry::data::ZombieNautilusVariant),
     OptionalGlobalPos(Option<Box<GlobalPos>>),
     PaintingVariant(azalea_registry::data::PaintingVariant),
     SnifferState(SnifferStateKind),
     ArmadilloState(ArmadilloStateKind),
-    CopperGolemState(CopperGolemStateKind),
-    WeatheringCopperState(WeatheringCopperStateKind),
     Vector3(Vec3f32),
     Quaternion(Quaternion),
-    ResolvableProfile(components::Profile),
-    HumanoidArm(HumanoidArm),
 }
 
 const _: () = assert!(size_of::<EntityDataValue>() == 24);

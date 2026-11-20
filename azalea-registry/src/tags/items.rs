@@ -31,7 +31,6 @@ pub static ARROWS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
 pub static AXES: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         ItemKind::WoodenAxe,
-        ItemKind::CopperAxe,
         ItemKind::StoneAxe,
         ItemKind::GoldenAxe,
         ItemKind::IronAxe,
@@ -61,19 +60,6 @@ pub static BANNERS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
         ItemKind::GreenBanner,
         ItemKind::RedBanner,
         ItemKind::BlackBanner,
-    ])
-});
-pub static BARS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::IronBars,
-        ItemKind::CopperBars,
-        ItemKind::ExposedCopperBars,
-        ItemKind::WeatheredCopperBars,
-        ItemKind::OxidizedCopperBars,
-        ItemKind::WaxedCopperBars,
-        ItemKind::WaxedExposedCopperBars,
-        ItemKind::WaxedWeatheredCopperBars,
-        ItemKind::WaxedOxidizedCopperBars,
     ])
 });
 pub static BEACON_PAYMENT_ITEMS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
@@ -129,9 +115,7 @@ pub static BEE_FOOD: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
         ItemKind::PitcherPlant,
         ItemKind::SporeBlossom,
         ItemKind::PinkPetals,
-        ItemKind::Wildflowers,
         ItemKind::ChorusFlower,
-        ItemKind::CactusFlower,
         ItemKind::Sunflower,
         ItemKind::Lilac,
         ItemKind::RoseBush,
@@ -170,8 +154,6 @@ pub static BOATS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
         ItemKind::BambooChestRaft,
     ])
 });
-pub static BOOK_CLONING_TARGET: LazyLock<RegistryTag<ItemKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![ItemKind::WritableBook]));
 pub static BOOKSHELF_BOOKS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         ItemKind::Book,
@@ -188,11 +170,6 @@ pub static BREAKS_DECORATED_POTS: LazyLock<RegistryTag<ItemKind>> = LazyLock::ne
         ItemKind::WoodenPickaxe,
         ItemKind::WoodenAxe,
         ItemKind::WoodenHoe,
-        ItemKind::CopperSword,
-        ItemKind::CopperShovel,
-        ItemKind::CopperPickaxe,
-        ItemKind::CopperAxe,
-        ItemKind::CopperHoe,
         ItemKind::StoneSword,
         ItemKind::StoneShovel,
         ItemKind::StonePickaxe,
@@ -265,8 +242,6 @@ pub static BUTTONS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
 });
 pub static CAMEL_FOOD: LazyLock<RegistryTag<ItemKind>> =
     LazyLock::new(|| RegistryTag::new(vec![ItemKind::Cactus]));
-pub static CAMEL_HUSK_FOOD: LazyLock<RegistryTag<ItemKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![ItemKind::RabbitFoot]));
 pub static CANDLES: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         ItemKind::Candle,
@@ -288,51 +263,8 @@ pub static CANDLES: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
         ItemKind::BlackCandle,
     ])
 });
-pub static CAT_COLLAR_DYES: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::WhiteDye,
-        ItemKind::OrangeDye,
-        ItemKind::MagentaDye,
-        ItemKind::LightBlueDye,
-        ItemKind::YellowDye,
-        ItemKind::LimeDye,
-        ItemKind::PinkDye,
-        ItemKind::GrayDye,
-        ItemKind::LightGrayDye,
-        ItemKind::CyanDye,
-        ItemKind::PurpleDye,
-        ItemKind::BlueDye,
-        ItemKind::BrownDye,
-        ItemKind::GreenDye,
-        ItemKind::RedDye,
-        ItemKind::BlackDye,
-    ])
-});
 pub static CAT_FOOD: LazyLock<RegistryTag<ItemKind>> =
     LazyLock::new(|| RegistryTag::new(vec![ItemKind::Cod, ItemKind::Salmon]));
-pub static CAULDRON_CAN_REMOVE_DYE: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::WolfArmor,
-        ItemKind::LeatherHelmet,
-        ItemKind::LeatherChestplate,
-        ItemKind::LeatherLeggings,
-        ItemKind::LeatherBoots,
-        ItemKind::LeatherHorseArmor,
-    ])
-});
-pub static CHAINS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::IronChain,
-        ItemKind::CopperChain,
-        ItemKind::ExposedCopperChain,
-        ItemKind::WeatheredCopperChain,
-        ItemKind::OxidizedCopperChain,
-        ItemKind::WaxedCopperChain,
-        ItemKind::WaxedExposedCopperChain,
-        ItemKind::WaxedWeatheredCopperChain,
-        ItemKind::WaxedOxidizedCopperChain,
-    ])
-});
 pub static CHERRY_LOGS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         ItemKind::CherryLog,
@@ -344,7 +276,6 @@ pub static CHERRY_LOGS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
 pub static CHEST_ARMOR: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         ItemKind::LeatherChestplate,
-        ItemKind::CopperChestplate,
         ItemKind::ChainmailChestplate,
         ItemKind::IronChestplate,
         ItemKind::DiamondChestplate,
@@ -379,7 +310,6 @@ pub static CHICKEN_FOOD: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
 pub static CLUSTER_MAX_HARVESTABLES: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         ItemKind::WoodenPickaxe,
-        ItemKind::CopperPickaxe,
         ItemKind::StonePickaxe,
         ItemKind::GoldenPickaxe,
         ItemKind::IronPickaxe,
@@ -454,86 +384,8 @@ pub static COMPLETES_FIND_TREE_TUTORIAL: LazyLock<RegistryTag<ItemKind>> = LazyL
         ItemKind::WarpedWartBlock,
     ])
 });
-pub static CONCRETE: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::WhiteConcrete,
-        ItemKind::OrangeConcrete,
-        ItemKind::MagentaConcrete,
-        ItemKind::LightBlueConcrete,
-        ItemKind::YellowConcrete,
-        ItemKind::LimeConcrete,
-        ItemKind::PinkConcrete,
-        ItemKind::GrayConcrete,
-        ItemKind::LightGrayConcrete,
-        ItemKind::CyanConcrete,
-        ItemKind::PurpleConcrete,
-        ItemKind::BlueConcrete,
-        ItemKind::BrownConcrete,
-        ItemKind::GreenConcrete,
-        ItemKind::RedConcrete,
-        ItemKind::BlackConcrete,
-    ])
-});
-pub static CONCRETE_POWDERS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::WhiteConcretePowder,
-        ItemKind::OrangeConcretePowder,
-        ItemKind::MagentaConcretePowder,
-        ItemKind::LightBlueConcretePowder,
-        ItemKind::YellowConcretePowder,
-        ItemKind::LimeConcretePowder,
-        ItemKind::PinkConcretePowder,
-        ItemKind::GrayConcretePowder,
-        ItemKind::LightGrayConcretePowder,
-        ItemKind::CyanConcretePowder,
-        ItemKind::PurpleConcretePowder,
-        ItemKind::BlueConcretePowder,
-        ItemKind::BrownConcretePowder,
-        ItemKind::GreenConcretePowder,
-        ItemKind::RedConcretePowder,
-        ItemKind::BlackConcretePowder,
-    ])
-});
-pub static COPPER: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::CopperBlock,
-        ItemKind::ExposedCopper,
-        ItemKind::WeatheredCopper,
-        ItemKind::OxidizedCopper,
-        ItemKind::WaxedCopperBlock,
-        ItemKind::WaxedExposedCopper,
-        ItemKind::WaxedWeatheredCopper,
-        ItemKind::WaxedOxidizedCopper,
-    ])
-});
-pub static COPPER_CHESTS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::CopperChest,
-        ItemKind::ExposedCopperChest,
-        ItemKind::WeatheredCopperChest,
-        ItemKind::OxidizedCopperChest,
-        ItemKind::WaxedCopperChest,
-        ItemKind::WaxedExposedCopperChest,
-        ItemKind::WaxedWeatheredCopperChest,
-        ItemKind::WaxedOxidizedCopperChest,
-    ])
-});
-pub static COPPER_GOLEM_STATUES: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::CopperGolemStatue,
-        ItemKind::ExposedCopperGolemStatue,
-        ItemKind::WeatheredCopperGolemStatue,
-        ItemKind::OxidizedCopperGolemStatue,
-        ItemKind::WaxedCopperGolemStatue,
-        ItemKind::WaxedExposedCopperGolemStatue,
-        ItemKind::WaxedWeatheredCopperGolemStatue,
-        ItemKind::WaxedOxidizedCopperGolemStatue,
-    ])
-});
 pub static COPPER_ORES: LazyLock<RegistryTag<ItemKind>> =
     LazyLock::new(|| RegistryTag::new(vec![ItemKind::CopperOre, ItemKind::DeepslateCopperOre]));
-pub static COPPER_TOOL_MATERIALS: LazyLock<RegistryTag<ItemKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![ItemKind::CopperIngot]));
 pub static COW_FOOD: LazyLock<RegistryTag<ItemKind>> =
     LazyLock::new(|| RegistryTag::new(vec![ItemKind::Wheat]));
 pub static CREEPER_DROP_MUSIC_DISCS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
@@ -667,9 +519,16 @@ pub static DIAMOND_TOOL_MATERIALS: LazyLock<RegistryTag<ItemKind>> =
     LazyLock::new(|| RegistryTag::new(vec![ItemKind::Diamond]));
 pub static DIRT: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
+        ItemKind::GrassBlock,
         ItemKind::Dirt,
         ItemKind::CoarseDirt,
+        ItemKind::Podzol,
         ItemKind::RootedDirt,
+        ItemKind::Mud,
+        ItemKind::MuddyMangroveRoots,
+        ItemKind::MossBlock,
+        ItemKind::PaleMossBlock,
+        ItemKind::Mycelium,
     ])
 });
 pub static DOORS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
@@ -701,28 +560,16 @@ pub static DROWNED_PREFERRED_WEAPONS: LazyLock<RegistryTag<ItemKind>> =
     LazyLock::new(|| RegistryTag::new(vec![ItemKind::Trident]));
 pub static DUPLICATES_ALLAYS: LazyLock<RegistryTag<ItemKind>> =
     LazyLock::new(|| RegistryTag::new(vec![ItemKind::AmethystShard]));
-pub static DYES: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
+pub static DYEABLE: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
-        ItemKind::WhiteDye,
-        ItemKind::OrangeDye,
-        ItemKind::MagentaDye,
-        ItemKind::LightBlueDye,
-        ItemKind::YellowDye,
-        ItemKind::LimeDye,
-        ItemKind::PinkDye,
-        ItemKind::GrayDye,
-        ItemKind::LightGrayDye,
-        ItemKind::CyanDye,
-        ItemKind::PurpleDye,
-        ItemKind::BlueDye,
-        ItemKind::BrownDye,
-        ItemKind::GreenDye,
-        ItemKind::RedDye,
-        ItemKind::BlackDye,
+        ItemKind::WolfArmor,
+        ItemKind::LeatherHelmet,
+        ItemKind::LeatherChestplate,
+        ItemKind::LeatherLeggings,
+        ItemKind::LeatherBoots,
+        ItemKind::LeatherHorseArmor,
     ])
 });
-pub static EGGS: LazyLock<RegistryTag<ItemKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![ItemKind::Egg, ItemKind::BlueEgg, ItemKind::BrownEgg]));
 pub static EMERALD_ORES: LazyLock<RegistryTag<ItemKind>> =
     LazyLock::new(|| RegistryTag::new(vec![ItemKind::EmeraldOre, ItemKind::DeepslateEmeraldOre]));
 pub static ENCHANTABLE_ARMOR: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
@@ -732,10 +579,6 @@ pub static ENCHANTABLE_ARMOR: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(||
         ItemKind::LeatherChestplate,
         ItemKind::LeatherLeggings,
         ItemKind::LeatherBoots,
-        ItemKind::CopperHelmet,
-        ItemKind::CopperChestplate,
-        ItemKind::CopperLeggings,
-        ItemKind::CopperBoots,
         ItemKind::ChainmailHelmet,
         ItemKind::ChainmailChestplate,
         ItemKind::ChainmailLeggings,
@@ -763,7 +606,6 @@ pub static ENCHANTABLE_BOW: LazyLock<RegistryTag<ItemKind>> =
 pub static ENCHANTABLE_CHEST_ARMOR: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         ItemKind::LeatherChestplate,
-        ItemKind::CopperChestplate,
         ItemKind::ChainmailChestplate,
         ItemKind::IronChestplate,
         ItemKind::DiamondChestplate,
@@ -786,11 +628,6 @@ pub static ENCHANTABLE_DURABILITY: LazyLock<RegistryTag<ItemKind>> = LazyLock::n
         ItemKind::WoodenPickaxe,
         ItemKind::WoodenAxe,
         ItemKind::WoodenHoe,
-        ItemKind::CopperSword,
-        ItemKind::CopperShovel,
-        ItemKind::CopperPickaxe,
-        ItemKind::CopperAxe,
-        ItemKind::CopperHoe,
         ItemKind::StoneSword,
         ItemKind::StoneShovel,
         ItemKind::StonePickaxe,
@@ -820,10 +657,6 @@ pub static ENCHANTABLE_DURABILITY: LazyLock<RegistryTag<ItemKind>> = LazyLock::n
         ItemKind::LeatherChestplate,
         ItemKind::LeatherLeggings,
         ItemKind::LeatherBoots,
-        ItemKind::CopperHelmet,
-        ItemKind::CopperChestplate,
-        ItemKind::CopperLeggings,
-        ItemKind::CopperBoots,
         ItemKind::ChainmailHelmet,
         ItemKind::ChainmailChestplate,
         ItemKind::ChainmailLeggings,
@@ -848,13 +681,6 @@ pub static ENCHANTABLE_DURABILITY: LazyLock<RegistryTag<ItemKind>> = LazyLock::n
         ItemKind::Shears,
         ItemKind::Mace,
         ItemKind::Shield,
-        ItemKind::WoodenSpear,
-        ItemKind::StoneSpear,
-        ItemKind::CopperSpear,
-        ItemKind::IronSpear,
-        ItemKind::GoldenSpear,
-        ItemKind::DiamondSpear,
-        ItemKind::NetheriteSpear,
         ItemKind::Trident,
         ItemKind::Crossbow,
         ItemKind::Brush,
@@ -869,10 +695,6 @@ pub static ENCHANTABLE_EQUIPPABLE: LazyLock<RegistryTag<ItemKind>> = LazyLock::n
         ItemKind::LeatherChestplate,
         ItemKind::LeatherLeggings,
         ItemKind::LeatherBoots,
-        ItemKind::CopperHelmet,
-        ItemKind::CopperChestplate,
-        ItemKind::CopperLeggings,
-        ItemKind::CopperBoots,
         ItemKind::ChainmailHelmet,
         ItemKind::ChainmailChestplate,
         ItemKind::ChainmailLeggings,
@@ -905,20 +727,12 @@ pub static ENCHANTABLE_EQUIPPABLE: LazyLock<RegistryTag<ItemKind>> = LazyLock::n
 pub static ENCHANTABLE_FIRE_ASPECT: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         ItemKind::WoodenSword,
-        ItemKind::CopperSword,
         ItemKind::StoneSword,
         ItemKind::GoldenSword,
         ItemKind::IronSword,
         ItemKind::DiamondSword,
         ItemKind::NetheriteSword,
         ItemKind::Mace,
-        ItemKind::WoodenSpear,
-        ItemKind::StoneSpear,
-        ItemKind::CopperSpear,
-        ItemKind::IronSpear,
-        ItemKind::GoldenSpear,
-        ItemKind::DiamondSpear,
-        ItemKind::NetheriteSpear,
     ])
 });
 pub static ENCHANTABLE_FISHING: LazyLock<RegistryTag<ItemKind>> =
@@ -926,7 +740,6 @@ pub static ENCHANTABLE_FISHING: LazyLock<RegistryTag<ItemKind>> =
 pub static ENCHANTABLE_FOOT_ARMOR: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         ItemKind::LeatherBoots,
-        ItemKind::CopperBoots,
         ItemKind::ChainmailBoots,
         ItemKind::IronBoots,
         ItemKind::DiamondBoots,
@@ -938,7 +751,6 @@ pub static ENCHANTABLE_HEAD_ARMOR: LazyLock<RegistryTag<ItemKind>> = LazyLock::n
     RegistryTag::new(vec![
         ItemKind::TurtleHelmet,
         ItemKind::LeatherHelmet,
-        ItemKind::CopperHelmet,
         ItemKind::ChainmailHelmet,
         ItemKind::IronHelmet,
         ItemKind::DiamondHelmet,
@@ -949,7 +761,6 @@ pub static ENCHANTABLE_HEAD_ARMOR: LazyLock<RegistryTag<ItemKind>> = LazyLock::n
 pub static ENCHANTABLE_LEG_ARMOR: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         ItemKind::LeatherLeggings,
-        ItemKind::CopperLeggings,
         ItemKind::ChainmailLeggings,
         ItemKind::IronLeggings,
         ItemKind::DiamondLeggings,
@@ -957,47 +768,14 @@ pub static ENCHANTABLE_LEG_ARMOR: LazyLock<RegistryTag<ItemKind>> = LazyLock::ne
         ItemKind::NetheriteLeggings,
     ])
 });
-pub static ENCHANTABLE_LUNGE: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::WoodenSpear,
-        ItemKind::StoneSpear,
-        ItemKind::CopperSpear,
-        ItemKind::IronSpear,
-        ItemKind::GoldenSpear,
-        ItemKind::DiamondSpear,
-        ItemKind::NetheriteSpear,
-    ])
-});
 pub static ENCHANTABLE_MACE: LazyLock<RegistryTag<ItemKind>> =
     LazyLock::new(|| RegistryTag::new(vec![ItemKind::Mace]));
-pub static ENCHANTABLE_MELEE_WEAPON: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::WoodenSword,
-        ItemKind::CopperSword,
-        ItemKind::StoneSword,
-        ItemKind::GoldenSword,
-        ItemKind::IronSword,
-        ItemKind::DiamondSword,
-        ItemKind::NetheriteSword,
-        ItemKind::WoodenSpear,
-        ItemKind::StoneSpear,
-        ItemKind::CopperSpear,
-        ItemKind::IronSpear,
-        ItemKind::GoldenSpear,
-        ItemKind::DiamondSpear,
-        ItemKind::NetheriteSpear,
-    ])
-});
 pub static ENCHANTABLE_MINING: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         ItemKind::WoodenShovel,
         ItemKind::WoodenPickaxe,
         ItemKind::WoodenAxe,
         ItemKind::WoodenHoe,
-        ItemKind::CopperShovel,
-        ItemKind::CopperPickaxe,
-        ItemKind::CopperAxe,
-        ItemKind::CopperHoe,
         ItemKind::StoneShovel,
         ItemKind::StonePickaxe,
         ItemKind::StoneAxe,
@@ -1027,10 +805,6 @@ pub static ENCHANTABLE_MINING_LOOT: LazyLock<RegistryTag<ItemKind>> = LazyLock::
         ItemKind::WoodenPickaxe,
         ItemKind::WoodenAxe,
         ItemKind::WoodenHoe,
-        ItemKind::CopperShovel,
-        ItemKind::CopperPickaxe,
-        ItemKind::CopperAxe,
-        ItemKind::CopperHoe,
         ItemKind::StoneShovel,
         ItemKind::StonePickaxe,
         ItemKind::StoneAxe,
@@ -1057,8 +831,6 @@ pub static ENCHANTABLE_SHARP_WEAPON: LazyLock<RegistryTag<ItemKind>> = LazyLock:
     RegistryTag::new(vec![
         ItemKind::WoodenSword,
         ItemKind::WoodenAxe,
-        ItemKind::CopperSword,
-        ItemKind::CopperAxe,
         ItemKind::StoneSword,
         ItemKind::StoneAxe,
         ItemKind::GoldenSword,
@@ -1069,19 +841,11 @@ pub static ENCHANTABLE_SHARP_WEAPON: LazyLock<RegistryTag<ItemKind>> = LazyLock:
         ItemKind::DiamondAxe,
         ItemKind::NetheriteSword,
         ItemKind::NetheriteAxe,
-        ItemKind::WoodenSpear,
-        ItemKind::StoneSpear,
-        ItemKind::CopperSpear,
-        ItemKind::IronSpear,
-        ItemKind::GoldenSpear,
-        ItemKind::DiamondSpear,
-        ItemKind::NetheriteSpear,
     ])
 });
-pub static ENCHANTABLE_SWEEPING: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
+pub static ENCHANTABLE_SWORD: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         ItemKind::WoodenSword,
-        ItemKind::CopperSword,
         ItemKind::StoneSword,
         ItemKind::GoldenSword,
         ItemKind::IronSword,
@@ -1105,11 +869,6 @@ pub static ENCHANTABLE_VANISHING: LazyLock<RegistryTag<ItemKind>> = LazyLock::ne
         ItemKind::WoodenPickaxe,
         ItemKind::WoodenAxe,
         ItemKind::WoodenHoe,
-        ItemKind::CopperSword,
-        ItemKind::CopperShovel,
-        ItemKind::CopperPickaxe,
-        ItemKind::CopperAxe,
-        ItemKind::CopperHoe,
         ItemKind::StoneSword,
         ItemKind::StoneShovel,
         ItemKind::StonePickaxe,
@@ -1139,10 +898,6 @@ pub static ENCHANTABLE_VANISHING: LazyLock<RegistryTag<ItemKind>> = LazyLock::ne
         ItemKind::LeatherChestplate,
         ItemKind::LeatherLeggings,
         ItemKind::LeatherBoots,
-        ItemKind::CopperHelmet,
-        ItemKind::CopperChestplate,
-        ItemKind::CopperLeggings,
-        ItemKind::CopperBoots,
         ItemKind::ChainmailHelmet,
         ItemKind::ChainmailChestplate,
         ItemKind::ChainmailLeggings,
@@ -1175,13 +930,6 @@ pub static ENCHANTABLE_VANISHING: LazyLock<RegistryTag<ItemKind>> = LazyLock::ne
         ItemKind::DragonHead,
         ItemKind::PiglinHead,
         ItemKind::Shield,
-        ItemKind::WoodenSpear,
-        ItemKind::StoneSpear,
-        ItemKind::CopperSpear,
-        ItemKind::IronSpear,
-        ItemKind::GoldenSpear,
-        ItemKind::DiamondSpear,
-        ItemKind::NetheriteSpear,
         ItemKind::Trident,
         ItemKind::Crossbow,
         ItemKind::Brush,
@@ -1191,8 +939,6 @@ pub static ENCHANTABLE_WEAPON: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|
     RegistryTag::new(vec![
         ItemKind::WoodenSword,
         ItemKind::WoodenAxe,
-        ItemKind::CopperSword,
-        ItemKind::CopperAxe,
         ItemKind::StoneSword,
         ItemKind::StoneAxe,
         ItemKind::GoldenSword,
@@ -1204,13 +950,6 @@ pub static ENCHANTABLE_WEAPON: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|
         ItemKind::NetheriteSword,
         ItemKind::NetheriteAxe,
         ItemKind::Mace,
-        ItemKind::WoodenSpear,
-        ItemKind::StoneSpear,
-        ItemKind::CopperSpear,
-        ItemKind::IronSpear,
-        ItemKind::GoldenSpear,
-        ItemKind::DiamondSpear,
-        ItemKind::NetheriteSpear,
     ])
 });
 pub static FENCE_GATES: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
@@ -1256,45 +995,9 @@ pub static FISHES: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
         ItemKind::CookedSalmon,
     ])
 });
-pub static FLOWERS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::MangrovePropagule,
-        ItemKind::CherryLeaves,
-        ItemKind::FloweringAzaleaLeaves,
-        ItemKind::FloweringAzalea,
-        ItemKind::Dandelion,
-        ItemKind::GoldenDandelion,
-        ItemKind::OpenEyeblossom,
-        ItemKind::ClosedEyeblossom,
-        ItemKind::Poppy,
-        ItemKind::BlueOrchid,
-        ItemKind::Allium,
-        ItemKind::AzureBluet,
-        ItemKind::RedTulip,
-        ItemKind::OrangeTulip,
-        ItemKind::WhiteTulip,
-        ItemKind::PinkTulip,
-        ItemKind::OxeyeDaisy,
-        ItemKind::Cornflower,
-        ItemKind::LilyOfTheValley,
-        ItemKind::WitherRose,
-        ItemKind::Torchflower,
-        ItemKind::PitcherPlant,
-        ItemKind::SporeBlossom,
-        ItemKind::PinkPetals,
-        ItemKind::Wildflowers,
-        ItemKind::ChorusFlower,
-        ItemKind::CactusFlower,
-        ItemKind::Sunflower,
-        ItemKind::Lilac,
-        ItemKind::RoseBush,
-        ItemKind::Peony,
-    ])
-});
 pub static FOOT_ARMOR: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         ItemKind::LeatherBoots,
-        ItemKind::CopperBoots,
         ItemKind::ChainmailBoots,
         ItemKind::IronBoots,
         ItemKind::DiamondBoots,
@@ -1319,26 +1022,6 @@ pub static FURNACE_MINECART_FUEL: LazyLock<RegistryTag<ItemKind>> =
     LazyLock::new(|| RegistryTag::new(vec![ItemKind::Coal, ItemKind::Charcoal]));
 pub static GAZE_DISGUISE_EQUIPMENT: LazyLock<RegistryTag<ItemKind>> =
     LazyLock::new(|| RegistryTag::new(vec![ItemKind::CarvedPumpkin]));
-pub static GLAZED_TERRACOTTA: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::WhiteGlazedTerracotta,
-        ItemKind::OrangeGlazedTerracotta,
-        ItemKind::MagentaGlazedTerracotta,
-        ItemKind::LightBlueGlazedTerracotta,
-        ItemKind::YellowGlazedTerracotta,
-        ItemKind::LimeGlazedTerracotta,
-        ItemKind::PinkGlazedTerracotta,
-        ItemKind::GrayGlazedTerracotta,
-        ItemKind::LightGrayGlazedTerracotta,
-        ItemKind::CyanGlazedTerracotta,
-        ItemKind::PurpleGlazedTerracotta,
-        ItemKind::BlueGlazedTerracotta,
-        ItemKind::BrownGlazedTerracotta,
-        ItemKind::GreenGlazedTerracotta,
-        ItemKind::RedGlazedTerracotta,
-        ItemKind::BlackGlazedTerracotta,
-    ])
-});
 pub static GOAT_FOOD: LazyLock<RegistryTag<ItemKind>> =
     LazyLock::new(|| RegistryTag::new(vec![ItemKind::Wheat]));
 pub static GOLD_ORES: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
@@ -1350,13 +1033,6 @@ pub static GOLD_ORES: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
 });
 pub static GOLD_TOOL_MATERIALS: LazyLock<RegistryTag<ItemKind>> =
     LazyLock::new(|| RegistryTag::new(vec![ItemKind::GoldIngot]));
-pub static GRASS_BLOCKS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::GrassBlock,
-        ItemKind::Podzol,
-        ItemKind::Mycelium,
-    ])
-});
 pub static HANGING_SIGNS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         ItemKind::OakHangingSign,
@@ -1373,54 +1049,10 @@ pub static HANGING_SIGNS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
         ItemKind::WarpedHangingSign,
     ])
 });
-pub static HAPPY_GHAST_FOOD: LazyLock<RegistryTag<ItemKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![ItemKind::Snowball]));
-pub static HAPPY_GHAST_TEMPT_ITEMS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::WhiteHarness,
-        ItemKind::OrangeHarness,
-        ItemKind::MagentaHarness,
-        ItemKind::LightBlueHarness,
-        ItemKind::YellowHarness,
-        ItemKind::LimeHarness,
-        ItemKind::PinkHarness,
-        ItemKind::GrayHarness,
-        ItemKind::LightGrayHarness,
-        ItemKind::CyanHarness,
-        ItemKind::PurpleHarness,
-        ItemKind::BlueHarness,
-        ItemKind::BrownHarness,
-        ItemKind::GreenHarness,
-        ItemKind::RedHarness,
-        ItemKind::BlackHarness,
-        ItemKind::Snowball,
-    ])
-});
-pub static HARNESSES: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::WhiteHarness,
-        ItemKind::OrangeHarness,
-        ItemKind::MagentaHarness,
-        ItemKind::LightBlueHarness,
-        ItemKind::YellowHarness,
-        ItemKind::LimeHarness,
-        ItemKind::PinkHarness,
-        ItemKind::GrayHarness,
-        ItemKind::LightGrayHarness,
-        ItemKind::CyanHarness,
-        ItemKind::PurpleHarness,
-        ItemKind::BlueHarness,
-        ItemKind::BrownHarness,
-        ItemKind::GreenHarness,
-        ItemKind::RedHarness,
-        ItemKind::BlackHarness,
-    ])
-});
 pub static HEAD_ARMOR: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         ItemKind::TurtleHelmet,
         ItemKind::LeatherHelmet,
-        ItemKind::CopperHelmet,
         ItemKind::ChainmailHelmet,
         ItemKind::IronHelmet,
         ItemKind::DiamondHelmet,
@@ -1431,7 +1063,6 @@ pub static HEAD_ARMOR: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
 pub static HOES: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         ItemKind::WoodenHoe,
-        ItemKind::CopperHoe,
         ItemKind::StoneHoe,
         ItemKind::GoldenHoe,
         ItemKind::IronHoe,
@@ -1449,7 +1080,6 @@ pub static HORSE_FOOD: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
         ItemKind::GoldenApple,
         ItemKind::EnchantedGoldenApple,
         ItemKind::Sugar,
-        ItemKind::Carrot,
         ItemKind::GoldenCarrot,
     ])
 });
@@ -1474,20 +1104,6 @@ pub static JUNGLE_LOGS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
         ItemKind::JungleWood,
     ])
 });
-pub static LANTERNS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::Lantern,
-        ItemKind::SoulLantern,
-        ItemKind::CopperLantern,
-        ItemKind::ExposedCopperLantern,
-        ItemKind::WeatheredCopperLantern,
-        ItemKind::OxidizedCopperLantern,
-        ItemKind::WaxedCopperLantern,
-        ItemKind::WaxedExposedCopperLantern,
-        ItemKind::WaxedWeatheredCopperLantern,
-        ItemKind::WaxedOxidizedCopperLantern,
-    ])
-});
 pub static LAPIS_ORES: LazyLock<RegistryTag<ItemKind>> =
     LazyLock::new(|| RegistryTag::new(vec![ItemKind::LapisOre, ItemKind::DeepslateLapisOre]));
 pub static LEAVES: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
@@ -1510,24 +1126,11 @@ pub static LECTERN_BOOKS: LazyLock<RegistryTag<ItemKind>> =
 pub static LEG_ARMOR: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         ItemKind::LeatherLeggings,
-        ItemKind::CopperLeggings,
         ItemKind::ChainmailLeggings,
         ItemKind::IronLeggings,
         ItemKind::DiamondLeggings,
         ItemKind::GoldenLeggings,
         ItemKind::NetheriteLeggings,
-    ])
-});
-pub static LIGHTNING_RODS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::LightningRod,
-        ItemKind::ExposedLightningRod,
-        ItemKind::WeatheredLightningRod,
-        ItemKind::OxidizedLightningRod,
-        ItemKind::WaxedLightningRod,
-        ItemKind::WaxedExposedLightningRod,
-        ItemKind::WaxedWeatheredLightningRod,
-        ItemKind::WaxedOxidizedLightningRod,
     ])
 });
 pub static LLAMA_FOOD: LazyLock<RegistryTag<ItemKind>> =
@@ -1622,40 +1225,6 @@ pub static LOGS_THAT_BURN: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
         ItemKind::MangroveWood,
     ])
 });
-pub static LOOM_DYES: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::WhiteDye,
-        ItemKind::OrangeDye,
-        ItemKind::MagentaDye,
-        ItemKind::LightBlueDye,
-        ItemKind::YellowDye,
-        ItemKind::LimeDye,
-        ItemKind::PinkDye,
-        ItemKind::GrayDye,
-        ItemKind::LightGrayDye,
-        ItemKind::CyanDye,
-        ItemKind::PurpleDye,
-        ItemKind::BlueDye,
-        ItemKind::BrownDye,
-        ItemKind::GreenDye,
-        ItemKind::RedDye,
-        ItemKind::BlackDye,
-    ])
-});
-pub static LOOM_PATTERNS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::FlowerBannerPattern,
-        ItemKind::CreeperBannerPattern,
-        ItemKind::SkullBannerPattern,
-        ItemKind::MojangBannerPattern,
-        ItemKind::GlobeBannerPattern,
-        ItemKind::PiglinBannerPattern,
-        ItemKind::FlowBannerPattern,
-        ItemKind::GusterBannerPattern,
-        ItemKind::FieldMasonedBannerPattern,
-        ItemKind::BordureIndentedBannerPattern,
-    ])
-});
 pub static MANGROVE_LOGS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         ItemKind::MangroveLog,
@@ -1681,41 +1250,6 @@ pub static MEAT: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
         ItemKind::CookedMutton,
     ])
 });
-pub static METAL_NUGGETS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::GoldNugget,
-        ItemKind::IronNugget,
-        ItemKind::CopperNugget,
-    ])
-});
-pub static MOSS_BLOCKS: LazyLock<RegistryTag<ItemKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![ItemKind::MossBlock, ItemKind::PaleMossBlock]));
-pub static MUD: LazyLock<RegistryTag<ItemKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![ItemKind::Mud, ItemKind::MuddyMangroveRoots]));
-pub static NAUTILUS_BUCKET_FOOD: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::PufferfishBucket,
-        ItemKind::SalmonBucket,
-        ItemKind::CodBucket,
-        ItemKind::TropicalFishBucket,
-    ])
-});
-pub static NAUTILUS_FOOD: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::PufferfishBucket,
-        ItemKind::SalmonBucket,
-        ItemKind::CodBucket,
-        ItemKind::TropicalFishBucket,
-        ItemKind::Cod,
-        ItemKind::Salmon,
-        ItemKind::TropicalFish,
-        ItemKind::Pufferfish,
-        ItemKind::CookedCod,
-        ItemKind::CookedSalmon,
-    ])
-});
-pub static NAUTILUS_TAMING_ITEMS: LazyLock<RegistryTag<ItemKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![ItemKind::PufferfishBucket, ItemKind::Pufferfish]));
 pub static NETHERITE_TOOL_MATERIALS: LazyLock<RegistryTag<ItemKind>> =
     LazyLock::new(|| RegistryTag::new(vec![ItemKind::NetheriteIngot]));
 pub static NON_FLAMMABLE_WOOD: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
@@ -1732,8 +1266,6 @@ pub static NON_FLAMMABLE_WOOD: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|
         ItemKind::WarpedHyphae,
         ItemKind::CrimsonSlab,
         ItemKind::WarpedSlab,
-        ItemKind::CrimsonShelf,
-        ItemKind::WarpedShelf,
         ItemKind::CrimsonFence,
         ItemKind::WarpedFence,
         ItemKind::CrimsonStairs,
@@ -1802,7 +1334,6 @@ pub static PARROT_POISONOUS_FOOD: LazyLock<RegistryTag<ItemKind>> =
 pub static PICKAXES: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         ItemKind::WoodenPickaxe,
-        ItemKind::CopperPickaxe,
         ItemKind::StonePickaxe,
         ItemKind::GoldenPickaxe,
         ItemKind::IronPickaxe,
@@ -1822,7 +1353,6 @@ pub static PIGLIN_LOVED: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
         ItemKind::NetherGoldOre,
         ItemKind::RawGoldBlock,
         ItemKind::GoldBlock,
-        ItemKind::GoldenDandelion,
         ItemKind::LightWeightedPressurePlate,
         ItemKind::RawGold,
         ItemKind::GoldIngot,
@@ -1841,14 +1371,12 @@ pub static PIGLIN_LOVED: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
         ItemKind::GlisteringMelonSlice,
         ItemKind::GoldenCarrot,
         ItemKind::GoldenHorseArmor,
-        ItemKind::GoldenSpear,
-        ItemKind::GoldenNautilusArmor,
         ItemKind::Bell,
         ItemKind::GildedBlackstone,
     ])
 });
 pub static PIGLIN_PREFERRED_WEAPONS: LazyLock<RegistryTag<ItemKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![ItemKind::GoldenSpear, ItemKind::Crossbow]));
+    LazyLock::new(|| RegistryTag::new(vec![ItemKind::Crossbow]));
 pub static PIGLIN_REPELLENTS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         ItemKind::SoulTorch,
@@ -1901,8 +1429,6 @@ pub static REDSTONE_ORES: LazyLock<RegistryTag<ItemKind>> =
     LazyLock::new(|| RegistryTag::new(vec![ItemKind::RedstoneOre, ItemKind::DeepslateRedstoneOre]));
 pub static REPAIRS_CHAIN_ARMOR: LazyLock<RegistryTag<ItemKind>> =
     LazyLock::new(|| RegistryTag::new(vec![ItemKind::IronIngot]));
-pub static REPAIRS_COPPER_ARMOR: LazyLock<RegistryTag<ItemKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![ItemKind::CopperIngot]));
 pub static REPAIRS_DIAMOND_ARMOR: LazyLock<RegistryTag<ItemKind>> =
     LazyLock::new(|| RegistryTag::new(vec![ItemKind::Diamond]));
 pub static REPAIRS_GOLD_ARMOR: LazyLock<RegistryTag<ItemKind>> =
@@ -1920,6 +1446,7 @@ pub static REPAIRS_WOLF_ARMOR: LazyLock<RegistryTag<ItemKind>> =
 pub static SAND: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         ItemKind::Sand,
+        ItemKind::SuspiciousSand,
         ItemKind::SuspiciousSand,
         ItemKind::RedSand,
     ])
@@ -1939,14 +1466,11 @@ pub static SAPLINGS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
         ItemKind::FloweringAzalea,
     ])
 });
-pub static SHEARABLE_FROM_COPPER_GOLEM: LazyLock<RegistryTag<ItemKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![ItemKind::Poppy]));
 pub static SHEEP_FOOD: LazyLock<RegistryTag<ItemKind>> =
     LazyLock::new(|| RegistryTag::new(vec![ItemKind::Wheat]));
 pub static SHOVELS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         ItemKind::WoodenShovel,
-        ItemKind::CopperShovel,
         ItemKind::StoneShovel,
         ItemKind::GoldenShovel,
         ItemKind::IronShovel,
@@ -2009,12 +1533,6 @@ pub static SLABS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
         ItemKind::TuffSlab,
         ItemKind::PolishedTuffSlab,
         ItemKind::TuffBrickSlab,
-        ItemKind::SulfurSlab,
-        ItemKind::PolishedSulfurSlab,
-        ItemKind::SulfurBrickSlab,
-        ItemKind::CinnabarSlab,
-        ItemKind::PolishedCinnabarSlab,
-        ItemKind::CinnabarBrickSlab,
         ItemKind::CutCopperSlab,
         ItemKind::ExposedCutCopperSlab,
         ItemKind::WeatheredCutCopperSlab,
@@ -2079,7 +1597,6 @@ pub static SLABS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
 pub static SMALL_FLOWERS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         ItemKind::Dandelion,
-        ItemKind::GoldenDandelion,
         ItemKind::OpenEyeblossom,
         ItemKind::ClosedEyeblossom,
         ItemKind::Poppy,
@@ -2103,17 +1620,6 @@ pub static SNIFFER_FOOD: LazyLock<RegistryTag<ItemKind>> =
     LazyLock::new(|| RegistryTag::new(vec![ItemKind::TorchflowerSeeds]));
 pub static SOUL_FIRE_BASE_BLOCKS: LazyLock<RegistryTag<ItemKind>> =
     LazyLock::new(|| RegistryTag::new(vec![ItemKind::SoulSand, ItemKind::SoulSoil]));
-pub static SPEARS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::WoodenSpear,
-        ItemKind::StoneSpear,
-        ItemKind::CopperSpear,
-        ItemKind::IronSpear,
-        ItemKind::GoldenSpear,
-        ItemKind::DiamondSpear,
-        ItemKind::NetheriteSpear,
-    ])
-});
 pub static SPRUCE_LOGS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         ItemKind::SpruceLog,
@@ -2127,12 +1633,6 @@ pub static STAIRS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
         ItemKind::TuffStairs,
         ItemKind::PolishedTuffStairs,
         ItemKind::TuffBrickStairs,
-        ItemKind::SulfurStairs,
-        ItemKind::PolishedSulfurStairs,
-        ItemKind::SulfurBrickStairs,
-        ItemKind::CinnabarStairs,
-        ItemKind::PolishedCinnabarStairs,
-        ItemKind::CinnabarBrickStairs,
         ItemKind::CutCopperStairs,
         ItemKind::ExposedCutCopperStairs,
         ItemKind::WeatheredCutCopperStairs,
@@ -2223,722 +1723,9 @@ pub static STRIDER_FOOD: LazyLock<RegistryTag<ItemKind>> =
 pub static STRIDER_TEMPT_ITEMS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![ItemKind::WarpedFungus, ItemKind::WarpedFungusOnAStick])
 });
-pub static SULFUR_CUBE_ARCHETYPE_BOUNCY: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::OakPlanks,
-        ItemKind::SprucePlanks,
-        ItemKind::BirchPlanks,
-        ItemKind::JunglePlanks,
-        ItemKind::AcaciaPlanks,
-        ItemKind::CherryPlanks,
-        ItemKind::DarkOakPlanks,
-        ItemKind::PaleOakPlanks,
-        ItemKind::MangrovePlanks,
-        ItemKind::BambooPlanks,
-        ItemKind::CrimsonPlanks,
-        ItemKind::WarpedPlanks,
-        ItemKind::BambooMosaic,
-        ItemKind::OakLog,
-        ItemKind::SpruceLog,
-        ItemKind::BirchLog,
-        ItemKind::JungleLog,
-        ItemKind::AcaciaLog,
-        ItemKind::CherryLog,
-        ItemKind::PaleOakLog,
-        ItemKind::DarkOakLog,
-        ItemKind::MangroveLog,
-        ItemKind::CrimsonStem,
-        ItemKind::WarpedStem,
-        ItemKind::BambooBlock,
-        ItemKind::StrippedOakLog,
-        ItemKind::StrippedSpruceLog,
-        ItemKind::StrippedBirchLog,
-        ItemKind::StrippedJungleLog,
-        ItemKind::StrippedAcaciaLog,
-        ItemKind::StrippedCherryLog,
-        ItemKind::StrippedDarkOakLog,
-        ItemKind::StrippedPaleOakLog,
-        ItemKind::StrippedMangroveLog,
-        ItemKind::StrippedCrimsonStem,
-        ItemKind::StrippedWarpedStem,
-        ItemKind::StrippedOakWood,
-        ItemKind::StrippedSpruceWood,
-        ItemKind::StrippedBirchWood,
-        ItemKind::StrippedJungleWood,
-        ItemKind::StrippedAcaciaWood,
-        ItemKind::StrippedCherryWood,
-        ItemKind::StrippedDarkOakWood,
-        ItemKind::StrippedPaleOakWood,
-        ItemKind::StrippedMangroveWood,
-        ItemKind::StrippedCrimsonHyphae,
-        ItemKind::StrippedWarpedHyphae,
-        ItemKind::StrippedBambooBlock,
-        ItemKind::OakWood,
-        ItemKind::SpruceWood,
-        ItemKind::BirchWood,
-        ItemKind::JungleWood,
-        ItemKind::AcaciaWood,
-        ItemKind::CherryWood,
-        ItemKind::PaleOakWood,
-        ItemKind::DarkOakWood,
-        ItemKind::MangroveWood,
-        ItemKind::CrimsonHyphae,
-        ItemKind::WarpedHyphae,
-    ])
-});
-pub static SULFUR_CUBE_ARCHETYPE_EXPLOSIVE: LazyLock<RegistryTag<ItemKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![ItemKind::Tnt]));
-pub static SULFUR_CUBE_ARCHETYPE_FAST_FLAT: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::Sponge,
-        ItemKind::WetSponge,
-        ItemKind::MossBlock,
-        ItemKind::PaleMossBlock,
-        ItemKind::Pumpkin,
-        ItemKind::CarvedPumpkin,
-        ItemKind::JackOLantern,
-        ItemKind::Melon,
-        ItemKind::ResinBlock,
-        ItemKind::ResinBricks,
-        ItemKind::ChiseledResinBricks,
-        ItemKind::HayBlock,
-        ItemKind::DeadTubeCoralBlock,
-        ItemKind::DeadBrainCoralBlock,
-        ItemKind::DeadBubbleCoralBlock,
-        ItemKind::DeadFireCoralBlock,
-        ItemKind::DeadHornCoralBlock,
-        ItemKind::TubeCoralBlock,
-        ItemKind::BrainCoralBlock,
-        ItemKind::BubbleCoralBlock,
-        ItemKind::FireCoralBlock,
-        ItemKind::HornCoralBlock,
-        ItemKind::DriedKelpBlock,
-        ItemKind::OchreFroglight,
-        ItemKind::VerdantFroglight,
-        ItemKind::PearlescentFroglight,
-    ])
-});
-pub static SULFUR_CUBE_ARCHETYPE_FAST_SLIDING: LazyLock<RegistryTag<ItemKind>> =
-    LazyLock::new(|| {
-        RegistryTag::new(vec![
-            ItemKind::SnowBlock,
-            ItemKind::PackedIce,
-            ItemKind::BlueIce,
-        ])
-    });
-pub static SULFUR_CUBE_ARCHETYPE_HIGH_RESISTANCE: LazyLock<RegistryTag<ItemKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![ItemKind::SoulSand, ItemKind::SoulSoil]));
-pub static SULFUR_CUBE_ARCHETYPE_HOT: LazyLock<RegistryTag<ItemKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![ItemKind::MagmaBlock]));
-pub static SULFUR_CUBE_ARCHETYPE_LIGHT: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::WhiteWool,
-        ItemKind::OrangeWool,
-        ItemKind::MagentaWool,
-        ItemKind::LightBlueWool,
-        ItemKind::YellowWool,
-        ItemKind::LimeWool,
-        ItemKind::PinkWool,
-        ItemKind::GrayWool,
-        ItemKind::LightGrayWool,
-        ItemKind::CyanWool,
-        ItemKind::PurpleWool,
-        ItemKind::BlueWool,
-        ItemKind::BrownWool,
-        ItemKind::GreenWool,
-        ItemKind::RedWool,
-        ItemKind::BlackWool,
-    ])
-});
-pub static SULFUR_CUBE_ARCHETYPE_REGULAR: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::GrassBlock,
-        ItemKind::Dirt,
-        ItemKind::CoarseDirt,
-        ItemKind::Podzol,
-        ItemKind::RootedDirt,
-        ItemKind::Mud,
-        ItemKind::CoalBlock,
-        ItemKind::MuddyMangroveRoots,
-        ItemKind::Clay,
-        ItemKind::PackedMud,
-        ItemKind::BoneBlock,
-        ItemKind::WhiteConcretePowder,
-        ItemKind::OrangeConcretePowder,
-        ItemKind::MagentaConcretePowder,
-        ItemKind::LightBlueConcretePowder,
-        ItemKind::YellowConcretePowder,
-        ItemKind::LimeConcretePowder,
-        ItemKind::PinkConcretePowder,
-        ItemKind::GrayConcretePowder,
-        ItemKind::LightGrayConcretePowder,
-        ItemKind::CyanConcretePowder,
-        ItemKind::PurpleConcretePowder,
-        ItemKind::BlueConcretePowder,
-        ItemKind::BrownConcretePowder,
-        ItemKind::GreenConcretePowder,
-        ItemKind::RedConcretePowder,
-        ItemKind::BlackConcretePowder,
-    ])
-});
-pub static SULFUR_CUBE_ARCHETYPE_SLOW_BOUNCY: LazyLock<RegistryTag<ItemKind>> =
-    LazyLock::new(|| {
-        RegistryTag::new(vec![
-            ItemKind::Stone,
-            ItemKind::Granite,
-            ItemKind::PolishedGranite,
-            ItemKind::Diorite,
-            ItemKind::PolishedDiorite,
-            ItemKind::Andesite,
-            ItemKind::PolishedAndesite,
-            ItemKind::Deepslate,
-            ItemKind::CobbledDeepslate,
-            ItemKind::PolishedDeepslate,
-            ItemKind::Calcite,
-            ItemKind::Tuff,
-            ItemKind::ChiseledTuff,
-            ItemKind::PolishedTuff,
-            ItemKind::TuffBricks,
-            ItemKind::ChiseledTuffBricks,
-            ItemKind::Sulfur,
-            ItemKind::PolishedSulfur,
-            ItemKind::SulfurBricks,
-            ItemKind::ChiseledSulfur,
-            ItemKind::Cinnabar,
-            ItemKind::PolishedCinnabar,
-            ItemKind::CinnabarBricks,
-            ItemKind::ChiseledCinnabar,
-            ItemKind::DripstoneBlock,
-            ItemKind::CrimsonNylium,
-            ItemKind::WarpedNylium,
-            ItemKind::Cobblestone,
-            ItemKind::CoalOre,
-            ItemKind::DeepslateCoalOre,
-            ItemKind::RedstoneOre,
-            ItemKind::DeepslateRedstoneOre,
-            ItemKind::EmeraldOre,
-            ItemKind::DeepslateEmeraldOre,
-            ItemKind::LapisOre,
-            ItemKind::DeepslateLapisOre,
-            ItemKind::DiamondOre,
-            ItemKind::DeepslateDiamondOre,
-            ItemKind::NetherQuartzOre,
-            ItemKind::AmethystBlock,
-            ItemKind::DiamondBlock,
-            ItemKind::LapisBlock,
-            ItemKind::Sandstone,
-            ItemKind::ChiseledSandstone,
-            ItemKind::CutSandstone,
-            ItemKind::SmoothQuartz,
-            ItemKind::SmoothRedSandstone,
-            ItemKind::SmoothSandstone,
-            ItemKind::SmoothStone,
-            ItemKind::Bricks,
-            ItemKind::MossyCobblestone,
-            ItemKind::Obsidian,
-            ItemKind::PurpurBlock,
-            ItemKind::PurpurPillar,
-            ItemKind::Netherrack,
-            ItemKind::Basalt,
-            ItemKind::PolishedBasalt,
-            ItemKind::SmoothBasalt,
-            ItemKind::Glowstone,
-            ItemKind::StoneBricks,
-            ItemKind::MossyStoneBricks,
-            ItemKind::CrackedStoneBricks,
-            ItemKind::ChiseledStoneBricks,
-            ItemKind::MudBricks,
-            ItemKind::DeepslateBricks,
-            ItemKind::CrackedDeepslateBricks,
-            ItemKind::DeepslateTiles,
-            ItemKind::CrackedDeepslateTiles,
-            ItemKind::ChiseledDeepslate,
-            ItemKind::NetherBricks,
-            ItemKind::CrackedNetherBricks,
-            ItemKind::ChiseledNetherBricks,
-            ItemKind::EndStone,
-            ItemKind::EndStoneBricks,
-            ItemKind::EmeraldBlock,
-            ItemKind::ChiseledQuartzBlock,
-            ItemKind::QuartzBlock,
-            ItemKind::QuartzBricks,
-            ItemKind::QuartzPillar,
-            ItemKind::WhiteTerracotta,
-            ItemKind::OrangeTerracotta,
-            ItemKind::MagentaTerracotta,
-            ItemKind::LightBlueTerracotta,
-            ItemKind::YellowTerracotta,
-            ItemKind::LimeTerracotta,
-            ItemKind::PinkTerracotta,
-            ItemKind::GrayTerracotta,
-            ItemKind::LightGrayTerracotta,
-            ItemKind::CyanTerracotta,
-            ItemKind::PurpleTerracotta,
-            ItemKind::BlueTerracotta,
-            ItemKind::BrownTerracotta,
-            ItemKind::GreenTerracotta,
-            ItemKind::RedTerracotta,
-            ItemKind::BlackTerracotta,
-            ItemKind::Terracotta,
-            ItemKind::Prismarine,
-            ItemKind::PrismarineBricks,
-            ItemKind::DarkPrismarine,
-            ItemKind::SeaLantern,
-            ItemKind::RedSandstone,
-            ItemKind::ChiseledRedSandstone,
-            ItemKind::CutRedSandstone,
-            ItemKind::RedNetherBricks,
-            ItemKind::WhiteGlazedTerracotta,
-            ItemKind::OrangeGlazedTerracotta,
-            ItemKind::MagentaGlazedTerracotta,
-            ItemKind::LightBlueGlazedTerracotta,
-            ItemKind::YellowGlazedTerracotta,
-            ItemKind::LimeGlazedTerracotta,
-            ItemKind::PinkGlazedTerracotta,
-            ItemKind::GrayGlazedTerracotta,
-            ItemKind::LightGrayGlazedTerracotta,
-            ItemKind::CyanGlazedTerracotta,
-            ItemKind::PurpleGlazedTerracotta,
-            ItemKind::BlueGlazedTerracotta,
-            ItemKind::BrownGlazedTerracotta,
-            ItemKind::GreenGlazedTerracotta,
-            ItemKind::RedGlazedTerracotta,
-            ItemKind::BlackGlazedTerracotta,
-            ItemKind::WhiteConcrete,
-            ItemKind::OrangeConcrete,
-            ItemKind::MagentaConcrete,
-            ItemKind::LightBlueConcrete,
-            ItemKind::YellowConcrete,
-            ItemKind::LimeConcrete,
-            ItemKind::PinkConcrete,
-            ItemKind::GrayConcrete,
-            ItemKind::LightGrayConcrete,
-            ItemKind::CyanConcrete,
-            ItemKind::PurpleConcrete,
-            ItemKind::BlueConcrete,
-            ItemKind::BrownConcrete,
-            ItemKind::GreenConcrete,
-            ItemKind::RedConcrete,
-            ItemKind::BlackConcrete,
-            ItemKind::Observer,
-            ItemKind::RedstoneLamp,
-            ItemKind::CryingObsidian,
-            ItemKind::Blackstone,
-            ItemKind::GildedBlackstone,
-            ItemKind::PolishedBlackstone,
-            ItemKind::ChiseledPolishedBlackstone,
-            ItemKind::PolishedBlackstoneBricks,
-            ItemKind::CrackedPolishedBlackstoneBricks,
-        ])
-    });
-pub static SULFUR_CUBE_ARCHETYPE_SLOW_FLAT: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::IronOre,
-        ItemKind::DeepslateIronOre,
-        ItemKind::CopperOre,
-        ItemKind::DeepslateCopperOre,
-        ItemKind::GoldOre,
-        ItemKind::DeepslateGoldOre,
-        ItemKind::NetherGoldOre,
-        ItemKind::AncientDebris,
-        ItemKind::RawIronBlock,
-        ItemKind::RawCopperBlock,
-        ItemKind::RawGoldBlock,
-        ItemKind::IronBlock,
-        ItemKind::CopperBlock,
-        ItemKind::ExposedCopper,
-        ItemKind::WeatheredCopper,
-        ItemKind::OxidizedCopper,
-        ItemKind::WaxedCopperBlock,
-        ItemKind::WaxedExposedCopper,
-        ItemKind::WaxedWeatheredCopper,
-        ItemKind::WaxedOxidizedCopper,
-        ItemKind::GoldBlock,
-        ItemKind::NetheriteBlock,
-        ItemKind::ChiseledCopper,
-        ItemKind::ExposedChiseledCopper,
-        ItemKind::WeatheredChiseledCopper,
-        ItemKind::OxidizedChiseledCopper,
-        ItemKind::WaxedChiseledCopper,
-        ItemKind::WaxedExposedChiseledCopper,
-        ItemKind::WaxedWeatheredChiseledCopper,
-        ItemKind::WaxedOxidizedChiseledCopper,
-        ItemKind::CutCopper,
-        ItemKind::ExposedCutCopper,
-        ItemKind::WeatheredCutCopper,
-        ItemKind::OxidizedCutCopper,
-        ItemKind::WaxedCutCopper,
-        ItemKind::WaxedExposedCutCopper,
-        ItemKind::WaxedWeatheredCutCopper,
-        ItemKind::WaxedOxidizedCutCopper,
-        ItemKind::CopperBulb,
-        ItemKind::ExposedCopperBulb,
-        ItemKind::WeatheredCopperBulb,
-        ItemKind::OxidizedCopperBulb,
-        ItemKind::WaxedCopperBulb,
-        ItemKind::WaxedExposedCopperBulb,
-        ItemKind::WaxedWeatheredCopperBulb,
-        ItemKind::WaxedOxidizedCopperBulb,
-    ])
-});
-pub static SULFUR_CUBE_ARCHETYPE_SLOW_SLIDING: LazyLock<RegistryTag<ItemKind>> =
-    LazyLock::new(|| {
-        RegistryTag::new(vec![
-            ItemKind::BrownMushroomBlock,
-            ItemKind::RedMushroomBlock,
-            ItemKind::MushroomStem,
-            ItemKind::Mycelium,
-            ItemKind::NetherWartBlock,
-            ItemKind::WarpedWartBlock,
-            ItemKind::Shroomlight,
-        ])
-    });
-pub static SULFUR_CUBE_ARCHETYPE_STICKY: LazyLock<RegistryTag<ItemKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![ItemKind::HoneycombBlock]));
-pub static SULFUR_CUBE_FOOD: LazyLock<RegistryTag<ItemKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![ItemKind::SlimeBall]));
-pub static SULFUR_CUBE_SWALLOWABLE: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::Stone,
-        ItemKind::Granite,
-        ItemKind::PolishedGranite,
-        ItemKind::Diorite,
-        ItemKind::PolishedDiorite,
-        ItemKind::Andesite,
-        ItemKind::PolishedAndesite,
-        ItemKind::Deepslate,
-        ItemKind::CobbledDeepslate,
-        ItemKind::PolishedDeepslate,
-        ItemKind::Calcite,
-        ItemKind::Tuff,
-        ItemKind::ChiseledTuff,
-        ItemKind::PolishedTuff,
-        ItemKind::TuffBricks,
-        ItemKind::ChiseledTuffBricks,
-        ItemKind::Sulfur,
-        ItemKind::PolishedSulfur,
-        ItemKind::SulfurBricks,
-        ItemKind::ChiseledSulfur,
-        ItemKind::Cinnabar,
-        ItemKind::PolishedCinnabar,
-        ItemKind::CinnabarBricks,
-        ItemKind::ChiseledCinnabar,
-        ItemKind::DripstoneBlock,
-        ItemKind::GrassBlock,
-        ItemKind::Dirt,
-        ItemKind::CoarseDirt,
-        ItemKind::Podzol,
-        ItemKind::RootedDirt,
-        ItemKind::Mud,
-        ItemKind::CrimsonNylium,
-        ItemKind::WarpedNylium,
-        ItemKind::Cobblestone,
-        ItemKind::OakPlanks,
-        ItemKind::SprucePlanks,
-        ItemKind::BirchPlanks,
-        ItemKind::JunglePlanks,
-        ItemKind::AcaciaPlanks,
-        ItemKind::CherryPlanks,
-        ItemKind::DarkOakPlanks,
-        ItemKind::PaleOakPlanks,
-        ItemKind::MangrovePlanks,
-        ItemKind::BambooPlanks,
-        ItemKind::CrimsonPlanks,
-        ItemKind::WarpedPlanks,
-        ItemKind::BambooMosaic,
-        ItemKind::CoalOre,
-        ItemKind::DeepslateCoalOre,
-        ItemKind::IronOre,
-        ItemKind::DeepslateIronOre,
-        ItemKind::CopperOre,
-        ItemKind::DeepslateCopperOre,
-        ItemKind::GoldOre,
-        ItemKind::DeepslateGoldOre,
-        ItemKind::RedstoneOre,
-        ItemKind::DeepslateRedstoneOre,
-        ItemKind::EmeraldOre,
-        ItemKind::DeepslateEmeraldOre,
-        ItemKind::LapisOre,
-        ItemKind::DeepslateLapisOre,
-        ItemKind::DiamondOre,
-        ItemKind::DeepslateDiamondOre,
-        ItemKind::NetherGoldOre,
-        ItemKind::NetherQuartzOre,
-        ItemKind::AncientDebris,
-        ItemKind::CoalBlock,
-        ItemKind::RawIronBlock,
-        ItemKind::RawCopperBlock,
-        ItemKind::RawGoldBlock,
-        ItemKind::AmethystBlock,
-        ItemKind::IronBlock,
-        ItemKind::CopperBlock,
-        ItemKind::ExposedCopper,
-        ItemKind::WeatheredCopper,
-        ItemKind::OxidizedCopper,
-        ItemKind::WaxedCopperBlock,
-        ItemKind::WaxedExposedCopper,
-        ItemKind::WaxedWeatheredCopper,
-        ItemKind::WaxedOxidizedCopper,
-        ItemKind::GoldBlock,
-        ItemKind::DiamondBlock,
-        ItemKind::NetheriteBlock,
-        ItemKind::ChiseledCopper,
-        ItemKind::ExposedChiseledCopper,
-        ItemKind::WeatheredChiseledCopper,
-        ItemKind::OxidizedChiseledCopper,
-        ItemKind::WaxedChiseledCopper,
-        ItemKind::WaxedExposedChiseledCopper,
-        ItemKind::WaxedWeatheredChiseledCopper,
-        ItemKind::WaxedOxidizedChiseledCopper,
-        ItemKind::CutCopper,
-        ItemKind::ExposedCutCopper,
-        ItemKind::WeatheredCutCopper,
-        ItemKind::OxidizedCutCopper,
-        ItemKind::WaxedCutCopper,
-        ItemKind::WaxedExposedCutCopper,
-        ItemKind::WaxedWeatheredCutCopper,
-        ItemKind::WaxedOxidizedCutCopper,
-        ItemKind::OakLog,
-        ItemKind::SpruceLog,
-        ItemKind::BirchLog,
-        ItemKind::JungleLog,
-        ItemKind::AcaciaLog,
-        ItemKind::CherryLog,
-        ItemKind::PaleOakLog,
-        ItemKind::DarkOakLog,
-        ItemKind::MangroveLog,
-        ItemKind::MuddyMangroveRoots,
-        ItemKind::CrimsonStem,
-        ItemKind::WarpedStem,
-        ItemKind::BambooBlock,
-        ItemKind::StrippedOakLog,
-        ItemKind::StrippedSpruceLog,
-        ItemKind::StrippedBirchLog,
-        ItemKind::StrippedJungleLog,
-        ItemKind::StrippedAcaciaLog,
-        ItemKind::StrippedCherryLog,
-        ItemKind::StrippedDarkOakLog,
-        ItemKind::StrippedPaleOakLog,
-        ItemKind::StrippedMangroveLog,
-        ItemKind::StrippedCrimsonStem,
-        ItemKind::StrippedWarpedStem,
-        ItemKind::StrippedOakWood,
-        ItemKind::StrippedSpruceWood,
-        ItemKind::StrippedBirchWood,
-        ItemKind::StrippedJungleWood,
-        ItemKind::StrippedAcaciaWood,
-        ItemKind::StrippedCherryWood,
-        ItemKind::StrippedDarkOakWood,
-        ItemKind::StrippedPaleOakWood,
-        ItemKind::StrippedMangroveWood,
-        ItemKind::StrippedCrimsonHyphae,
-        ItemKind::StrippedWarpedHyphae,
-        ItemKind::StrippedBambooBlock,
-        ItemKind::OakWood,
-        ItemKind::SpruceWood,
-        ItemKind::BirchWood,
-        ItemKind::JungleWood,
-        ItemKind::AcaciaWood,
-        ItemKind::CherryWood,
-        ItemKind::PaleOakWood,
-        ItemKind::DarkOakWood,
-        ItemKind::MangroveWood,
-        ItemKind::CrimsonHyphae,
-        ItemKind::WarpedHyphae,
-        ItemKind::Sponge,
-        ItemKind::WetSponge,
-        ItemKind::LapisBlock,
-        ItemKind::Sandstone,
-        ItemKind::ChiseledSandstone,
-        ItemKind::CutSandstone,
-        ItemKind::WhiteWool,
-        ItemKind::OrangeWool,
-        ItemKind::MagentaWool,
-        ItemKind::LightBlueWool,
-        ItemKind::YellowWool,
-        ItemKind::LimeWool,
-        ItemKind::PinkWool,
-        ItemKind::GrayWool,
-        ItemKind::LightGrayWool,
-        ItemKind::CyanWool,
-        ItemKind::PurpleWool,
-        ItemKind::BlueWool,
-        ItemKind::BrownWool,
-        ItemKind::GreenWool,
-        ItemKind::RedWool,
-        ItemKind::BlackWool,
-        ItemKind::MossBlock,
-        ItemKind::PaleMossBlock,
-        ItemKind::SmoothQuartz,
-        ItemKind::SmoothRedSandstone,
-        ItemKind::SmoothSandstone,
-        ItemKind::SmoothStone,
-        ItemKind::Bricks,
-        ItemKind::MossyCobblestone,
-        ItemKind::Obsidian,
-        ItemKind::PurpurBlock,
-        ItemKind::PurpurPillar,
-        ItemKind::SnowBlock,
-        ItemKind::Clay,
-        ItemKind::Pumpkin,
-        ItemKind::CarvedPumpkin,
-        ItemKind::JackOLantern,
-        ItemKind::Netherrack,
-        ItemKind::SoulSand,
-        ItemKind::SoulSoil,
-        ItemKind::Basalt,
-        ItemKind::PolishedBasalt,
-        ItemKind::SmoothBasalt,
-        ItemKind::Glowstone,
-        ItemKind::StoneBricks,
-        ItemKind::MossyStoneBricks,
-        ItemKind::CrackedStoneBricks,
-        ItemKind::ChiseledStoneBricks,
-        ItemKind::PackedMud,
-        ItemKind::MudBricks,
-        ItemKind::DeepslateBricks,
-        ItemKind::CrackedDeepslateBricks,
-        ItemKind::DeepslateTiles,
-        ItemKind::CrackedDeepslateTiles,
-        ItemKind::ChiseledDeepslate,
-        ItemKind::BrownMushroomBlock,
-        ItemKind::RedMushroomBlock,
-        ItemKind::MushroomStem,
-        ItemKind::Melon,
-        ItemKind::ResinBlock,
-        ItemKind::ResinBricks,
-        ItemKind::ChiseledResinBricks,
-        ItemKind::Mycelium,
-        ItemKind::NetherBricks,
-        ItemKind::CrackedNetherBricks,
-        ItemKind::ChiseledNetherBricks,
-        ItemKind::EndStone,
-        ItemKind::EndStoneBricks,
-        ItemKind::EmeraldBlock,
-        ItemKind::ChiseledQuartzBlock,
-        ItemKind::QuartzBlock,
-        ItemKind::QuartzBricks,
-        ItemKind::QuartzPillar,
-        ItemKind::WhiteTerracotta,
-        ItemKind::OrangeTerracotta,
-        ItemKind::MagentaTerracotta,
-        ItemKind::LightBlueTerracotta,
-        ItemKind::YellowTerracotta,
-        ItemKind::LimeTerracotta,
-        ItemKind::PinkTerracotta,
-        ItemKind::GrayTerracotta,
-        ItemKind::LightGrayTerracotta,
-        ItemKind::CyanTerracotta,
-        ItemKind::PurpleTerracotta,
-        ItemKind::BlueTerracotta,
-        ItemKind::BrownTerracotta,
-        ItemKind::GreenTerracotta,
-        ItemKind::RedTerracotta,
-        ItemKind::BlackTerracotta,
-        ItemKind::HayBlock,
-        ItemKind::Terracotta,
-        ItemKind::PackedIce,
-        ItemKind::Prismarine,
-        ItemKind::PrismarineBricks,
-        ItemKind::DarkPrismarine,
-        ItemKind::SeaLantern,
-        ItemKind::RedSandstone,
-        ItemKind::ChiseledRedSandstone,
-        ItemKind::CutRedSandstone,
-        ItemKind::MagmaBlock,
-        ItemKind::NetherWartBlock,
-        ItemKind::WarpedWartBlock,
-        ItemKind::RedNetherBricks,
-        ItemKind::BoneBlock,
-        ItemKind::WhiteGlazedTerracotta,
-        ItemKind::OrangeGlazedTerracotta,
-        ItemKind::MagentaGlazedTerracotta,
-        ItemKind::LightBlueGlazedTerracotta,
-        ItemKind::YellowGlazedTerracotta,
-        ItemKind::LimeGlazedTerracotta,
-        ItemKind::PinkGlazedTerracotta,
-        ItemKind::GrayGlazedTerracotta,
-        ItemKind::LightGrayGlazedTerracotta,
-        ItemKind::CyanGlazedTerracotta,
-        ItemKind::PurpleGlazedTerracotta,
-        ItemKind::BlueGlazedTerracotta,
-        ItemKind::BrownGlazedTerracotta,
-        ItemKind::GreenGlazedTerracotta,
-        ItemKind::RedGlazedTerracotta,
-        ItemKind::BlackGlazedTerracotta,
-        ItemKind::WhiteConcrete,
-        ItemKind::OrangeConcrete,
-        ItemKind::MagentaConcrete,
-        ItemKind::LightBlueConcrete,
-        ItemKind::YellowConcrete,
-        ItemKind::LimeConcrete,
-        ItemKind::PinkConcrete,
-        ItemKind::GrayConcrete,
-        ItemKind::LightGrayConcrete,
-        ItemKind::CyanConcrete,
-        ItemKind::PurpleConcrete,
-        ItemKind::BlueConcrete,
-        ItemKind::BrownConcrete,
-        ItemKind::GreenConcrete,
-        ItemKind::RedConcrete,
-        ItemKind::BlackConcrete,
-        ItemKind::WhiteConcretePowder,
-        ItemKind::OrangeConcretePowder,
-        ItemKind::MagentaConcretePowder,
-        ItemKind::LightBlueConcretePowder,
-        ItemKind::YellowConcretePowder,
-        ItemKind::LimeConcretePowder,
-        ItemKind::PinkConcretePowder,
-        ItemKind::GrayConcretePowder,
-        ItemKind::LightGrayConcretePowder,
-        ItemKind::CyanConcretePowder,
-        ItemKind::PurpleConcretePowder,
-        ItemKind::BlueConcretePowder,
-        ItemKind::BrownConcretePowder,
-        ItemKind::GreenConcretePowder,
-        ItemKind::RedConcretePowder,
-        ItemKind::BlackConcretePowder,
-        ItemKind::DeadTubeCoralBlock,
-        ItemKind::DeadBrainCoralBlock,
-        ItemKind::DeadBubbleCoralBlock,
-        ItemKind::DeadFireCoralBlock,
-        ItemKind::DeadHornCoralBlock,
-        ItemKind::TubeCoralBlock,
-        ItemKind::BrainCoralBlock,
-        ItemKind::BubbleCoralBlock,
-        ItemKind::FireCoralBlock,
-        ItemKind::HornCoralBlock,
-        ItemKind::BlueIce,
-        ItemKind::Observer,
-        ItemKind::Tnt,
-        ItemKind::RedstoneLamp,
-        ItemKind::DriedKelpBlock,
-        ItemKind::Shroomlight,
-        ItemKind::HoneycombBlock,
-        ItemKind::CryingObsidian,
-        ItemKind::Blackstone,
-        ItemKind::GildedBlackstone,
-        ItemKind::PolishedBlackstone,
-        ItemKind::ChiseledPolishedBlackstone,
-        ItemKind::PolishedBlackstoneBricks,
-        ItemKind::CrackedPolishedBlackstoneBricks,
-        ItemKind::OchreFroglight,
-        ItemKind::VerdantFroglight,
-        ItemKind::PearlescentFroglight,
-        ItemKind::CopperBulb,
-        ItemKind::ExposedCopperBulb,
-        ItemKind::WeatheredCopperBulb,
-        ItemKind::OxidizedCopperBulb,
-        ItemKind::WaxedCopperBulb,
-        ItemKind::WaxedExposedCopperBulb,
-        ItemKind::WaxedWeatheredCopperBulb,
-        ItemKind::WaxedOxidizedCopperBulb,
-    ])
-});
 pub static SWORDS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         ItemKind::WoodenSword,
-        ItemKind::CopperSword,
         ItemKind::StoneSword,
         ItemKind::GoldenSword,
         ItemKind::IronSword,
@@ -3014,10 +1801,6 @@ pub static TRIMMABLE_ARMOR: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
         ItemKind::LeatherChestplate,
         ItemKind::LeatherLeggings,
         ItemKind::LeatherBoots,
-        ItemKind::CopperHelmet,
-        ItemKind::CopperChestplate,
-        ItemKind::CopperLeggings,
-        ItemKind::CopperBoots,
         ItemKind::ChainmailHelmet,
         ItemKind::ChainmailChestplate,
         ItemKind::ChainmailLeggings,
@@ -3070,12 +1853,6 @@ pub static WALLS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
         ItemKind::TuffWall,
         ItemKind::PolishedTuffWall,
         ItemKind::TuffBrickWall,
-        ItemKind::SulfurWall,
-        ItemKind::PolishedSulfurWall,
-        ItemKind::SulfurBrickWall,
-        ItemKind::CinnabarWall,
-        ItemKind::PolishedCinnabarWall,
-        ItemKind::CinnabarBrickWall,
         ItemKind::ResinBrickWall,
         ItemKind::CobblestoneWall,
         ItemKind::MossyCobblestoneWall,
@@ -3113,26 +1890,6 @@ pub static WART_BLOCKS: LazyLock<RegistryTag<ItemKind>> =
     LazyLock::new(|| RegistryTag::new(vec![ItemKind::NetherWartBlock, ItemKind::WarpedWartBlock]));
 pub static WITHER_SKELETON_DISLIKED_WEAPONS: LazyLock<RegistryTag<ItemKind>> =
     LazyLock::new(|| RegistryTag::new(vec![ItemKind::Bow, ItemKind::Crossbow]));
-pub static WOLF_COLLAR_DYES: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::WhiteDye,
-        ItemKind::OrangeDye,
-        ItemKind::MagentaDye,
-        ItemKind::LightBlueDye,
-        ItemKind::YellowDye,
-        ItemKind::LimeDye,
-        ItemKind::PinkDye,
-        ItemKind::GrayDye,
-        ItemKind::LightGrayDye,
-        ItemKind::CyanDye,
-        ItemKind::PurpleDye,
-        ItemKind::BlueDye,
-        ItemKind::BrownDye,
-        ItemKind::GreenDye,
-        ItemKind::RedDye,
-        ItemKind::BlackDye,
-    ])
-});
 pub static WOLF_FOOD: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         ItemKind::Porkchop,
@@ -3217,22 +1974,6 @@ pub static WOODEN_PRESSURE_PLATES: LazyLock<RegistryTag<ItemKind>> = LazyLock::n
         ItemKind::BambooPressurePlate,
         ItemKind::CrimsonPressurePlate,
         ItemKind::WarpedPressurePlate,
-    ])
-});
-pub static WOODEN_SHELVES: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        ItemKind::AcaciaShelf,
-        ItemKind::BambooShelf,
-        ItemKind::BirchShelf,
-        ItemKind::CherryShelf,
-        ItemKind::CrimsonShelf,
-        ItemKind::DarkOakShelf,
-        ItemKind::JungleShelf,
-        ItemKind::MangroveShelf,
-        ItemKind::OakShelf,
-        ItemKind::PaleOakShelf,
-        ItemKind::SpruceShelf,
-        ItemKind::WarpedShelf,
     ])
 });
 pub static WOODEN_SLABS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
@@ -3339,5 +2080,3 @@ pub static WOOL_CARPETS: LazyLock<RegistryTag<ItemKind>> = LazyLock::new(|| {
         ItemKind::BlackCarpet,
     ])
 });
-pub static ZOMBIE_HORSE_FOOD: LazyLock<RegistryTag<ItemKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![ItemKind::RedMushroom]));

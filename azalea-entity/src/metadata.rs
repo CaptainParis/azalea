@@ -50,17 +50,16 @@
 //!     - [TextDisplay]
 //!   - [AbstractLiving]
 //!     - [ArmorStand]
-//!     - [AbstractAvatar]
-//!       - [Mannequin]
-//!       - [Player]
+//!     - [Player]
 //!     - [AbstractInsentient]
 //!       - [Bat]
 //!       - [EnderDragon]
 //!       - [Ghast]
 //!       - [Phantom]
+//!       - [Slime]
+//!         - [MagmaCube]
 //!       - [AbstractCreature]
 //!         - [Allay]
-//!         - [CopperGolem]
 //!         - [IronGolem]
 //!         - [Pufferfish]
 //!         - [Shulker]
@@ -68,23 +67,19 @@
 //!         - [Tadpole]
 //!         - [AbstractAgeable]
 //!           - [Dolphin]
-//!           - [MagmaCube]
-//!           - [Slime]
 //!           - [Squid]
 //!             - [GlowSquid]
-//!           - [SulfurCube]
 //!           - [AbstractAnimal]
 //!             - [Armadillo]
 //!             - [Axolotl]
 //!             - [Bee]
 //!             - [Chicken]
 //!             - [Cow]
+//!               - [Mooshroom]
 //!             - [Fox]
 //!             - [Frog]
 //!             - [Goat]
-//!             - [HappyGhast]
 //!             - [Hoglin]
-//!             - [Mooshroom]
 //!             - [Ocelot]
 //!             - [Panda]
 //!             - [Pig]
@@ -96,7 +91,6 @@
 //!             - [Turtle]
 //!             - [AbstractHorse]
 //!               - [Camel]
-//!                 - [CamelHusk]
 //!               - [Horse]
 //!               - [SkeletonHorse]
 //!               - [ZombieHorse]
@@ -109,9 +103,6 @@
 //!               - [Cat]
 //!               - [Parrot]
 //!               - [Wolf]
-//!               - [AbstractNautilus]
-//!                 - [Nautilus]
-//!                 - [ZombieNautilus]
 //!           - [AbstractVillager]
 //!             - [Villager]
 //!             - [WanderingTrader]
@@ -130,7 +121,6 @@
 //!           - [Giant]
 //!           - [Guardian]
 //!             - [ElderGuardian]
-//!           - [Parched]
 //!           - [Silverfish]
 //!           - [Skeleton]
 //!           - [Spider]
@@ -161,9 +151,8 @@
 //!     - [Egg]
 //!     - [EnderPearl]
 //!     - [ExperienceBottle]
-//!     - [LingeringPotion]
+//!     - [Potion]
 //!     - [Snowball]
-//!     - [SplashPotion]
 //!   - [AbstractVehicle]
 //!     - [AbstractBoat]
 //!       - [AcaciaBoat]
@@ -328,17 +317,16 @@ pub struct TicksFrozen(pub i32);
 ///   - [TextDisplay]
 /// - [AbstractLiving]
 ///   - [ArmorStand]
-///   - [AbstractAvatar]
-///     - [Mannequin]
-///     - [Player]
+///   - [Player]
 ///   - [AbstractInsentient]
 ///     - [Bat]
 ///     - [EnderDragon]
 ///     - [Ghast]
 ///     - [Phantom]
+///     - [Slime]
+///       - [MagmaCube]
 ///     - [AbstractCreature]
 ///       - [Allay]
-///       - [CopperGolem]
 ///       - [IronGolem]
 ///       - [Pufferfish]
 ///       - [Shulker]
@@ -346,23 +334,19 @@ pub struct TicksFrozen(pub i32);
 ///       - [Tadpole]
 ///       - [AbstractAgeable]
 ///         - [Dolphin]
-///         - [MagmaCube]
-///         - [Slime]
 ///         - [Squid]
 ///           - [GlowSquid]
-///         - [SulfurCube]
 ///         - [AbstractAnimal]
 ///           - [Armadillo]
 ///           - [Axolotl]
 ///           - [Bee]
 ///           - [Chicken]
 ///           - [Cow]
+///             - [Mooshroom]
 ///           - [Fox]
 ///           - [Frog]
 ///           - [Goat]
-///           - [HappyGhast]
 ///           - [Hoglin]
-///           - [Mooshroom]
 ///           - [Ocelot]
 ///           - [Panda]
 ///           - [Pig]
@@ -374,7 +358,6 @@ pub struct TicksFrozen(pub i32);
 ///           - [Turtle]
 ///           - [AbstractHorse]
 ///             - [Camel]
-///               - [CamelHusk]
 ///             - [Horse]
 ///             - [SkeletonHorse]
 ///             - [ZombieHorse]
@@ -387,9 +370,6 @@ pub struct TicksFrozen(pub i32);
 ///             - [Cat]
 ///             - [Parrot]
 ///             - [Wolf]
-///             - [AbstractNautilus]
-///               - [Nautilus]
-///               - [ZombieNautilus]
 ///         - [AbstractVillager]
 ///           - [Villager]
 ///           - [WanderingTrader]
@@ -408,7 +388,6 @@ pub struct TicksFrozen(pub i32);
 ///         - [Giant]
 ///         - [Guardian]
 ///           - [ElderGuardian]
-///         - [Parched]
 ///         - [Silverfish]
 ///         - [Skeleton]
 ///         - [Spider]
@@ -439,9 +418,8 @@ pub struct TicksFrozen(pub i32);
 ///   - [Egg]
 ///   - [EnderPearl]
 ///   - [ExperienceBottle]
-///   - [LingeringPotion]
+///   - [Potion]
 ///   - [Snowball]
-///   - [SplashPotion]
 /// - [AbstractVehicle]
 ///   - [AbstractBoat]
 ///     - [AcaciaBoat]
@@ -850,18 +828,12 @@ impl Default for EvokerFangsMetadataBundle {
     }
 }
 
-/// A metadata field for [ExperienceOrb].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct Value(pub i32);
 /// The marker component for entities of type `minecraft:experience_orb`.
 ///
 /// # Metadata
 ///
-/// These are the metadata components that all `ExperienceOrb` entities are
-/// guaranteed to have, in addition to the metadata components from parent
-/// types:
-///
-/// - [Value]
+/// This entity type does not add any additional metadata. It will still have
+/// metadata from parent types.
 ///
 /// # Parents
 ///
@@ -882,9 +854,6 @@ impl ExperienceOrb {
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
             0..=7 => AbstractEntity::apply_metadata(entity, d)?,
-            8 => {
-                entity.insert(Value(d.value.into_int()?));
-            }
             _ => {}
         }
         Ok(())
@@ -898,14 +867,12 @@ impl ExperienceOrb {
 pub struct ExperienceOrbMetadataBundle {
     _marker: ExperienceOrb,
     parent: AbstractEntityMetadataBundle,
-    value: Value,
 }
 impl Default for ExperienceOrbMetadataBundle {
     fn default() -> Self {
         Self {
             _marker: ExperienceOrb,
             parent: Default::default(),
-            value: Value(0),
         }
     }
 }
@@ -1369,14 +1336,11 @@ impl Default for ItemMetadataBundle {
         Self {
             _marker: Item,
             parent: Default::default(),
-            item_item: ItemItem(Default::default()),
+            item_item: ItemItem(ItemStack::Empty),
         }
     }
 }
 
-/// A metadata field for [ItemFrame].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct ItemFrameDirection(pub Direction);
 /// A metadata field for [ItemFrame].
 #[derive(Component, Deref, DerefMut, Clone, PartialEq)]
 pub struct ItemFrameItem(pub ItemStack);
@@ -1391,7 +1355,6 @@ pub struct Rotation(pub i32);
 /// guaranteed to have, in addition to the metadata components from parent
 /// types:
 ///
-/// - [ItemFrameDirection]
 /// - [ItemFrameItem]
 /// - [Rotation]
 ///
@@ -1415,12 +1378,9 @@ impl ItemFrame {
         match d.index {
             0..=7 => AbstractEntity::apply_metadata(entity, d)?,
             8 => {
-                entity.insert(ItemFrameDirection(d.value.into_direction()?));
-            }
-            9 => {
                 entity.insert(ItemFrameItem(d.value.into_item_stack()?));
             }
-            10 => {
+            9 => {
                 entity.insert(Rotation(d.value.into_int()?));
             }
             _ => {}
@@ -1436,7 +1396,6 @@ impl ItemFrame {
 pub struct ItemFrameMetadataBundle {
     _marker: ItemFrame,
     parent: AbstractEntityMetadataBundle,
-    item_frame_direction: ItemFrameDirection,
     item_frame_item: ItemFrameItem,
     rotation: Rotation,
 }
@@ -1445,8 +1404,7 @@ impl Default for ItemFrameMetadataBundle {
         Self {
             _marker: ItemFrame,
             parent: Default::default(),
-            item_frame_direction: ItemFrameDirection(Default::default()),
-            item_frame_item: ItemFrameItem(Default::default()),
+            item_frame_item: ItemFrameItem(ItemStack::Empty),
             rotation: Rotation(0),
         }
     }
@@ -1478,7 +1436,7 @@ impl GlowItemFrame {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=10 => ItemFrame::apply_metadata(entity, d)?,
+            0..=9 => ItemFrame::apply_metadata(entity, d)?,
             _ => {}
         }
         Ok(())
@@ -1753,14 +1711,11 @@ impl Default for OminousItemSpawnerMetadataBundle {
         Self {
             _marker: OminousItemSpawner,
             parent: Default::default(),
-            ominous_item_spawner_item: OminousItemSpawnerItem(Default::default()),
+            ominous_item_spawner_item: OminousItemSpawnerItem(ItemStack::Empty),
         }
     }
 }
 
-/// A metadata field for [Painting].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct PaintingDirection(pub Direction);
 /// A metadata field for [Painting].
 #[derive(Component, Deref, DerefMut, Clone, PartialEq)]
 pub struct PaintingVariant(pub azalea_registry::data::PaintingVariant);
@@ -1772,7 +1727,6 @@ pub struct PaintingVariant(pub azalea_registry::data::PaintingVariant);
 /// guaranteed to have, in addition to the metadata components from parent
 /// types:
 ///
-/// - [PaintingDirection]
 /// - [PaintingVariant]
 ///
 /// # Parents
@@ -1795,9 +1749,6 @@ impl Painting {
         match d.index {
             0..=7 => AbstractEntity::apply_metadata(entity, d)?,
             8 => {
-                entity.insert(PaintingDirection(d.value.into_direction()?));
-            }
-            9 => {
                 entity.insert(PaintingVariant(d.value.into_painting_variant()?));
             }
             _ => {}
@@ -1813,7 +1764,6 @@ impl Painting {
 pub struct PaintingMetadataBundle {
     _marker: Painting,
     parent: AbstractEntityMetadataBundle,
-    painting_direction: PaintingDirection,
     painting_variant: PaintingVariant,
 }
 impl Default for PaintingMetadataBundle {
@@ -1821,7 +1771,6 @@ impl Default for PaintingMetadataBundle {
         Self {
             _marker: Painting,
             parent: Default::default(),
-            painting_direction: PaintingDirection(Default::default()),
             painting_variant: PaintingVariant(azalea_registry::data::PaintingVariant::new_raw(0)),
         }
     }
@@ -2714,7 +2663,7 @@ impl Default for ItemDisplayMetadataBundle {
         Self {
             _marker: ItemDisplay,
             parent: Default::default(),
-            item_display_item_stack: ItemDisplayItemStack(Default::default()),
+            item_display_item_stack: ItemDisplayItemStack(ItemStack::Empty),
             item_display_item_display: ItemDisplayItemDisplay(Default::default()),
         }
     }
@@ -2868,17 +2817,16 @@ pub struct SleepingPos(pub Option<BlockPos>);
 /// # Children
 ///
 /// - [ArmorStand]
-/// - [AbstractAvatar]
-///   - [Mannequin]
-///   - [Player]
+/// - [Player]
 /// - [AbstractInsentient]
 ///   - [Bat]
 ///   - [EnderDragon]
 ///   - [Ghast]
 ///   - [Phantom]
+///   - [Slime]
+///     - [MagmaCube]
 ///   - [AbstractCreature]
 ///     - [Allay]
-///     - [CopperGolem]
 ///     - [IronGolem]
 ///     - [Pufferfish]
 ///     - [Shulker]
@@ -2886,23 +2834,19 @@ pub struct SleepingPos(pub Option<BlockPos>);
 ///     - [Tadpole]
 ///     - [AbstractAgeable]
 ///       - [Dolphin]
-///       - [MagmaCube]
-///       - [Slime]
 ///       - [Squid]
 ///         - [GlowSquid]
-///       - [SulfurCube]
 ///       - [AbstractAnimal]
 ///         - [Armadillo]
 ///         - [Axolotl]
 ///         - [Bee]
 ///         - [Chicken]
 ///         - [Cow]
+///           - [Mooshroom]
 ///         - [Fox]
 ///         - [Frog]
 ///         - [Goat]
-///         - [HappyGhast]
 ///         - [Hoglin]
-///         - [Mooshroom]
 ///         - [Ocelot]
 ///         - [Panda]
 ///         - [Pig]
@@ -2914,7 +2858,6 @@ pub struct SleepingPos(pub Option<BlockPos>);
 ///         - [Turtle]
 ///         - [AbstractHorse]
 ///           - [Camel]
-///             - [CamelHusk]
 ///           - [Horse]
 ///           - [SkeletonHorse]
 ///           - [ZombieHorse]
@@ -2927,9 +2870,6 @@ pub struct SleepingPos(pub Option<BlockPos>);
 ///           - [Cat]
 ///           - [Parrot]
 ///           - [Wolf]
-///           - [AbstractNautilus]
-///             - [Nautilus]
-///             - [ZombieNautilus]
 ///       - [AbstractVillager]
 ///         - [Villager]
 ///         - [WanderingTrader]
@@ -2948,7 +2888,6 @@ pub struct SleepingPos(pub Option<BlockPos>);
 ///       - [Giant]
 ///       - [Guardian]
 ///         - [ElderGuardian]
-///       - [Parched]
 ///       - [Silverfish]
 ///       - [Skeleton]
 ///       - [Spider]
@@ -3183,157 +3122,6 @@ impl Default for ArmorStandMetadataBundle {
     }
 }
 
-/// A metadata field for [AbstractAvatar].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct PlayerMainHand(pub HumanoidArm);
-/// A metadata field for [AbstractAvatar].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct PlayerModeCustomisation(pub u8);
-/// An abstract entity marker component.
-///
-/// # Metadata
-///
-/// These are the metadata components that all `AbstractAvatar` entities are
-/// guaranteed to have, in addition to the metadata components from parent
-/// types:
-///
-/// - [PlayerMainHand]
-/// - [PlayerModeCustomisation]
-///
-/// # Parents
-///
-/// Entities with `AbstractAvatar` will also have the following marker
-/// components and their metadata fields:
-///
-/// - [AbstractLiving]
-/// - [AbstractEntity]
-///
-/// # Children
-///
-/// - [Mannequin]
-/// - [Player]
-#[derive(Component)]
-pub struct AbstractAvatar;
-impl AbstractAvatar {
-    fn apply_metadata(
-        entity: &mut bevy_ecs::system::EntityCommands,
-        d: EntityDataItem,
-    ) -> Result<(), UpdateMetadataError> {
-        match d.index {
-            0..=14 => AbstractLiving::apply_metadata(entity, d)?,
-            15 => {
-                entity.insert(PlayerMainHand(d.value.into_humanoid_arm()?));
-            }
-            16 => {
-                entity.insert(PlayerModeCustomisation(d.value.into_byte()?));
-            }
-            _ => {}
-        }
-        Ok(())
-    }
-}
-
-/// The metadata bundle for [AbstractAvatar].
-///
-/// This type should generally not be used directly.
-#[derive(Bundle)]
-pub struct AbstractAvatarMetadataBundle {
-    _marker: AbstractAvatar,
-    parent: AbstractLivingMetadataBundle,
-    player_main_hand: PlayerMainHand,
-    player_mode_customisation: PlayerModeCustomisation,
-}
-impl Default for AbstractAvatarMetadataBundle {
-    fn default() -> Self {
-        Self {
-            _marker: AbstractAvatar,
-            parent: Default::default(),
-            player_main_hand: PlayerMainHand(Default::default()),
-            player_mode_customisation: PlayerModeCustomisation(0),
-        }
-    }
-}
-
-/// A metadata field for [Mannequin].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct Profile(pub components::Profile);
-/// A metadata field for [Mannequin].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct Immovable(pub bool);
-/// A metadata field for [Mannequin].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct Description(pub Option<Box<FormattedText>>);
-/// The marker component for entities of type `minecraft:mannequin`.
-///
-/// # Metadata
-///
-/// These are the metadata components that all `Mannequin` entities are
-/// guaranteed to have, in addition to the metadata components from parent
-/// types:
-///
-/// - [Profile]
-/// - [Immovable]
-/// - [Description]
-///
-/// # Parents
-///
-/// Entities with `Mannequin` will also have the following marker components and
-/// their metadata fields:
-///
-/// - [AbstractAvatar]
-/// - [AbstractLiving]
-/// - [AbstractEntity]
-///
-/// # Children
-///
-/// This entity type has no children types.
-#[derive(Component)]
-pub struct Mannequin;
-impl Mannequin {
-    fn apply_metadata(
-        entity: &mut bevy_ecs::system::EntityCommands,
-        d: EntityDataItem,
-    ) -> Result<(), UpdateMetadataError> {
-        match d.index {
-            0..=16 => AbstractAvatar::apply_metadata(entity, d)?,
-            17 => {
-                entity.insert(Profile(d.value.into_resolvable_profile()?));
-            }
-            18 => {
-                entity.insert(Immovable(d.value.into_boolean()?));
-            }
-            19 => {
-                entity.insert(Description(d.value.into_optional_formatted_text()?));
-            }
-            _ => {}
-        }
-        Ok(())
-    }
-}
-
-/// The metadata bundle for [Mannequin].
-///
-/// This type should generally not be used directly.
-#[derive(Bundle)]
-pub struct MannequinMetadataBundle {
-    _marker: Mannequin,
-    parent: AbstractAvatarMetadataBundle,
-    profile: Profile,
-    immovable: Immovable,
-    description: Description,
-}
-impl Default for MannequinMetadataBundle {
-    fn default() -> Self {
-        Self {
-            _marker: Mannequin,
-            parent: Default::default(),
-            profile: Profile(Default::default()),
-            immovable: Immovable(false),
-            description: Description(Default::default()),
-        }
-    }
-}
-
 /// A metadata field for [Player].
 #[derive(Component, Deref, DerefMut, Clone, PartialEq)]
 pub struct PlayerAbsorption(pub f32);
@@ -3342,10 +3130,16 @@ pub struct PlayerAbsorption(pub f32);
 pub struct Score(pub i32);
 /// A metadata field for [Player].
 #[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct ShoulderParrotLeft(pub OptionalUnsignedInt);
+pub struct PlayerModeCustomisation(pub u8);
 /// A metadata field for [Player].
 #[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct ShoulderParrotRight(pub OptionalUnsignedInt);
+pub struct PlayerMainHand(pub u8);
+/// A metadata field for [Player].
+#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
+pub struct ShoulderLeft(pub Box<simdnbt::owned::NbtCompound>);
+/// A metadata field for [Player].
+#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
+pub struct ShoulderRight(pub Box<simdnbt::owned::NbtCompound>);
 /// The marker component for entities of type `minecraft:player`.
 ///
 /// # Metadata
@@ -3355,15 +3149,16 @@ pub struct ShoulderParrotRight(pub OptionalUnsignedInt);
 ///
 /// - [PlayerAbsorption]
 /// - [Score]
-/// - [ShoulderParrotLeft]
-/// - [ShoulderParrotRight]
+/// - [PlayerModeCustomisation]
+/// - [PlayerMainHand]
+/// - [ShoulderLeft]
+/// - [ShoulderRight]
 ///
 /// # Parents
 ///
 /// Entities with `Player` will also have the following marker components and
 /// their metadata fields:
 ///
-/// - [AbstractAvatar]
 /// - [AbstractLiving]
 /// - [AbstractEntity]
 ///
@@ -3378,18 +3173,24 @@ impl Player {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=16 => AbstractAvatar::apply_metadata(entity, d)?,
-            17 => {
+            0..=14 => AbstractLiving::apply_metadata(entity, d)?,
+            15 => {
                 entity.insert(PlayerAbsorption(d.value.into_float()?));
             }
-            18 => {
+            16 => {
                 entity.insert(Score(d.value.into_int()?));
             }
+            17 => {
+                entity.insert(PlayerModeCustomisation(d.value.into_byte()?));
+            }
+            18 => {
+                entity.insert(PlayerMainHand(d.value.into_byte()?));
+            }
             19 => {
-                entity.insert(ShoulderParrotLeft(d.value.into_optional_unsigned_int()?));
+                entity.insert(ShoulderLeft(d.value.into_compound_tag()?));
             }
             20 => {
-                entity.insert(ShoulderParrotRight(d.value.into_optional_unsigned_int()?));
+                entity.insert(ShoulderRight(d.value.into_compound_tag()?));
             }
             _ => {}
         }
@@ -3403,11 +3204,13 @@ impl Player {
 #[derive(Bundle)]
 pub struct PlayerMetadataBundle {
     _marker: Player,
-    parent: AbstractAvatarMetadataBundle,
+    parent: AbstractLivingMetadataBundle,
     player_absorption: PlayerAbsorption,
     score: Score,
-    shoulder_parrot_left: ShoulderParrotLeft,
-    shoulder_parrot_right: ShoulderParrotRight,
+    player_mode_customisation: PlayerModeCustomisation,
+    player_main_hand: PlayerMainHand,
+    shoulder_left: ShoulderLeft,
+    shoulder_right: ShoulderRight,
 }
 impl Default for PlayerMetadataBundle {
     fn default() -> Self {
@@ -3416,8 +3219,10 @@ impl Default for PlayerMetadataBundle {
             parent: Default::default(),
             player_absorption: PlayerAbsorption(0.0),
             score: Score(0),
-            shoulder_parrot_left: ShoulderParrotLeft(OptionalUnsignedInt(None)),
-            shoulder_parrot_right: ShoulderParrotRight(OptionalUnsignedInt(None)),
+            player_mode_customisation: PlayerModeCustomisation(0),
+            player_main_hand: PlayerMainHand(Default::default()),
+            shoulder_left: ShoulderLeft(simdnbt::owned::NbtCompound::default()),
+            shoulder_right: ShoulderRight(simdnbt::owned::NbtCompound::default()),
         }
     }
 }
@@ -3457,9 +3262,10 @@ pub struct Aggressive(pub bool);
 /// - [EnderDragon]
 /// - [Ghast]
 /// - [Phantom]
+/// - [Slime]
+///   - [MagmaCube]
 /// - [AbstractCreature]
 ///   - [Allay]
-///   - [CopperGolem]
 ///   - [IronGolem]
 ///   - [Pufferfish]
 ///   - [Shulker]
@@ -3467,23 +3273,19 @@ pub struct Aggressive(pub bool);
 ///   - [Tadpole]
 ///   - [AbstractAgeable]
 ///     - [Dolphin]
-///     - [MagmaCube]
-///     - [Slime]
 ///     - [Squid]
 ///       - [GlowSquid]
-///     - [SulfurCube]
 ///     - [AbstractAnimal]
 ///       - [Armadillo]
 ///       - [Axolotl]
 ///       - [Bee]
 ///       - [Chicken]
 ///       - [Cow]
+///         - [Mooshroom]
 ///       - [Fox]
 ///       - [Frog]
 ///       - [Goat]
-///       - [HappyGhast]
 ///       - [Hoglin]
-///       - [Mooshroom]
 ///       - [Ocelot]
 ///       - [Panda]
 ///       - [Pig]
@@ -3495,7 +3297,6 @@ pub struct Aggressive(pub bool);
 ///       - [Turtle]
 ///       - [AbstractHorse]
 ///         - [Camel]
-///           - [CamelHusk]
 ///         - [Horse]
 ///         - [SkeletonHorse]
 ///         - [ZombieHorse]
@@ -3508,9 +3309,6 @@ pub struct Aggressive(pub bool);
 ///         - [Cat]
 ///         - [Parrot]
 ///         - [Wolf]
-///         - [AbstractNautilus]
-///           - [Nautilus]
-///           - [ZombieNautilus]
 ///     - [AbstractVillager]
 ///       - [Villager]
 ///       - [WanderingTrader]
@@ -3529,7 +3327,6 @@ pub struct Aggressive(pub bool);
 ///     - [Giant]
 ///     - [Guardian]
 ///       - [ElderGuardian]
-///     - [Parched]
 ///     - [Silverfish]
 ///     - [Skeleton]
 ///     - [Spider]
@@ -3846,6 +3643,119 @@ impl Default for PhantomMetadataBundle {
     }
 }
 
+/// A metadata field for [Slime].
+#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
+pub struct SlimeSize(pub i32);
+/// The marker component for entities of type `minecraft:slime`.
+///
+/// # Metadata
+///
+/// These are the metadata components that all `Slime` entities are guaranteed
+/// to have, in addition to the metadata components from parent types:
+///
+/// - [SlimeSize]
+///
+/// # Parents
+///
+/// Entities with `Slime` will also have the following marker components and
+/// their metadata fields:
+///
+/// - [AbstractInsentient]
+/// - [AbstractLiving]
+/// - [AbstractEntity]
+///
+/// # Children
+///
+/// - [MagmaCube]
+#[derive(Component)]
+pub struct Slime;
+impl Slime {
+    fn apply_metadata(
+        entity: &mut bevy_ecs::system::EntityCommands,
+        d: EntityDataItem,
+    ) -> Result<(), UpdateMetadataError> {
+        match d.index {
+            0..=15 => AbstractInsentient::apply_metadata(entity, d)?,
+            16 => {
+                entity.insert(SlimeSize(d.value.into_int()?));
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+}
+
+/// The metadata bundle for [Slime].
+///
+/// This type should generally not be used directly.
+#[derive(Bundle)]
+pub struct SlimeMetadataBundle {
+    _marker: Slime,
+    parent: AbstractInsentientMetadataBundle,
+    slime_size: SlimeSize,
+}
+impl Default for SlimeMetadataBundle {
+    fn default() -> Self {
+        Self {
+            _marker: Slime,
+            parent: Default::default(),
+            slime_size: SlimeSize(1),
+        }
+    }
+}
+
+/// The marker component for entities of type `minecraft:magma_cube`.
+///
+/// # Metadata
+///
+/// This entity type does not add any additional metadata. It will still have
+/// metadata from parent types.
+///
+/// # Parents
+///
+/// Entities with `MagmaCube` will also have the following marker components and
+/// their metadata fields:
+///
+/// - [Slime]
+/// - [AbstractInsentient]
+/// - [AbstractLiving]
+/// - [AbstractEntity]
+///
+/// # Children
+///
+/// This entity type has no children types.
+#[derive(Component)]
+pub struct MagmaCube;
+impl MagmaCube {
+    fn apply_metadata(
+        entity: &mut bevy_ecs::system::EntityCommands,
+        d: EntityDataItem,
+    ) -> Result<(), UpdateMetadataError> {
+        match d.index {
+            0..=16 => Slime::apply_metadata(entity, d)?,
+            _ => {}
+        }
+        Ok(())
+    }
+}
+
+/// The metadata bundle for [MagmaCube].
+///
+/// This type should generally not be used directly.
+#[derive(Bundle)]
+pub struct MagmaCubeMetadataBundle {
+    _marker: MagmaCube,
+    parent: SlimeMetadataBundle,
+}
+impl Default for MagmaCubeMetadataBundle {
+    fn default() -> Self {
+        Self {
+            _marker: MagmaCube,
+            parent: Default::default(),
+        }
+    }
+}
+
 /// An abstract entity marker component.
 ///
 /// # Metadata
@@ -3865,7 +3775,6 @@ impl Default for PhantomMetadataBundle {
 /// # Children
 ///
 /// - [Allay]
-/// - [CopperGolem]
 /// - [IronGolem]
 /// - [Pufferfish]
 /// - [Shulker]
@@ -3873,23 +3782,19 @@ impl Default for PhantomMetadataBundle {
 /// - [Tadpole]
 /// - [AbstractAgeable]
 ///   - [Dolphin]
-///   - [MagmaCube]
-///   - [Slime]
 ///   - [Squid]
 ///     - [GlowSquid]
-///   - [SulfurCube]
 ///   - [AbstractAnimal]
 ///     - [Armadillo]
 ///     - [Axolotl]
 ///     - [Bee]
 ///     - [Chicken]
 ///     - [Cow]
+///       - [Mooshroom]
 ///     - [Fox]
 ///     - [Frog]
 ///     - [Goat]
-///     - [HappyGhast]
 ///     - [Hoglin]
-///     - [Mooshroom]
 ///     - [Ocelot]
 ///     - [Panda]
 ///     - [Pig]
@@ -3901,7 +3806,6 @@ impl Default for PhantomMetadataBundle {
 ///     - [Turtle]
 ///     - [AbstractHorse]
 ///       - [Camel]
-///         - [CamelHusk]
 ///       - [Horse]
 ///       - [SkeletonHorse]
 ///       - [ZombieHorse]
@@ -3914,9 +3818,6 @@ impl Default for PhantomMetadataBundle {
 ///       - [Cat]
 ///       - [Parrot]
 ///       - [Wolf]
-///       - [AbstractNautilus]
-///         - [Nautilus]
-///         - [ZombieNautilus]
 ///   - [AbstractVillager]
 ///     - [Villager]
 ///     - [WanderingTrader]
@@ -3935,7 +3836,6 @@ impl Default for PhantomMetadataBundle {
 ///   - [Giant]
 ///   - [Guardian]
 ///     - [ElderGuardian]
-///   - [Parched]
 ///   - [Silverfish]
 ///   - [Skeleton]
 ///   - [Spider]
@@ -4061,78 +3961,6 @@ impl Default for AllayMetadataBundle {
             parent: Default::default(),
             dancing: Dancing(false),
             can_duplicate: CanDuplicate(true),
-        }
-    }
-}
-
-/// A metadata field for [CopperGolem].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct WeatherState(pub WeatheringCopperStateKind);
-/// A metadata field for [CopperGolem].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct CopperGolemState(pub CopperGolemStateKind);
-/// The marker component for entities of type `minecraft:copper_golem`.
-///
-/// # Metadata
-///
-/// These are the metadata components that all `CopperGolem` entities are
-/// guaranteed to have, in addition to the metadata components from parent
-/// types:
-///
-/// - [WeatherState]
-/// - [CopperGolemState]
-///
-/// # Parents
-///
-/// Entities with `CopperGolem` will also have the following marker components
-/// and their metadata fields:
-///
-/// - [AbstractCreature]
-/// - [AbstractInsentient]
-/// - [AbstractLiving]
-/// - [AbstractEntity]
-///
-/// # Children
-///
-/// This entity type has no children types.
-#[derive(Component)]
-pub struct CopperGolem;
-impl CopperGolem {
-    fn apply_metadata(
-        entity: &mut bevy_ecs::system::EntityCommands,
-        d: EntityDataItem,
-    ) -> Result<(), UpdateMetadataError> {
-        match d.index {
-            0..=15 => AbstractCreature::apply_metadata(entity, d)?,
-            16 => {
-                entity.insert(WeatherState(d.value.into_weathering_copper_state()?));
-            }
-            17 => {
-                entity.insert(CopperGolemState(d.value.into_copper_golem_state()?));
-            }
-            _ => {}
-        }
-        Ok(())
-    }
-}
-
-/// The metadata bundle for [CopperGolem].
-///
-/// This type should generally not be used directly.
-#[derive(Bundle)]
-pub struct CopperGolemMetadataBundle {
-    _marker: CopperGolem,
-    parent: AbstractCreatureMetadataBundle,
-    weather_state: WeatherState,
-    copper_golem_state: CopperGolemState,
-}
-impl Default for CopperGolemMetadataBundle {
-    fn default() -> Self {
-        Self {
-            _marker: CopperGolem,
-            parent: Default::default(),
-            weather_state: WeatherState(Default::default()),
-            copper_golem_state: CopperGolemState(Default::default()),
         }
     }
 }
@@ -4420,9 +4248,6 @@ impl Default for SnowGolemMetadataBundle {
 /// A metadata field for [Tadpole].
 #[derive(Component, Deref, DerefMut, Clone, PartialEq)]
 pub struct TadpoleFromBucket(pub bool);
-/// A metadata field for [Tadpole].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct TadpoleAgeLocked(pub bool);
 /// The marker component for entities of type `minecraft:tadpole`.
 ///
 /// # Metadata
@@ -4431,7 +4256,6 @@ pub struct TadpoleAgeLocked(pub bool);
 /// to have, in addition to the metadata components from parent types:
 ///
 /// - [TadpoleFromBucket]
-/// - [TadpoleAgeLocked]
 ///
 /// # Parents
 ///
@@ -4458,9 +4282,6 @@ impl Tadpole {
             16 => {
                 entity.insert(TadpoleFromBucket(d.value.into_boolean()?));
             }
-            17 => {
-                entity.insert(TadpoleAgeLocked(d.value.into_boolean()?));
-            }
             _ => {}
         }
         Ok(())
@@ -4475,7 +4296,6 @@ pub struct TadpoleMetadataBundle {
     _marker: Tadpole,
     parent: AbstractCreatureMetadataBundle,
     tadpole_from_bucket: TadpoleFromBucket,
-    tadpole_age_locked: TadpoleAgeLocked,
 }
 impl Default for TadpoleMetadataBundle {
     fn default() -> Self {
@@ -4483,7 +4303,6 @@ impl Default for TadpoleMetadataBundle {
             _marker: Tadpole,
             parent: Default::default(),
             tadpole_from_bucket: TadpoleFromBucket(false),
-            tadpole_age_locked: TadpoleAgeLocked(false),
         }
     }
 }
@@ -4491,9 +4310,6 @@ impl Default for TadpoleMetadataBundle {
 /// A metadata field for [AbstractAgeable].
 #[derive(Component, Deref, DerefMut, Clone, PartialEq)]
 pub struct AbstractAgeableBaby(pub bool);
-/// A metadata field for [AbstractAgeable].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct AbstractAgeableAgeLocked(pub bool);
 /// An abstract entity marker component.
 ///
 /// # Metadata
@@ -4503,7 +4319,6 @@ pub struct AbstractAgeableAgeLocked(pub bool);
 /// types:
 ///
 /// - [AbstractAgeableBaby]
-/// - [AbstractAgeableAgeLocked]
 ///
 /// # Parents
 ///
@@ -4518,23 +4333,19 @@ pub struct AbstractAgeableAgeLocked(pub bool);
 /// # Children
 ///
 /// - [Dolphin]
-/// - [MagmaCube]
-/// - [Slime]
 /// - [Squid]
 ///   - [GlowSquid]
-/// - [SulfurCube]
 /// - [AbstractAnimal]
 ///   - [Armadillo]
 ///   - [Axolotl]
 ///   - [Bee]
 ///   - [Chicken]
 ///   - [Cow]
+///     - [Mooshroom]
 ///   - [Fox]
 ///   - [Frog]
 ///   - [Goat]
-///   - [HappyGhast]
 ///   - [Hoglin]
-///   - [Mooshroom]
 ///   - [Ocelot]
 ///   - [Panda]
 ///   - [Pig]
@@ -4546,7 +4357,6 @@ pub struct AbstractAgeableAgeLocked(pub bool);
 ///   - [Turtle]
 ///   - [AbstractHorse]
 ///     - [Camel]
-///       - [CamelHusk]
 ///     - [Horse]
 ///     - [SkeletonHorse]
 ///     - [ZombieHorse]
@@ -4559,9 +4369,6 @@ pub struct AbstractAgeableAgeLocked(pub bool);
 ///     - [Cat]
 ///     - [Parrot]
 ///     - [Wolf]
-///     - [AbstractNautilus]
-///       - [Nautilus]
-///       - [ZombieNautilus]
 /// - [AbstractVillager]
 ///   - [Villager]
 ///   - [WanderingTrader]
@@ -4577,9 +4384,6 @@ impl AbstractAgeable {
             16 => {
                 entity.insert(AbstractAgeableBaby(d.value.into_boolean()?));
             }
-            17 => {
-                entity.insert(AbstractAgeableAgeLocked(d.value.into_boolean()?));
-            }
             _ => {}
         }
         Ok(())
@@ -4594,7 +4398,6 @@ pub struct AbstractAgeableMetadataBundle {
     _marker: AbstractAgeable,
     parent: AbstractCreatureMetadataBundle,
     abstract_ageable_baby: AbstractAgeableBaby,
-    abstract_ageable_age_locked: AbstractAgeableAgeLocked,
 }
 impl Default for AbstractAgeableMetadataBundle {
     fn default() -> Self {
@@ -4602,11 +4405,13 @@ impl Default for AbstractAgeableMetadataBundle {
             _marker: AbstractAgeable,
             parent: Default::default(),
             abstract_ageable_baby: AbstractAgeableBaby(false),
-            abstract_ageable_age_locked: AbstractAgeableAgeLocked(false),
         }
     }
 }
 
+/// A metadata field for [Dolphin].
+#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
+pub struct TreasurePos(pub BlockPos);
 /// A metadata field for [Dolphin].
 #[derive(Component, Deref, DerefMut, Clone, PartialEq)]
 pub struct GotFish(pub bool);
@@ -4620,6 +4425,7 @@ pub struct MoistnessLevel(pub i32);
 /// These are the metadata components that all `Dolphin` entities are guaranteed
 /// to have, in addition to the metadata components from parent types:
 ///
+/// - [TreasurePos]
 /// - [GotFish]
 /// - [MoistnessLevel]
 ///
@@ -4645,7 +4451,10 @@ impl Dolphin {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=17 => AbstractAgeable::apply_metadata(entity, d)?,
+            0..=16 => AbstractAgeable::apply_metadata(entity, d)?,
+            17 => {
+                entity.insert(TreasurePos(d.value.into_block_pos()?));
+            }
             18 => {
                 entity.insert(GotFish(d.value.into_boolean()?));
             }
@@ -4665,6 +4474,7 @@ impl Dolphin {
 pub struct DolphinMetadataBundle {
     _marker: Dolphin,
     parent: AbstractAgeableMetadataBundle,
+    treasure_pos: TreasurePos,
     got_fish: GotFish,
     moistness_level: MoistnessLevel,
 }
@@ -4673,135 +4483,9 @@ impl Default for DolphinMetadataBundle {
         Self {
             _marker: Dolphin,
             parent: Default::default(),
+            treasure_pos: TreasurePos(BlockPos::new(0, 0, 0)),
             got_fish: GotFish(false),
             moistness_level: MoistnessLevel(2400),
-        }
-    }
-}
-
-/// A metadata field for [MagmaCube].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct MagmaCubeSize(pub i32);
-/// The marker component for entities of type `minecraft:magma_cube`.
-///
-/// # Metadata
-///
-/// These are the metadata components that all `MagmaCube` entities are
-/// guaranteed to have, in addition to the metadata components from parent
-/// types:
-///
-/// - [MagmaCubeSize]
-///
-/// # Parents
-///
-/// Entities with `MagmaCube` will also have the following marker components and
-/// their metadata fields:
-///
-/// - [AbstractAgeable]
-/// - [AbstractCreature]
-/// - [AbstractInsentient]
-/// - [AbstractLiving]
-/// - [AbstractEntity]
-///
-/// # Children
-///
-/// This entity type has no children types.
-#[derive(Component)]
-pub struct MagmaCube;
-impl MagmaCube {
-    fn apply_metadata(
-        entity: &mut bevy_ecs::system::EntityCommands,
-        d: EntityDataItem,
-    ) -> Result<(), UpdateMetadataError> {
-        match d.index {
-            0..=17 => AbstractAgeable::apply_metadata(entity, d)?,
-            18 => {
-                entity.insert(MagmaCubeSize(d.value.into_int()?));
-            }
-            _ => {}
-        }
-        Ok(())
-    }
-}
-
-/// The metadata bundle for [MagmaCube].
-///
-/// This type should generally not be used directly.
-#[derive(Bundle)]
-pub struct MagmaCubeMetadataBundle {
-    _marker: MagmaCube,
-    parent: AbstractAgeableMetadataBundle,
-    magma_cube_size: MagmaCubeSize,
-}
-impl Default for MagmaCubeMetadataBundle {
-    fn default() -> Self {
-        Self {
-            _marker: MagmaCube,
-            parent: Default::default(),
-            magma_cube_size: MagmaCubeSize(1),
-        }
-    }
-}
-
-/// A metadata field for [Slime].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct SlimeSize(pub i32);
-/// The marker component for entities of type `minecraft:slime`.
-///
-/// # Metadata
-///
-/// These are the metadata components that all `Slime` entities are guaranteed
-/// to have, in addition to the metadata components from parent types:
-///
-/// - [SlimeSize]
-///
-/// # Parents
-///
-/// Entities with `Slime` will also have the following marker components and
-/// their metadata fields:
-///
-/// - [AbstractAgeable]
-/// - [AbstractCreature]
-/// - [AbstractInsentient]
-/// - [AbstractLiving]
-/// - [AbstractEntity]
-///
-/// # Children
-///
-/// This entity type has no children types.
-#[derive(Component)]
-pub struct Slime;
-impl Slime {
-    fn apply_metadata(
-        entity: &mut bevy_ecs::system::EntityCommands,
-        d: EntityDataItem,
-    ) -> Result<(), UpdateMetadataError> {
-        match d.index {
-            0..=17 => AbstractAgeable::apply_metadata(entity, d)?,
-            18 => {
-                entity.insert(SlimeSize(d.value.into_int()?));
-            }
-            _ => {}
-        }
-        Ok(())
-    }
-}
-
-/// The metadata bundle for [Slime].
-///
-/// This type should generally not be used directly.
-#[derive(Bundle)]
-pub struct SlimeMetadataBundle {
-    _marker: Slime,
-    parent: AbstractAgeableMetadataBundle,
-    slime_size: SlimeSize,
-}
-impl Default for SlimeMetadataBundle {
-    fn default() -> Self {
-        Self {
-            _marker: Slime,
-            parent: Default::default(),
-            slime_size: SlimeSize(1),
         }
     }
 }
@@ -4835,7 +4519,7 @@ impl Squid {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=17 => AbstractAgeable::apply_metadata(entity, d)?,
+            0..=16 => AbstractAgeable::apply_metadata(entity, d)?,
             _ => {}
         }
         Ok(())
@@ -4895,8 +4579,8 @@ impl GlowSquid {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=17 => Squid::apply_metadata(entity, d)?,
-            18 => {
+            0..=16 => Squid::apply_metadata(entity, d)?,
+            17 => {
                 entity.insert(DarkTicksRemaining(d.value.into_int()?));
             }
             _ => {}
@@ -4920,88 +4604,6 @@ impl Default for GlowSquidMetadataBundle {
             _marker: GlowSquid,
             parent: Default::default(),
             dark_ticks_remaining: DarkTicksRemaining(0),
-        }
-    }
-}
-
-/// A metadata field for [SulfurCube].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct SulfurCubeSize(pub i32);
-/// A metadata field for [SulfurCube].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct MaxFuse(pub i32);
-/// A metadata field for [SulfurCube].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct SulfurCubeFromBucket(pub bool);
-/// The marker component for entities of type `minecraft:sulfur_cube`.
-///
-/// # Metadata
-///
-/// These are the metadata components that all `SulfurCube` entities are
-/// guaranteed to have, in addition to the metadata components from parent
-/// types:
-///
-/// - [SulfurCubeSize]
-/// - [MaxFuse]
-/// - [SulfurCubeFromBucket]
-///
-/// # Parents
-///
-/// Entities with `SulfurCube` will also have the following marker components
-/// and their metadata fields:
-///
-/// - [AbstractAgeable]
-/// - [AbstractCreature]
-/// - [AbstractInsentient]
-/// - [AbstractLiving]
-/// - [AbstractEntity]
-///
-/// # Children
-///
-/// This entity type has no children types.
-#[derive(Component)]
-pub struct SulfurCube;
-impl SulfurCube {
-    fn apply_metadata(
-        entity: &mut bevy_ecs::system::EntityCommands,
-        d: EntityDataItem,
-    ) -> Result<(), UpdateMetadataError> {
-        match d.index {
-            0..=17 => AbstractAgeable::apply_metadata(entity, d)?,
-            18 => {
-                entity.insert(SulfurCubeSize(d.value.into_int()?));
-            }
-            19 => {
-                entity.insert(MaxFuse(d.value.into_int()?));
-            }
-            20 => {
-                entity.insert(SulfurCubeFromBucket(d.value.into_boolean()?));
-            }
-            _ => {}
-        }
-        Ok(())
-    }
-}
-
-/// The metadata bundle for [SulfurCube].
-///
-/// This type should generally not be used directly.
-#[derive(Bundle)]
-pub struct SulfurCubeMetadataBundle {
-    _marker: SulfurCube,
-    parent: AbstractAgeableMetadataBundle,
-    sulfur_cube_size: SulfurCubeSize,
-    max_fuse: MaxFuse,
-    sulfur_cube_from_bucket: SulfurCubeFromBucket,
-}
-impl Default for SulfurCubeMetadataBundle {
-    fn default() -> Self {
-        Self {
-            _marker: SulfurCube,
-            parent: Default::default(),
-            sulfur_cube_size: SulfurCubeSize(1),
-            max_fuse: MaxFuse(-1),
-            sulfur_cube_from_bucket: SulfurCubeFromBucket(false),
         }
     }
 }
@@ -5031,12 +4633,11 @@ impl Default for SulfurCubeMetadataBundle {
 /// - [Bee]
 /// - [Chicken]
 /// - [Cow]
+///   - [Mooshroom]
 /// - [Fox]
 /// - [Frog]
 /// - [Goat]
-/// - [HappyGhast]
 /// - [Hoglin]
-/// - [Mooshroom]
 /// - [Ocelot]
 /// - [Panda]
 /// - [Pig]
@@ -5048,7 +4649,6 @@ impl Default for SulfurCubeMetadataBundle {
 /// - [Turtle]
 /// - [AbstractHorse]
 ///   - [Camel]
-///     - [CamelHusk]
 ///   - [Horse]
 ///   - [SkeletonHorse]
 ///   - [ZombieHorse]
@@ -5061,9 +4661,6 @@ impl Default for SulfurCubeMetadataBundle {
 ///   - [Cat]
 ///   - [Parrot]
 ///   - [Wolf]
-///   - [AbstractNautilus]
-///     - [Nautilus]
-///     - [ZombieNautilus]
 #[derive(Component)]
 pub struct AbstractAnimal;
 impl AbstractAnimal {
@@ -5072,7 +4669,7 @@ impl AbstractAnimal {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=17 => AbstractAgeable::apply_metadata(entity, d)?,
+            0..=16 => AbstractAgeable::apply_metadata(entity, d)?,
             _ => {}
         }
         Ok(())
@@ -5132,8 +4729,8 @@ impl Armadillo {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=17 => AbstractAnimal::apply_metadata(entity, d)?,
-            18 => {
+            0..=16 => AbstractAnimal::apply_metadata(entity, d)?,
+            17 => {
                 entity.insert(ArmadilloState(d.value.into_armadillo_state()?));
             }
             _ => {}
@@ -5204,14 +4801,14 @@ impl Axolotl {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=17 => AbstractAnimal::apply_metadata(entity, d)?,
-            18 => {
+            0..=16 => AbstractAnimal::apply_metadata(entity, d)?,
+            17 => {
                 entity.insert(AxolotlVariant(d.value.into_int()?));
             }
-            19 => {
+            18 => {
                 entity.insert(PlayingDead(d.value.into_boolean()?));
             }
-            20 => {
+            19 => {
                 entity.insert(AxolotlFromBucket(d.value.into_boolean()?));
             }
             _ => {}
@@ -5254,7 +4851,7 @@ pub struct HasStung(pub bool);
 pub struct BeeRolling(pub bool);
 /// A metadata field for [Bee].
 #[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct BeeAngerEndTime(pub i64);
+pub struct BeeRemainingAngerTime(pub i32);
 /// The marker component for entities of type `minecraft:bee`.
 ///
 /// # Metadata
@@ -5265,7 +4862,7 @@ pub struct BeeAngerEndTime(pub i64);
 /// - [HasNectar]
 /// - [HasStung]
 /// - [BeeRolling]
-/// - [BeeAngerEndTime]
+/// - [BeeRemainingAngerTime]
 ///
 /// # Parents
 ///
@@ -5290,15 +4887,15 @@ impl Bee {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=17 => AbstractAnimal::apply_metadata(entity, d)?,
-            18 => {
+            0..=16 => AbstractAnimal::apply_metadata(entity, d)?,
+            17 => {
                 let bitfield = d.value.into_byte()?;
                 entity.insert(HasNectar(bitfield & 0x8 != 0));
                 entity.insert(HasStung(bitfield & 0x4 != 0));
                 entity.insert(BeeRolling(bitfield & 0x2 != 0));
             }
-            19 => {
-                entity.insert(BeeAngerEndTime(d.value.into_long()?));
+            18 => {
+                entity.insert(BeeRemainingAngerTime(d.value.into_int()?));
             }
             _ => {}
         }
@@ -5316,7 +4913,7 @@ pub struct BeeMetadataBundle {
     has_nectar: HasNectar,
     has_stung: HasStung,
     bee_rolling: BeeRolling,
-    bee_anger_end_time: BeeAngerEndTime,
+    bee_remaining_anger_time: BeeRemainingAngerTime,
 }
 impl Default for BeeMetadataBundle {
     fn default() -> Self {
@@ -5326,26 +4923,17 @@ impl Default for BeeMetadataBundle {
             has_nectar: HasNectar(false),
             has_stung: HasStung(false),
             bee_rolling: BeeRolling(false),
-            bee_anger_end_time: BeeAngerEndTime(-1),
+            bee_remaining_anger_time: BeeRemainingAngerTime(0),
         }
     }
 }
 
-/// A metadata field for [Chicken].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct ChickenVariant(pub azalea_registry::data::ChickenVariant);
-/// A metadata field for [Chicken].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct ChickenSoundVariant(pub azalea_registry::data::ChickenSoundVariant);
 /// The marker component for entities of type `minecraft:chicken`.
 ///
 /// # Metadata
 ///
-/// These are the metadata components that all `Chicken` entities are guaranteed
-/// to have, in addition to the metadata components from parent types:
-///
-/// - [ChickenVariant]
-/// - [ChickenSoundVariant]
+/// This entity type does not add any additional metadata. It will still have
+/// metadata from parent types.
 ///
 /// # Parents
 ///
@@ -5370,13 +4958,7 @@ impl Chicken {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=17 => AbstractAnimal::apply_metadata(entity, d)?,
-            18 => {
-                entity.insert(ChickenVariant(d.value.into_chicken_variant()?));
-            }
-            19 => {
-                entity.insert(ChickenSoundVariant(d.value.into_chicken_sound_variant()?));
-            }
+            0..=16 => AbstractAnimal::apply_metadata(entity, d)?,
             _ => {}
         }
         Ok(())
@@ -5390,37 +4972,22 @@ impl Chicken {
 pub struct ChickenMetadataBundle {
     _marker: Chicken,
     parent: AbstractAnimalMetadataBundle,
-    chicken_variant: ChickenVariant,
-    chicken_sound_variant: ChickenSoundVariant,
 }
 impl Default for ChickenMetadataBundle {
     fn default() -> Self {
         Self {
             _marker: Chicken,
             parent: Default::default(),
-            chicken_variant: ChickenVariant(azalea_registry::data::ChickenVariant::new_raw(0)),
-            chicken_sound_variant: ChickenSoundVariant(
-                azalea_registry::data::ChickenSoundVariant::new_raw(0),
-            ),
         }
     }
 }
 
-/// A metadata field for [Cow].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct CowVariant(pub azalea_registry::data::CowVariant);
-/// A metadata field for [Cow].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct CowSoundVariant(pub azalea_registry::data::CowSoundVariant);
 /// The marker component for entities of type `minecraft:cow`.
 ///
 /// # Metadata
 ///
-/// These are the metadata components that all `Cow` entities are guaranteed to
-/// have, in addition to the metadata components from parent types:
-///
-/// - [CowVariant]
-/// - [CowSoundVariant]
+/// This entity type does not add any additional metadata. It will still have
+/// metadata from parent types.
 ///
 /// # Parents
 ///
@@ -5436,7 +5003,7 @@ pub struct CowSoundVariant(pub azalea_registry::data::CowSoundVariant);
 ///
 /// # Children
 ///
-/// This entity type has no children types.
+/// - [Mooshroom]
 #[derive(Component)]
 pub struct Cow;
 impl Cow {
@@ -5445,13 +5012,7 @@ impl Cow {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=17 => AbstractAnimal::apply_metadata(entity, d)?,
-            18 => {
-                entity.insert(CowVariant(d.value.into_cow_variant()?));
-            }
-            19 => {
-                entity.insert(CowSoundVariant(d.value.into_cow_sound_variant()?));
-            }
+            0..=16 => AbstractAnimal::apply_metadata(entity, d)?,
             _ => {}
         }
         Ok(())
@@ -5465,16 +5026,78 @@ impl Cow {
 pub struct CowMetadataBundle {
     _marker: Cow,
     parent: AbstractAnimalMetadataBundle,
-    cow_variant: CowVariant,
-    cow_sound_variant: CowSoundVariant,
 }
 impl Default for CowMetadataBundle {
     fn default() -> Self {
         Self {
             _marker: Cow,
             parent: Default::default(),
-            cow_variant: CowVariant(azalea_registry::data::CowVariant::new_raw(0)),
-            cow_sound_variant: CowSoundVariant(azalea_registry::data::CowSoundVariant::new_raw(0)),
+        }
+    }
+}
+
+/// A metadata field for [Mooshroom].
+#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
+pub struct MooshroomKind(pub Box<str>);
+/// The marker component for entities of type `minecraft:mooshroom`.
+///
+/// # Metadata
+///
+/// These are the metadata components that all `Mooshroom` entities are
+/// guaranteed to have, in addition to the metadata components from parent
+/// types:
+///
+/// - [MooshroomKind]
+///
+/// # Parents
+///
+/// Entities with `Mooshroom` will also have the following marker components and
+/// their metadata fields:
+///
+/// - [Cow]
+/// - [AbstractAnimal]
+/// - [AbstractAgeable]
+/// - [AbstractCreature]
+/// - [AbstractInsentient]
+/// - [AbstractLiving]
+/// - [AbstractEntity]
+///
+/// # Children
+///
+/// This entity type has no children types.
+#[derive(Component)]
+pub struct Mooshroom;
+impl Mooshroom {
+    fn apply_metadata(
+        entity: &mut bevy_ecs::system::EntityCommands,
+        d: EntityDataItem,
+    ) -> Result<(), UpdateMetadataError> {
+        match d.index {
+            0..=16 => Cow::apply_metadata(entity, d)?,
+            17 => {
+                entity.insert(MooshroomKind(d.value.into_string()?));
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+}
+
+/// The metadata bundle for [Mooshroom].
+///
+/// This type should generally not be used directly.
+#[derive(Bundle)]
+pub struct MooshroomMetadataBundle {
+    _marker: Mooshroom,
+    parent: CowMetadataBundle,
+    mooshroom_kind: MooshroomKind,
+}
+impl Default for MooshroomMetadataBundle {
+    fn default() -> Self {
+        Self {
+            _marker: Mooshroom,
+            parent: Default::default(),
+            mooshroom_kind: MooshroomKind(Default::default()),
         }
     }
 }
@@ -5550,11 +5173,11 @@ impl Fox {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=17 => AbstractAnimal::apply_metadata(entity, d)?,
-            18 => {
+            0..=16 => AbstractAnimal::apply_metadata(entity, d)?,
+            17 => {
                 entity.insert(FoxKind(d.value.into_int()?));
             }
-            19 => {
+            18 => {
                 let bitfield = d.value.into_byte()?;
                 entity.insert(FoxSitting(bitfield & 0x1 != 0));
                 entity.insert(Faceplanted(bitfield & 0x40 != 0));
@@ -5564,11 +5187,11 @@ impl Fox {
                 entity.insert(FoxCrouching(bitfield & 0x4 != 0));
                 entity.insert(FoxInterested(bitfield & 0x8 != 0));
             }
-            20 => {
-                entity.insert(TrustedId0(d.value.into_optional_living_entity_reference()?));
+            19 => {
+                entity.insert(TrustedId0(d.value.into_optional_uuid()?));
             }
-            21 => {
-                entity.insert(TrustedId1(d.value.into_optional_living_entity_reference()?));
+            20 => {
+                entity.insert(TrustedId1(d.value.into_optional_uuid()?));
             }
             _ => {}
         }
@@ -5599,7 +5222,7 @@ impl Default for FoxMetadataBundle {
         Self {
             _marker: Fox,
             parent: Default::default(),
-            fox_kind: FoxKind(Default::default()),
+            fox_kind: FoxKind(0),
             fox_sitting: FoxSitting(false),
             faceplanted: Faceplanted(false),
             defending: Defending(false),
@@ -5607,8 +5230,8 @@ impl Default for FoxMetadataBundle {
             pouncing: Pouncing(false),
             fox_crouching: FoxCrouching(false),
             fox_interested: FoxInterested(false),
-            trusted_id_0: TrustedId0(None),
-            trusted_id_1: TrustedId1(None),
+            trusted_id_0: TrustedId0(Empty),
+            trusted_id_1: TrustedId1(Empty),
         }
     }
 }
@@ -5652,11 +5275,11 @@ impl Frog {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=17 => AbstractAnimal::apply_metadata(entity, d)?,
-            18 => {
+            0..=16 => AbstractAnimal::apply_metadata(entity, d)?,
+            17 => {
                 entity.insert(FrogVariant(d.value.into_frog_variant()?));
             }
-            19 => {
+            18 => {
                 entity.insert(TongueTarget(d.value.into_optional_unsigned_int()?));
             }
             _ => {}
@@ -5729,14 +5352,14 @@ impl Goat {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=17 => AbstractAnimal::apply_metadata(entity, d)?,
-            18 => {
+            0..=16 => AbstractAnimal::apply_metadata(entity, d)?,
+            17 => {
                 entity.insert(IsScreamingGoat(d.value.into_boolean()?));
             }
-            19 => {
+            18 => {
                 entity.insert(HasLeftHorn(d.value.into_boolean()?));
             }
-            20 => {
+            19 => {
                 entity.insert(HasRightHorn(d.value.into_boolean()?));
             }
             _ => {}
@@ -5764,80 +5387,6 @@ impl Default for GoatMetadataBundle {
             is_screaming_goat: IsScreamingGoat(false),
             has_left_horn: HasLeftHorn(true),
             has_right_horn: HasRightHorn(true),
-        }
-    }
-}
-
-/// A metadata field for [HappyGhast].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct IsLeashHolder(pub bool);
-/// A metadata field for [HappyGhast].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct StaysStill(pub bool);
-/// The marker component for entities of type `minecraft:happy_ghast`.
-///
-/// # Metadata
-///
-/// These are the metadata components that all `HappyGhast` entities are
-/// guaranteed to have, in addition to the metadata components from parent
-/// types:
-///
-/// - [IsLeashHolder]
-/// - [StaysStill]
-///
-/// # Parents
-///
-/// Entities with `HappyGhast` will also have the following marker components
-/// and their metadata fields:
-///
-/// - [AbstractAnimal]
-/// - [AbstractAgeable]
-/// - [AbstractCreature]
-/// - [AbstractInsentient]
-/// - [AbstractLiving]
-/// - [AbstractEntity]
-///
-/// # Children
-///
-/// This entity type has no children types.
-#[derive(Component)]
-pub struct HappyGhast;
-impl HappyGhast {
-    fn apply_metadata(
-        entity: &mut bevy_ecs::system::EntityCommands,
-        d: EntityDataItem,
-    ) -> Result<(), UpdateMetadataError> {
-        match d.index {
-            0..=17 => AbstractAnimal::apply_metadata(entity, d)?,
-            18 => {
-                entity.insert(IsLeashHolder(d.value.into_boolean()?));
-            }
-            19 => {
-                entity.insert(StaysStill(d.value.into_boolean()?));
-            }
-            _ => {}
-        }
-        Ok(())
-    }
-}
-
-/// The metadata bundle for [HappyGhast].
-///
-/// This type should generally not be used directly.
-#[derive(Bundle)]
-pub struct HappyGhastMetadataBundle {
-    _marker: HappyGhast,
-    parent: AbstractAnimalMetadataBundle,
-    is_leash_holder: IsLeashHolder,
-    stays_still: StaysStill,
-}
-impl Default for HappyGhastMetadataBundle {
-    fn default() -> Self {
-        Self {
-            _marker: HappyGhast,
-            parent: Default::default(),
-            is_leash_holder: IsLeashHolder(false),
-            stays_still: StaysStill(false),
         }
     }
 }
@@ -5877,8 +5426,8 @@ impl Hoglin {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=17 => AbstractAnimal::apply_metadata(entity, d)?,
-            18 => {
+            0..=16 => AbstractAnimal::apply_metadata(entity, d)?,
+            17 => {
                 entity.insert(HoglinImmuneToZombification(d.value.into_boolean()?));
             }
             _ => {}
@@ -5902,71 +5451,6 @@ impl Default for HoglinMetadataBundle {
             _marker: Hoglin,
             parent: Default::default(),
             hoglin_immune_to_zombification: HoglinImmuneToZombification(false),
-        }
-    }
-}
-
-/// A metadata field for [Mooshroom].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct MooshroomKind(pub i32);
-/// The marker component for entities of type `minecraft:mooshroom`.
-///
-/// # Metadata
-///
-/// These are the metadata components that all `Mooshroom` entities are
-/// guaranteed to have, in addition to the metadata components from parent
-/// types:
-///
-/// - [MooshroomKind]
-///
-/// # Parents
-///
-/// Entities with `Mooshroom` will also have the following marker components and
-/// their metadata fields:
-///
-/// - [AbstractAnimal]
-/// - [AbstractAgeable]
-/// - [AbstractCreature]
-/// - [AbstractInsentient]
-/// - [AbstractLiving]
-/// - [AbstractEntity]
-///
-/// # Children
-///
-/// This entity type has no children types.
-#[derive(Component)]
-pub struct Mooshroom;
-impl Mooshroom {
-    fn apply_metadata(
-        entity: &mut bevy_ecs::system::EntityCommands,
-        d: EntityDataItem,
-    ) -> Result<(), UpdateMetadataError> {
-        match d.index {
-            0..=17 => AbstractAnimal::apply_metadata(entity, d)?,
-            18 => {
-                entity.insert(MooshroomKind(d.value.into_int()?));
-            }
-            _ => {}
-        }
-        Ok(())
-    }
-}
-
-/// The metadata bundle for [Mooshroom].
-///
-/// This type should generally not be used directly.
-#[derive(Bundle)]
-pub struct MooshroomMetadataBundle {
-    _marker: Mooshroom,
-    parent: AbstractAnimalMetadataBundle,
-    mooshroom_kind: MooshroomKind,
-}
-impl Default for MooshroomMetadataBundle {
-    fn default() -> Self {
-        Self {
-            _marker: Mooshroom,
-            parent: Default::default(),
-            mooshroom_kind: MooshroomKind(Default::default()),
         }
     }
 }
@@ -6006,8 +5490,8 @@ impl Ocelot {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=17 => AbstractAnimal::apply_metadata(entity, d)?,
-            18 => {
+            0..=16 => AbstractAnimal::apply_metadata(entity, d)?,
+            17 => {
                 entity.insert(Trusting(d.value.into_boolean()?));
             }
             _ => {}
@@ -6102,27 +5586,27 @@ impl Panda {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=17 => AbstractAnimal::apply_metadata(entity, d)?,
-            18 => {
+            0..=16 => AbstractAnimal::apply_metadata(entity, d)?,
+            17 => {
                 entity.insert(PandaUnhappyCounter(d.value.into_int()?));
             }
-            19 => {
+            18 => {
                 entity.insert(SneezeCounter(d.value.into_int()?));
             }
-            20 => {
+            19 => {
                 entity.insert(EatCounter(d.value.into_int()?));
             }
-            21 => {
+            20 => {
                 let bitfield = d.value.into_byte()?;
                 entity.insert(Sneezing(bitfield & 0x2 != 0));
                 entity.insert(PandaSitting(bitfield & 0x8 != 0));
                 entity.insert(OnBack(bitfield & 0x10 != 0));
                 entity.insert(PandaRolling(bitfield & 0x4 != 0));
             }
-            22 => {
+            21 => {
                 entity.insert(HiddenGene(d.value.into_byte()?));
             }
-            23 => {
+            22 => {
                 entity.insert(PandaFlags(d.value.into_byte()?));
             }
             _ => {}
@@ -6168,13 +5652,10 @@ impl Default for PandaMetadataBundle {
 
 /// A metadata field for [Pig].
 #[derive(Component, Deref, DerefMut, Clone, PartialEq)]
+pub struct PigSaddle(pub bool);
+/// A metadata field for [Pig].
+#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
 pub struct PigBoostTime(pub i32);
-/// A metadata field for [Pig].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct PigVariant(pub azalea_registry::data::PigVariant);
-/// A metadata field for [Pig].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct PigSoundVariant(pub azalea_registry::data::PigSoundVariant);
 /// The marker component for entities of type `minecraft:pig`.
 ///
 /// # Metadata
@@ -6182,9 +5663,8 @@ pub struct PigSoundVariant(pub azalea_registry::data::PigSoundVariant);
 /// These are the metadata components that all `Pig` entities are guaranteed to
 /// have, in addition to the metadata components from parent types:
 ///
+/// - [PigSaddle]
 /// - [PigBoostTime]
-/// - [PigVariant]
-/// - [PigSoundVariant]
 ///
 /// # Parents
 ///
@@ -6209,15 +5689,12 @@ impl Pig {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=17 => AbstractAnimal::apply_metadata(entity, d)?,
+            0..=16 => AbstractAnimal::apply_metadata(entity, d)?,
+            17 => {
+                entity.insert(PigSaddle(d.value.into_boolean()?));
+            }
             18 => {
                 entity.insert(PigBoostTime(d.value.into_int()?));
-            }
-            19 => {
-                entity.insert(PigVariant(d.value.into_pig_variant()?));
-            }
-            20 => {
-                entity.insert(PigSoundVariant(d.value.into_pig_sound_variant()?));
             }
             _ => {}
         }
@@ -6232,18 +5709,16 @@ impl Pig {
 pub struct PigMetadataBundle {
     _marker: Pig,
     parent: AbstractAnimalMetadataBundle,
+    pig_saddle: PigSaddle,
     pig_boost_time: PigBoostTime,
-    pig_variant: PigVariant,
-    pig_sound_variant: PigSoundVariant,
 }
 impl Default for PigMetadataBundle {
     fn default() -> Self {
         Self {
             _marker: Pig,
             parent: Default::default(),
+            pig_saddle: PigSaddle(false),
             pig_boost_time: PigBoostTime(0),
-            pig_variant: PigVariant(azalea_registry::data::PigVariant::new_raw(0)),
-            pig_sound_variant: PigSoundVariant(azalea_registry::data::PigSoundVariant::new_raw(0)),
         }
     }
 }
@@ -6284,8 +5759,8 @@ impl PolarBear {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=17 => AbstractAnimal::apply_metadata(entity, d)?,
-            18 => {
+            0..=16 => AbstractAnimal::apply_metadata(entity, d)?,
+            17 => {
                 entity.insert(PolarBearStanding(d.value.into_boolean()?));
             }
             _ => {}
@@ -6348,8 +5823,8 @@ impl Rabbit {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=17 => AbstractAnimal::apply_metadata(entity, d)?,
-            18 => {
+            0..=16 => AbstractAnimal::apply_metadata(entity, d)?,
+            17 => {
                 entity.insert(RabbitKind(d.value.into_int()?));
             }
             _ => {}
@@ -6412,8 +5887,8 @@ impl Sheep {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=17 => AbstractAnimal::apply_metadata(entity, d)?,
-            18 => {
+            0..=16 => AbstractAnimal::apply_metadata(entity, d)?,
+            17 => {
                 let bitfield = d.value.into_byte()?;
                 entity.insert(SheepSheared(bitfield & 0x10 != 0));
             }
@@ -6481,11 +5956,11 @@ impl Sniffer {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=17 => AbstractAnimal::apply_metadata(entity, d)?,
-            18 => {
+            0..=16 => AbstractAnimal::apply_metadata(entity, d)?,
+            17 => {
                 entity.insert(SnifferState(d.value.into_sniffer_state()?));
             }
-            19 => {
+            18 => {
                 entity.insert(DropSeedAtTick(d.value.into_int()?));
             }
             _ => {}
@@ -6521,6 +5996,9 @@ pub struct StriderBoostTime(pub i32);
 /// A metadata field for [Strider].
 #[derive(Component, Deref, DerefMut, Clone, PartialEq)]
 pub struct Suffocating(pub bool);
+/// A metadata field for [Strider].
+#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
+pub struct StriderSaddle(pub bool);
 /// The marker component for entities of type `minecraft:strider`.
 ///
 /// # Metadata
@@ -6530,6 +6008,7 @@ pub struct Suffocating(pub bool);
 ///
 /// - [StriderBoostTime]
 /// - [Suffocating]
+/// - [StriderSaddle]
 ///
 /// # Parents
 ///
@@ -6554,12 +6033,15 @@ impl Strider {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=17 => AbstractAnimal::apply_metadata(entity, d)?,
-            18 => {
+            0..=16 => AbstractAnimal::apply_metadata(entity, d)?,
+            17 => {
                 entity.insert(StriderBoostTime(d.value.into_int()?));
             }
-            19 => {
+            18 => {
                 entity.insert(Suffocating(d.value.into_boolean()?));
+            }
+            19 => {
+                entity.insert(StriderSaddle(d.value.into_boolean()?));
             }
             _ => {}
         }
@@ -6576,6 +6058,7 @@ pub struct StriderMetadataBundle {
     parent: AbstractAnimalMetadataBundle,
     strider_boost_time: StriderBoostTime,
     suffocating: Suffocating,
+    strider_saddle: StriderSaddle,
 }
 impl Default for StriderMetadataBundle {
     fn default() -> Self {
@@ -6584,16 +6067,29 @@ impl Default for StriderMetadataBundle {
             parent: Default::default(),
             strider_boost_time: StriderBoostTime(0),
             suffocating: Suffocating(false),
+            strider_saddle: StriderSaddle(false),
         }
     }
 }
 
 /// A metadata field for [Turtle].
 #[derive(Component, Deref, DerefMut, Clone, PartialEq)]
+pub struct TurtleHomePos(pub BlockPos);
+/// A metadata field for [Turtle].
+#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
 pub struct HasEgg(pub bool);
 /// A metadata field for [Turtle].
 #[derive(Component, Deref, DerefMut, Clone, PartialEq)]
 pub struct LayingEgg(pub bool);
+/// A metadata field for [Turtle].
+#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
+pub struct TravelPos(pub BlockPos);
+/// A metadata field for [Turtle].
+#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
+pub struct GoingHome(pub bool);
+/// A metadata field for [Turtle].
+#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
+pub struct Travelling(pub bool);
 /// The marker component for entities of type `minecraft:turtle`.
 ///
 /// # Metadata
@@ -6601,8 +6097,12 @@ pub struct LayingEgg(pub bool);
 /// These are the metadata components that all `Turtle` entities are guaranteed
 /// to have, in addition to the metadata components from parent types:
 ///
+/// - [TurtleHomePos]
 /// - [HasEgg]
 /// - [LayingEgg]
+/// - [TravelPos]
+/// - [GoingHome]
+/// - [Travelling]
 ///
 /// # Parents
 ///
@@ -6627,12 +6127,24 @@ impl Turtle {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=17 => AbstractAnimal::apply_metadata(entity, d)?,
+            0..=16 => AbstractAnimal::apply_metadata(entity, d)?,
+            17 => {
+                entity.insert(TurtleHomePos(d.value.into_block_pos()?));
+            }
             18 => {
                 entity.insert(HasEgg(d.value.into_boolean()?));
             }
             19 => {
                 entity.insert(LayingEgg(d.value.into_boolean()?));
+            }
+            20 => {
+                entity.insert(TravelPos(d.value.into_block_pos()?));
+            }
+            21 => {
+                entity.insert(GoingHome(d.value.into_boolean()?));
+            }
+            22 => {
+                entity.insert(Travelling(d.value.into_boolean()?));
             }
             _ => {}
         }
@@ -6647,16 +6159,24 @@ impl Turtle {
 pub struct TurtleMetadataBundle {
     _marker: Turtle,
     parent: AbstractAnimalMetadataBundle,
+    turtle_home_pos: TurtleHomePos,
     has_egg: HasEgg,
     laying_egg: LayingEgg,
+    travel_pos: TravelPos,
+    going_home: GoingHome,
+    travelling: Travelling,
 }
 impl Default for TurtleMetadataBundle {
     fn default() -> Self {
         Self {
             _marker: Turtle,
             parent: Default::default(),
+            turtle_home_pos: TurtleHomePos(BlockPos::new(0, 0, 0)),
             has_egg: HasEgg(false),
             laying_egg: LayingEgg(false),
+            travel_pos: TravelPos(BlockPos::new(0, 0, 0)),
+            going_home: GoingHome(false),
+            travelling: Travelling(false),
         }
     }
 }
@@ -6673,6 +6193,9 @@ pub struct AbstractHorseStanding(pub bool);
 #[derive(Component, Deref, DerefMut, Clone, Copy, PartialEq)]
 /// A metadata field for [AbstractHorse].
 pub struct Bred(pub bool);
+#[derive(Component, Deref, DerefMut, Clone, Copy, PartialEq)]
+/// A metadata field for [AbstractHorse].
+pub struct Saddled(pub bool);
 /// An abstract entity marker component.
 ///
 /// # Metadata
@@ -6685,6 +6208,7 @@ pub struct Bred(pub bool);
 /// - [Eating]
 /// - [AbstractHorseStanding]
 /// - [Bred]
+/// - [Saddled]
 ///
 /// # Parents
 ///
@@ -6701,7 +6225,6 @@ pub struct Bred(pub bool);
 /// # Children
 ///
 /// - [Camel]
-///   - [CamelHusk]
 /// - [Horse]
 /// - [SkeletonHorse]
 /// - [ZombieHorse]
@@ -6718,13 +6241,14 @@ impl AbstractHorse {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=17 => AbstractAnimal::apply_metadata(entity, d)?,
-            18 => {
+            0..=16 => AbstractAnimal::apply_metadata(entity, d)?,
+            17 => {
                 let bitfield = d.value.into_byte()?;
                 entity.insert(Tamed(bitfield & 0x2 != 0));
                 entity.insert(Eating(bitfield & 0x10 != 0));
                 entity.insert(AbstractHorseStanding(bitfield & 0x20 != 0));
                 entity.insert(Bred(bitfield & 0x8 != 0));
+                entity.insert(Saddled(bitfield & 0x4 != 0));
             }
             _ => {}
         }
@@ -6743,6 +6267,7 @@ pub struct AbstractHorseMetadataBundle {
     eating: Eating,
     abstract_horse_standing: AbstractHorseStanding,
     bred: Bred,
+    saddled: Saddled,
 }
 impl Default for AbstractHorseMetadataBundle {
     fn default() -> Self {
@@ -6753,13 +6278,14 @@ impl Default for AbstractHorseMetadataBundle {
             eating: Eating(false),
             abstract_horse_standing: AbstractHorseStanding(false),
             bred: Bred(false),
+            saddled: Saddled(false),
         }
     }
 }
 
 /// A metadata field for [Camel].
 #[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct CamelDash(pub bool);
+pub struct Dash(pub bool);
 /// A metadata field for [Camel].
 #[derive(Component, Deref, DerefMut, Clone, PartialEq)]
 pub struct LastPoseChangeTick(pub i64);
@@ -6770,7 +6296,7 @@ pub struct LastPoseChangeTick(pub i64);
 /// These are the metadata components that all `Camel` entities are guaranteed
 /// to have, in addition to the metadata components from parent types:
 ///
-/// - [CamelDash]
+/// - [Dash]
 /// - [LastPoseChangeTick]
 ///
 /// # Parents
@@ -6788,7 +6314,7 @@ pub struct LastPoseChangeTick(pub i64);
 ///
 /// # Children
 ///
-/// - [CamelHusk]
+/// This entity type has no children types.
 #[derive(Component)]
 pub struct Camel;
 impl Camel {
@@ -6797,11 +6323,11 @@ impl Camel {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=18 => AbstractHorse::apply_metadata(entity, d)?,
-            19 => {
-                entity.insert(CamelDash(d.value.into_boolean()?));
+            0..=17 => AbstractHorse::apply_metadata(entity, d)?,
+            18 => {
+                entity.insert(Dash(d.value.into_boolean()?));
             }
-            20 => {
+            19 => {
                 entity.insert(LastPoseChangeTick(d.value.into_long()?));
             }
             _ => {}
@@ -6817,7 +6343,7 @@ impl Camel {
 pub struct CamelMetadataBundle {
     _marker: Camel,
     parent: AbstractHorseMetadataBundle,
-    camel_dash: CamelDash,
+    dash: Dash,
     last_pose_change_tick: LastPoseChangeTick,
 }
 impl Default for CamelMetadataBundle {
@@ -6825,64 +6351,8 @@ impl Default for CamelMetadataBundle {
         Self {
             _marker: Camel,
             parent: Default::default(),
-            camel_dash: CamelDash(false),
+            dash: Dash(false),
             last_pose_change_tick: LastPoseChangeTick(0),
-        }
-    }
-}
-
-/// The marker component for entities of type `minecraft:camel_husk`.
-///
-/// # Metadata
-///
-/// This entity type does not add any additional metadata. It will still have
-/// metadata from parent types.
-///
-/// # Parents
-///
-/// Entities with `CamelHusk` will also have the following marker components and
-/// their metadata fields:
-///
-/// - [Camel]
-/// - [AbstractHorse]
-/// - [AbstractAnimal]
-/// - [AbstractAgeable]
-/// - [AbstractCreature]
-/// - [AbstractInsentient]
-/// - [AbstractLiving]
-/// - [AbstractEntity]
-///
-/// # Children
-///
-/// This entity type has no children types.
-#[derive(Component)]
-pub struct CamelHusk;
-impl CamelHusk {
-    fn apply_metadata(
-        entity: &mut bevy_ecs::system::EntityCommands,
-        d: EntityDataItem,
-    ) -> Result<(), UpdateMetadataError> {
-        match d.index {
-            0..=20 => Camel::apply_metadata(entity, d)?,
-            _ => {}
-        }
-        Ok(())
-    }
-}
-
-/// The metadata bundle for [CamelHusk].
-///
-/// This type should generally not be used directly.
-#[derive(Bundle)]
-pub struct CamelHuskMetadataBundle {
-    _marker: CamelHusk,
-    parent: CamelMetadataBundle,
-}
-impl Default for CamelHuskMetadataBundle {
-    fn default() -> Self {
-        Self {
-            _marker: CamelHusk,
-            parent: Default::default(),
         }
     }
 }
@@ -6923,8 +6393,8 @@ impl Horse {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=18 => AbstractHorse::apply_metadata(entity, d)?,
-            19 => {
+            0..=17 => AbstractHorse::apply_metadata(entity, d)?,
+            18 => {
                 entity.insert(HorseTypeVariant(d.value.into_int()?));
             }
             _ => {}
@@ -6983,7 +6453,7 @@ impl SkeletonHorse {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=18 => AbstractHorse::apply_metadata(entity, d)?,
+            0..=17 => AbstractHorse::apply_metadata(entity, d)?,
             _ => {}
         }
         Ok(())
@@ -7038,7 +6508,7 @@ impl ZombieHorse {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=18 => AbstractHorse::apply_metadata(entity, d)?,
+            0..=17 => AbstractHorse::apply_metadata(entity, d)?,
             _ => {}
         }
         Ok(())
@@ -7102,8 +6572,8 @@ impl AbstractChestedHorse {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=18 => AbstractHorse::apply_metadata(entity, d)?,
-            19 => {
+            0..=17 => AbstractHorse::apply_metadata(entity, d)?,
+            18 => {
                 entity.insert(Chest(d.value.into_boolean()?));
             }
             _ => {}
@@ -7163,7 +6633,7 @@ impl Donkey {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=19 => AbstractChestedHorse::apply_metadata(entity, d)?,
+            0..=18 => AbstractChestedHorse::apply_metadata(entity, d)?,
             _ => {}
         }
         Ok(())
@@ -7228,11 +6698,11 @@ impl Llama {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=19 => AbstractChestedHorse::apply_metadata(entity, d)?,
-            20 => {
+            0..=18 => AbstractChestedHorse::apply_metadata(entity, d)?,
+            19 => {
                 entity.insert(Strength(d.value.into_int()?));
             }
-            21 => {
+            20 => {
                 entity.insert(LlamaVariant(d.value.into_int()?));
             }
             _ => {}
@@ -7295,7 +6765,7 @@ impl TraderLlama {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=21 => Llama::apply_metadata(entity, d)?,
+            0..=20 => Llama::apply_metadata(entity, d)?,
             _ => {}
         }
         Ok(())
@@ -7351,7 +6821,7 @@ impl Mule {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=19 => AbstractChestedHorse::apply_metadata(entity, d)?,
+            0..=18 => AbstractChestedHorse::apply_metadata(entity, d)?,
             _ => {}
         }
         Ok(())
@@ -7413,9 +6883,6 @@ pub struct Owneruuid(pub Option<Uuid>);
 /// - [Cat]
 /// - [Parrot]
 /// - [Wolf]
-/// - [AbstractNautilus]
-///   - [Nautilus]
-///   - [ZombieNautilus]
 #[derive(Component)]
 pub struct AbstractTameable;
 impl AbstractTameable {
@@ -7424,14 +6891,14 @@ impl AbstractTameable {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=17 => AbstractAnimal::apply_metadata(entity, d)?,
-            18 => {
+            0..=16 => AbstractAnimal::apply_metadata(entity, d)?,
+            17 => {
                 let bitfield = d.value.into_byte()?;
                 entity.insert(Tame(bitfield & 0x4 != 0));
                 entity.insert(InSittingPose(bitfield & 0x1 != 0));
             }
-            19 => {
-                entity.insert(Owneruuid(d.value.into_optional_living_entity_reference()?));
+            18 => {
+                entity.insert(Owneruuid(d.value.into_optional_uuid()?));
             }
             _ => {}
         }
@@ -7457,7 +6924,7 @@ impl Default for AbstractTameableMetadataBundle {
             parent: Default::default(),
             tame: Tame(false),
             in_sitting_pose: InSittingPose(false),
-            owneruuid: Owneruuid(None),
+            owneruuid: Owneruuid(Empty),
         }
     }
 }
@@ -7474,9 +6941,6 @@ pub struct RelaxStateOne(pub bool);
 /// A metadata field for [Cat].
 #[derive(Component, Deref, DerefMut, Clone, PartialEq)]
 pub struct CatCollarColor(pub i32);
-/// A metadata field for [Cat].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct CatSoundVariant(pub azalea_registry::data::CatSoundVariant);
 /// The marker component for entities of type `minecraft:cat`.
 ///
 /// # Metadata
@@ -7488,7 +6952,6 @@ pub struct CatSoundVariant(pub azalea_registry::data::CatSoundVariant);
 /// - [IsLying]
 /// - [RelaxStateOne]
 /// - [CatCollarColor]
-/// - [CatSoundVariant]
 ///
 /// # Parents
 ///
@@ -7514,21 +6977,18 @@ impl Cat {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=19 => AbstractTameable::apply_metadata(entity, d)?,
-            20 => {
+            0..=18 => AbstractTameable::apply_metadata(entity, d)?,
+            19 => {
                 entity.insert(CatVariant(d.value.into_cat_variant()?));
             }
-            21 => {
+            20 => {
                 entity.insert(IsLying(d.value.into_boolean()?));
             }
-            22 => {
+            21 => {
                 entity.insert(RelaxStateOne(d.value.into_boolean()?));
             }
-            23 => {
+            22 => {
                 entity.insert(CatCollarColor(d.value.into_int()?));
-            }
-            24 => {
-                entity.insert(CatSoundVariant(d.value.into_cat_sound_variant()?));
             }
             _ => {}
         }
@@ -7547,7 +7007,6 @@ pub struct CatMetadataBundle {
     is_lying: IsLying,
     relax_state_one: RelaxStateOne,
     cat_collar_color: CatCollarColor,
-    cat_sound_variant: CatSoundVariant,
 }
 impl Default for CatMetadataBundle {
     fn default() -> Self {
@@ -7558,7 +7017,6 @@ impl Default for CatMetadataBundle {
             is_lying: IsLying(false),
             relax_state_one: RelaxStateOne(false),
             cat_collar_color: CatCollarColor(Default::default()),
-            cat_sound_variant: CatSoundVariant(azalea_registry::data::CatSoundVariant::new_raw(0)),
         }
     }
 }
@@ -7599,8 +7057,8 @@ impl Parrot {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=19 => AbstractTameable::apply_metadata(entity, d)?,
-            20 => {
+            0..=18 => AbstractTameable::apply_metadata(entity, d)?,
+            19 => {
                 entity.insert(ParrotVariant(d.value.into_int()?));
             }
             _ => {}
@@ -7623,7 +7081,7 @@ impl Default for ParrotMetadataBundle {
         Self {
             _marker: Parrot,
             parent: Default::default(),
-            parrot_variant: ParrotVariant(Default::default()),
+            parrot_variant: ParrotVariant(0),
         }
     }
 }
@@ -7636,13 +7094,10 @@ pub struct WolfInterested(pub bool);
 pub struct WolfCollarColor(pub i32);
 /// A metadata field for [Wolf].
 #[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct WolfAngerEndTime(pub i64);
+pub struct WolfRemainingAngerTime(pub i32);
 /// A metadata field for [Wolf].
 #[derive(Component, Deref, DerefMut, Clone, PartialEq)]
 pub struct WolfVariant(pub azalea_registry::data::WolfVariant);
-/// A metadata field for [Wolf].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct WolfSoundVariant(pub azalea_registry::data::WolfSoundVariant);
 /// The marker component for entities of type `minecraft:wolf`.
 ///
 /// # Metadata
@@ -7652,9 +7107,8 @@ pub struct WolfSoundVariant(pub azalea_registry::data::WolfSoundVariant);
 ///
 /// - [WolfInterested]
 /// - [WolfCollarColor]
-/// - [WolfAngerEndTime]
+/// - [WolfRemainingAngerTime]
 /// - [WolfVariant]
-/// - [WolfSoundVariant]
 ///
 /// # Parents
 ///
@@ -7680,21 +7134,18 @@ impl Wolf {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=19 => AbstractTameable::apply_metadata(entity, d)?,
-            20 => {
+            0..=18 => AbstractTameable::apply_metadata(entity, d)?,
+            19 => {
                 entity.insert(WolfInterested(d.value.into_boolean()?));
             }
-            21 => {
+            20 => {
                 entity.insert(WolfCollarColor(d.value.into_int()?));
             }
+            21 => {
+                entity.insert(WolfRemainingAngerTime(d.value.into_int()?));
+            }
             22 => {
-                entity.insert(WolfAngerEndTime(d.value.into_long()?));
-            }
-            23 => {
                 entity.insert(WolfVariant(d.value.into_wolf_variant()?));
-            }
-            24 => {
-                entity.insert(WolfSoundVariant(d.value.into_wolf_sound_variant()?));
             }
             _ => {}
         }
@@ -7711,9 +7162,8 @@ pub struct WolfMetadataBundle {
     parent: AbstractTameableMetadataBundle,
     wolf_interested: WolfInterested,
     wolf_collar_color: WolfCollarColor,
-    wolf_anger_end_time: WolfAngerEndTime,
+    wolf_remaining_anger_time: WolfRemainingAngerTime,
     wolf_variant: WolfVariant,
-    wolf_sound_variant: WolfSoundVariant,
 }
 impl Default for WolfMetadataBundle {
     fn default() -> Self {
@@ -7722,205 +7172,8 @@ impl Default for WolfMetadataBundle {
             parent: Default::default(),
             wolf_interested: WolfInterested(false),
             wolf_collar_color: WolfCollarColor(Default::default()),
-            wolf_anger_end_time: WolfAngerEndTime(-1),
+            wolf_remaining_anger_time: WolfRemainingAngerTime(0),
             wolf_variant: WolfVariant(azalea_registry::data::WolfVariant::new_raw(0)),
-            wolf_sound_variant: WolfSoundVariant(azalea_registry::data::WolfSoundVariant::new_raw(
-                0,
-            )),
-        }
-    }
-}
-
-/// A metadata field for [AbstractNautilus].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct AbstractNautilusDash(pub bool);
-/// An abstract entity marker component.
-///
-/// # Metadata
-///
-/// These are the metadata components that all `AbstractNautilus` entities are
-/// guaranteed to have, in addition to the metadata components from parent
-/// types:
-///
-/// - [AbstractNautilusDash]
-///
-/// # Parents
-///
-/// Entities with `AbstractNautilus` will also have the following marker
-/// components and their metadata fields:
-///
-/// - [AbstractTameable]
-/// - [AbstractAnimal]
-/// - [AbstractAgeable]
-/// - [AbstractCreature]
-/// - [AbstractInsentient]
-/// - [AbstractLiving]
-/// - [AbstractEntity]
-///
-/// # Children
-///
-/// - [Nautilus]
-/// - [ZombieNautilus]
-#[derive(Component)]
-pub struct AbstractNautilus;
-impl AbstractNautilus {
-    fn apply_metadata(
-        entity: &mut bevy_ecs::system::EntityCommands,
-        d: EntityDataItem,
-    ) -> Result<(), UpdateMetadataError> {
-        match d.index {
-            0..=19 => AbstractTameable::apply_metadata(entity, d)?,
-            20 => {
-                entity.insert(AbstractNautilusDash(d.value.into_boolean()?));
-            }
-            _ => {}
-        }
-        Ok(())
-    }
-}
-
-/// The metadata bundle for [AbstractNautilus].
-///
-/// This type should generally not be used directly.
-#[derive(Bundle)]
-pub struct AbstractNautilusMetadataBundle {
-    _marker: AbstractNautilus,
-    parent: AbstractTameableMetadataBundle,
-    abstract_nautilus_dash: AbstractNautilusDash,
-}
-impl Default for AbstractNautilusMetadataBundle {
-    fn default() -> Self {
-        Self {
-            _marker: AbstractNautilus,
-            parent: Default::default(),
-            abstract_nautilus_dash: AbstractNautilusDash(false),
-        }
-    }
-}
-
-/// The marker component for entities of type `minecraft:nautilus`.
-///
-/// # Metadata
-///
-/// This entity type does not add any additional metadata. It will still have
-/// metadata from parent types.
-///
-/// # Parents
-///
-/// Entities with `Nautilus` will also have the following marker components and
-/// their metadata fields:
-///
-/// - [AbstractNautilus]
-/// - [AbstractTameable]
-/// - [AbstractAnimal]
-/// - [AbstractAgeable]
-/// - [AbstractCreature]
-/// - [AbstractInsentient]
-/// - [AbstractLiving]
-/// - [AbstractEntity]
-///
-/// # Children
-///
-/// This entity type has no children types.
-#[derive(Component)]
-pub struct Nautilus;
-impl Nautilus {
-    fn apply_metadata(
-        entity: &mut bevy_ecs::system::EntityCommands,
-        d: EntityDataItem,
-    ) -> Result<(), UpdateMetadataError> {
-        match d.index {
-            0..=20 => AbstractNautilus::apply_metadata(entity, d)?,
-            _ => {}
-        }
-        Ok(())
-    }
-}
-
-/// The metadata bundle for [Nautilus].
-///
-/// This type should generally not be used directly.
-#[derive(Bundle)]
-pub struct NautilusMetadataBundle {
-    _marker: Nautilus,
-    parent: AbstractNautilusMetadataBundle,
-}
-impl Default for NautilusMetadataBundle {
-    fn default() -> Self {
-        Self {
-            _marker: Nautilus,
-            parent: Default::default(),
-        }
-    }
-}
-
-/// A metadata field for [ZombieNautilus].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct ZombieNautilusVariant(pub azalea_registry::data::ZombieNautilusVariant);
-/// The marker component for entities of type `minecraft:zombie_nautilus`.
-///
-/// # Metadata
-///
-/// These are the metadata components that all `ZombieNautilus` entities are
-/// guaranteed to have, in addition to the metadata components from parent
-/// types:
-///
-/// - [ZombieNautilusVariant]
-///
-/// # Parents
-///
-/// Entities with `ZombieNautilus` will also have the following marker
-/// components and their metadata fields:
-///
-/// - [AbstractNautilus]
-/// - [AbstractTameable]
-/// - [AbstractAnimal]
-/// - [AbstractAgeable]
-/// - [AbstractCreature]
-/// - [AbstractInsentient]
-/// - [AbstractLiving]
-/// - [AbstractEntity]
-///
-/// # Children
-///
-/// This entity type has no children types.
-#[derive(Component)]
-pub struct ZombieNautilus;
-impl ZombieNautilus {
-    fn apply_metadata(
-        entity: &mut bevy_ecs::system::EntityCommands,
-        d: EntityDataItem,
-    ) -> Result<(), UpdateMetadataError> {
-        match d.index {
-            0..=20 => AbstractNautilus::apply_metadata(entity, d)?,
-            21 => {
-                entity.insert(ZombieNautilusVariant(
-                    d.value.into_zombie_nautilus_variant()?,
-                ));
-            }
-            _ => {}
-        }
-        Ok(())
-    }
-}
-
-/// The metadata bundle for [ZombieNautilus].
-///
-/// This type should generally not be used directly.
-#[derive(Bundle)]
-pub struct ZombieNautilusMetadataBundle {
-    _marker: ZombieNautilus,
-    parent: AbstractNautilusMetadataBundle,
-    zombie_nautilus_variant: ZombieNautilusVariant,
-}
-impl Default for ZombieNautilusMetadataBundle {
-    fn default() -> Self {
-        Self {
-            _marker: ZombieNautilus,
-            parent: Default::default(),
-            zombie_nautilus_variant: ZombieNautilusVariant(
-                azalea_registry::data::ZombieNautilusVariant::new_raw(0),
-            ),
         }
     }
 }
@@ -7961,8 +7214,8 @@ impl AbstractVillager {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=17 => AbstractAgeable::apply_metadata(entity, d)?,
-            18 => {
+            0..=16 => AbstractAgeable::apply_metadata(entity, d)?,
+            17 => {
                 entity.insert(AbstractVillagerUnhappyCounter(d.value.into_int()?));
             }
             _ => {}
@@ -7993,9 +7246,6 @@ impl Default for AbstractVillagerMetadataBundle {
 /// A metadata field for [Villager].
 #[derive(Component, Deref, DerefMut, Clone, PartialEq)]
 pub struct VillagerVillagerData(pub VillagerData);
-/// A metadata field for [Villager].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct VillagerVillagerDataFinalized(pub bool);
 /// The marker component for entities of type `minecraft:villager`.
 ///
 /// # Metadata
@@ -8005,7 +7255,6 @@ pub struct VillagerVillagerDataFinalized(pub bool);
 /// types:
 ///
 /// - [VillagerVillagerData]
-/// - [VillagerVillagerDataFinalized]
 ///
 /// # Parents
 ///
@@ -8030,12 +7279,9 @@ impl Villager {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=18 => AbstractVillager::apply_metadata(entity, d)?,
-            19 => {
+            0..=17 => AbstractVillager::apply_metadata(entity, d)?,
+            18 => {
                 entity.insert(VillagerVillagerData(d.value.into_villager_data()?));
-            }
-            20 => {
-                entity.insert(VillagerVillagerDataFinalized(d.value.into_boolean()?));
             }
             _ => {}
         }
@@ -8051,7 +7297,6 @@ pub struct VillagerMetadataBundle {
     _marker: Villager,
     parent: AbstractVillagerMetadataBundle,
     villager_villager_data: VillagerVillagerData,
-    villager_villager_data_finalized: VillagerVillagerDataFinalized,
 }
 impl Default for VillagerMetadataBundle {
     fn default() -> Self {
@@ -8063,7 +7308,6 @@ impl Default for VillagerMetadataBundle {
                 profession: azalea_registry::builtin::VillagerProfession::None,
                 level: 0,
             }),
-            villager_villager_data_finalized: VillagerVillagerDataFinalized(false),
         }
     }
 }
@@ -8098,7 +7342,7 @@ impl WanderingTrader {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=18 => AbstractVillager::apply_metadata(entity, d)?,
+            0..=17 => AbstractVillager::apply_metadata(entity, d)?,
             _ => {}
         }
         Ok(())
@@ -8362,7 +7606,7 @@ impl Default for TropicalFishMetadataBundle {
         Self {
             _marker: TropicalFish,
             parent: Default::default(),
-            tropical_fish_type_variant: TropicalFishTypeVariant(Default::default()),
+            tropical_fish_type_variant: TropicalFishTypeVariant(0),
         }
     }
 }
@@ -8396,7 +7640,6 @@ impl Default for TropicalFishMetadataBundle {
 /// - [Giant]
 /// - [Guardian]
 ///   - [ElderGuardian]
-/// - [Parched]
 /// - [Silverfish]
 /// - [Skeleton]
 /// - [Spider]
@@ -8646,7 +7889,7 @@ pub struct IsActive(pub bool);
 pub struct IsTearingDown(pub bool);
 /// A metadata field for [Creaking].
 #[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct HomePos(pub Option<BlockPos>);
+pub struct CreakingHomePos(pub Option<BlockPos>);
 /// The marker component for entities of type `minecraft:creaking`.
 ///
 /// # Metadata
@@ -8658,7 +7901,7 @@ pub struct HomePos(pub Option<BlockPos>);
 /// - [CanMove]
 /// - [IsActive]
 /// - [IsTearingDown]
-/// - [HomePos]
+/// - [CreakingHomePos]
 ///
 /// # Parents
 ///
@@ -8693,7 +7936,7 @@ impl Creaking {
                 entity.insert(IsTearingDown(d.value.into_boolean()?));
             }
             19 => {
-                entity.insert(HomePos(d.value.into_optional_block_pos()?));
+                entity.insert(CreakingHomePos(d.value.into_optional_block_pos()?));
             }
             _ => {}
         }
@@ -8711,7 +7954,7 @@ pub struct CreakingMetadataBundle {
     can_move: CanMove,
     is_active: IsActive,
     is_tearing_down: IsTearingDown,
-    home_pos: HomePos,
+    creaking_home_pos: CreakingHomePos,
 }
 impl Default for CreakingMetadataBundle {
     fn default() -> Self {
@@ -8721,7 +7964,7 @@ impl Default for CreakingMetadataBundle {
             can_move: CanMove(true),
             is_active: IsActive(false),
             is_tearing_down: IsTearingDown(false),
-            home_pos: HomePos(None),
+            creaking_home_pos: CreakingHomePos(None),
         }
     }
 }
@@ -9117,59 +8360,6 @@ impl Default for ElderGuardianMetadataBundle {
     fn default() -> Self {
         Self {
             _marker: ElderGuardian,
-            parent: Default::default(),
-        }
-    }
-}
-
-/// The marker component for entities of type `minecraft:parched`.
-///
-/// # Metadata
-///
-/// This entity type does not add any additional metadata. It will still have
-/// metadata from parent types.
-///
-/// # Parents
-///
-/// Entities with `Parched` will also have the following marker components and
-/// their metadata fields:
-///
-/// - [AbstractMonster]
-/// - [AbstractCreature]
-/// - [AbstractInsentient]
-/// - [AbstractLiving]
-/// - [AbstractEntity]
-///
-/// # Children
-///
-/// This entity type has no children types.
-#[derive(Component)]
-pub struct Parched;
-impl Parched {
-    fn apply_metadata(
-        entity: &mut bevy_ecs::system::EntityCommands,
-        d: EntityDataItem,
-    ) -> Result<(), UpdateMetadataError> {
-        match d.index {
-            0..=15 => AbstractMonster::apply_metadata(entity, d)?,
-            _ => {}
-        }
-        Ok(())
-    }
-}
-
-/// The metadata bundle for [Parched].
-///
-/// This type should generally not be used directly.
-#[derive(Bundle)]
-pub struct ParchedMetadataBundle {
-    _marker: Parched,
-    parent: AbstractMonsterMetadataBundle,
-}
-impl Default for ParchedMetadataBundle {
-    fn default() -> Self {
-        Self {
-            _marker: Parched,
             parent: Default::default(),
         }
     }
@@ -9993,9 +9183,6 @@ pub struct Converting(pub bool);
 /// A metadata field for [ZombieVillager].
 #[derive(Component, Deref, DerefMut, Clone, PartialEq)]
 pub struct ZombieVillagerVillagerData(pub VillagerData);
-/// A metadata field for [ZombieVillager].
-#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct ZombieVillagerVillagerDataFinalized(pub bool);
 /// The marker component for entities of type `minecraft:zombie_villager`.
 ///
 /// # Metadata
@@ -10006,7 +9193,6 @@ pub struct ZombieVillagerVillagerDataFinalized(pub bool);
 ///
 /// - [Converting]
 /// - [ZombieVillagerVillagerData]
-/// - [ZombieVillagerVillagerDataFinalized]
 ///
 /// # Parents
 ///
@@ -10038,9 +9224,6 @@ impl ZombieVillager {
             20 => {
                 entity.insert(ZombieVillagerVillagerData(d.value.into_villager_data()?));
             }
-            21 => {
-                entity.insert(ZombieVillagerVillagerDataFinalized(d.value.into_boolean()?));
-            }
             _ => {}
         }
         Ok(())
@@ -10056,7 +9239,6 @@ pub struct ZombieVillagerMetadataBundle {
     parent: ZombieMetadataBundle,
     converting: Converting,
     zombie_villager_villager_data: ZombieVillagerVillagerData,
-    zombie_villager_villager_data_finalized: ZombieVillagerVillagerDataFinalized,
 }
 impl Default for ZombieVillagerMetadataBundle {
     fn default() -> Self {
@@ -10069,7 +9251,6 @@ impl Default for ZombieVillagerMetadataBundle {
                 profession: azalea_registry::builtin::VillagerProfession::None,
                 level: 0,
             }),
-            zombie_villager_villager_data_finalized: ZombieVillagerVillagerDataFinalized(false),
         }
     }
 }
@@ -10837,9 +10018,8 @@ pub struct AbstractThrownItemProjectileItemStack(pub ItemStack);
 /// - [Egg]
 /// - [EnderPearl]
 /// - [ExperienceBottle]
-/// - [LingeringPotion]
+/// - [Potion]
 /// - [Snowball]
-/// - [SplashPotion]
 #[derive(Component)]
 pub struct AbstractThrownItemProjectile;
 impl AbstractThrownItemProjectile {
@@ -11031,7 +10211,7 @@ impl Default for ExperienceBottleMetadataBundle {
     }
 }
 
-/// The marker component for entities of type `minecraft:lingering_potion`.
+/// The marker component for entities of type `minecraft:potion`.
 ///
 /// # Metadata
 ///
@@ -11040,8 +10220,8 @@ impl Default for ExperienceBottleMetadataBundle {
 ///
 /// # Parents
 ///
-/// Entities with `LingeringPotion` will also have the following marker
-/// components and their metadata fields:
+/// Entities with `Potion` will also have the following marker components and
+/// their metadata fields:
 ///
 /// - [AbstractThrownItemProjectile]
 /// - [AbstractEntity]
@@ -11050,8 +10230,8 @@ impl Default for ExperienceBottleMetadataBundle {
 ///
 /// This entity type has no children types.
 #[derive(Component)]
-pub struct LingeringPotion;
-impl LingeringPotion {
+pub struct Potion;
+impl Potion {
     fn apply_metadata(
         entity: &mut bevy_ecs::system::EntityCommands,
         d: EntityDataItem,
@@ -11064,18 +10244,18 @@ impl LingeringPotion {
     }
 }
 
-/// The metadata bundle for [LingeringPotion].
+/// The metadata bundle for [Potion].
 ///
 /// This type should generally not be used directly.
 #[derive(Bundle)]
-pub struct LingeringPotionMetadataBundle {
-    _marker: LingeringPotion,
+pub struct PotionMetadataBundle {
+    _marker: Potion,
     parent: AbstractThrownItemProjectileMetadataBundle,
 }
-impl Default for LingeringPotionMetadataBundle {
+impl Default for PotionMetadataBundle {
     fn default() -> Self {
         Self {
-            _marker: LingeringPotion,
+            _marker: Potion,
             parent: Default::default(),
         }
     }
@@ -11126,56 +10306,6 @@ impl Default for SnowballMetadataBundle {
     fn default() -> Self {
         Self {
             _marker: Snowball,
-            parent: Default::default(),
-        }
-    }
-}
-
-/// The marker component for entities of type `minecraft:splash_potion`.
-///
-/// # Metadata
-///
-/// This entity type does not add any additional metadata. It will still have
-/// metadata from parent types.
-///
-/// # Parents
-///
-/// Entities with `SplashPotion` will also have the following marker components
-/// and their metadata fields:
-///
-/// - [AbstractThrownItemProjectile]
-/// - [AbstractEntity]
-///
-/// # Children
-///
-/// This entity type has no children types.
-#[derive(Component)]
-pub struct SplashPotion;
-impl SplashPotion {
-    fn apply_metadata(
-        entity: &mut bevy_ecs::system::EntityCommands,
-        d: EntityDataItem,
-    ) -> Result<(), UpdateMetadataError> {
-        match d.index {
-            0..=8 => AbstractThrownItemProjectile::apply_metadata(entity, d)?,
-            _ => {}
-        }
-        Ok(())
-    }
-}
-
-/// The metadata bundle for [SplashPotion].
-///
-/// This type should generally not be used directly.
-#[derive(Bundle)]
-pub struct SplashPotionMetadataBundle {
-    _marker: SplashPotion,
-    parent: AbstractThrownItemProjectileMetadataBundle,
-}
-impl Default for SplashPotionMetadataBundle {
-    fn default() -> Self {
-        Self {
-            _marker: SplashPotion,
             parent: Default::default(),
         }
     }
@@ -12407,10 +11537,13 @@ impl Default for SpruceChestBoatMetadataBundle {
 
 /// A metadata field for [AbstractMinecart].
 #[derive(Component, Deref, DerefMut, Clone, PartialEq)]
-pub struct CustomDisplayBlock(pub azalea_block::BlockState);
+pub struct DisplayBlock(pub i32);
 /// A metadata field for [AbstractMinecart].
 #[derive(Component, Deref, DerefMut, Clone, PartialEq)]
 pub struct DisplayOffset(pub i32);
+/// A metadata field for [AbstractMinecart].
+#[derive(Component, Deref, DerefMut, Clone, PartialEq)]
+pub struct CustomDisplay(pub bool);
 /// An abstract entity marker component.
 ///
 /// # Metadata
@@ -12419,8 +11552,9 @@ pub struct DisplayOffset(pub i32);
 /// guaranteed to have, in addition to the metadata components from parent
 /// types:
 ///
-/// - [CustomDisplayBlock]
+/// - [DisplayBlock]
 /// - [DisplayOffset]
+/// - [CustomDisplay]
 ///
 /// # Parents
 ///
@@ -12449,10 +11583,13 @@ impl AbstractMinecart {
         match d.index {
             0..=10 => AbstractVehicle::apply_metadata(entity, d)?,
             11 => {
-                entity.insert(CustomDisplayBlock(d.value.into_optional_block_state()?));
+                entity.insert(DisplayBlock(d.value.into_int()?));
             }
             12 => {
                 entity.insert(DisplayOffset(d.value.into_int()?));
+            }
+            13 => {
+                entity.insert(CustomDisplay(d.value.into_boolean()?));
             }
             _ => {}
         }
@@ -12467,16 +11604,18 @@ impl AbstractMinecart {
 pub struct AbstractMinecartMetadataBundle {
     _marker: AbstractMinecart,
     parent: AbstractVehicleMetadataBundle,
-    custom_display_block: CustomDisplayBlock,
+    display_block: DisplayBlock,
     display_offset: DisplayOffset,
+    custom_display: CustomDisplay,
 }
 impl Default for AbstractMinecartMetadataBundle {
     fn default() -> Self {
         Self {
             _marker: AbstractMinecart,
             parent: Default::default(),
-            custom_display_block: CustomDisplayBlock(azalea_block::BlockState::AIR),
-            display_offset: DisplayOffset(Default::default()),
+            display_block: DisplayBlock(Default::default()),
+            display_offset: DisplayOffset(6),
+            custom_display: CustomDisplay(false),
         }
     }
 }
@@ -12508,7 +11647,7 @@ impl ChestMinecart {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=12 => AbstractMinecart::apply_metadata(entity, d)?,
+            0..=13 => AbstractMinecart::apply_metadata(entity, d)?,
             _ => {}
         }
         Ok(())
@@ -12570,11 +11709,11 @@ impl CommandBlockMinecart {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=12 => AbstractMinecart::apply_metadata(entity, d)?,
-            13 => {
+            0..=13 => AbstractMinecart::apply_metadata(entity, d)?,
+            14 => {
                 entity.insert(CommandName(d.value.into_string()?));
             }
-            14 => {
+            15 => {
                 entity.insert(LastOutput(d.value.into_formatted_text()?));
             }
             _ => {}
@@ -12637,8 +11776,8 @@ impl FurnaceMinecart {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=12 => AbstractMinecart::apply_metadata(entity, d)?,
-            13 => {
+            0..=13 => AbstractMinecart::apply_metadata(entity, d)?,
+            14 => {
                 entity.insert(Fuel(d.value.into_boolean()?));
             }
             _ => {}
@@ -12693,7 +11832,7 @@ impl HopperMinecart {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=12 => AbstractMinecart::apply_metadata(entity, d)?,
+            0..=13 => AbstractMinecart::apply_metadata(entity, d)?,
             _ => {}
         }
         Ok(())
@@ -12744,7 +11883,7 @@ impl Minecart {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=12 => AbstractMinecart::apply_metadata(entity, d)?,
+            0..=13 => AbstractMinecart::apply_metadata(entity, d)?,
             _ => {}
         }
         Ok(())
@@ -12795,7 +11934,7 @@ impl SpawnerMinecart {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=12 => AbstractMinecart::apply_metadata(entity, d)?,
+            0..=13 => AbstractMinecart::apply_metadata(entity, d)?,
             _ => {}
         }
         Ok(())
@@ -12846,7 +11985,7 @@ impl TntMinecart {
         d: EntityDataItem,
     ) -> Result<(), UpdateMetadataError> {
         match d.index {
-            0..=12 => AbstractMinecart::apply_metadata(entity, d)?,
+            0..=13 => AbstractMinecart::apply_metadata(entity, d)?,
             _ => {}
         }
         Ok(())
@@ -12976,11 +12115,6 @@ pub fn apply_metadata(
                 Camel::apply_metadata(entity, d)?;
             }
         }
-        EntityKind::CamelHusk => {
-            for d in items {
-                CamelHusk::apply_metadata(entity, d)?;
-            }
-        }
         EntityKind::Cat => {
             for d in items {
                 Cat::apply_metadata(entity, d)?;
@@ -13019,11 +12153,6 @@ pub fn apply_metadata(
         EntityKind::CommandBlockMinecart => {
             for d in items {
                 CommandBlockMinecart::apply_metadata(entity, d)?;
-            }
-        }
-        EntityKind::CopperGolem => {
-            for d in items {
-                CopperGolem::apply_metadata(entity, d)?;
             }
         }
         EntityKind::Cow => {
@@ -13196,11 +12325,6 @@ pub fn apply_metadata(
                 Guardian::apply_metadata(entity, d)?;
             }
         }
-        EntityKind::HappyGhast => {
-            for d in items {
-                HappyGhast::apply_metadata(entity, d)?;
-            }
-        }
         EntityKind::Hoglin => {
             for d in items {
                 Hoglin::apply_metadata(entity, d)?;
@@ -13271,11 +12395,6 @@ pub fn apply_metadata(
                 LightningBolt::apply_metadata(entity, d)?;
             }
         }
-        EntityKind::LingeringPotion => {
-            for d in items {
-                LingeringPotion::apply_metadata(entity, d)?;
-            }
-        }
         EntityKind::Llama => {
             for d in items {
                 Llama::apply_metadata(entity, d)?;
@@ -13301,11 +12420,6 @@ pub fn apply_metadata(
                 MangroveChestBoat::apply_metadata(entity, d)?;
             }
         }
-        EntityKind::Mannequin => {
-            for d in items {
-                Mannequin::apply_metadata(entity, d)?;
-            }
-        }
         EntityKind::Marker => {
             for d in items {
                 Marker::apply_metadata(entity, d)?;
@@ -13324,11 +12438,6 @@ pub fn apply_metadata(
         EntityKind::Mule => {
             for d in items {
                 Mule::apply_metadata(entity, d)?;
-            }
-        }
-        EntityKind::Nautilus => {
-            for d in items {
-                Nautilus::apply_metadata(entity, d)?;
             }
         }
         EntityKind::OakBoat => {
@@ -13371,11 +12480,6 @@ pub fn apply_metadata(
                 Panda::apply_metadata(entity, d)?;
             }
         }
-        EntityKind::Parched => {
-            for d in items {
-                Parched::apply_metadata(entity, d)?;
-            }
-        }
         EntityKind::Parrot => {
             for d in items {
                 Parrot::apply_metadata(entity, d)?;
@@ -13414,6 +12518,11 @@ pub fn apply_metadata(
         EntityKind::PolarBear => {
             for d in items {
                 PolarBear::apply_metadata(entity, d)?;
+            }
+        }
+        EntityKind::Potion => {
+            for d in items {
+                Potion::apply_metadata(entity, d)?;
             }
         }
         EntityKind::Pufferfish => {
@@ -13506,11 +12615,6 @@ pub fn apply_metadata(
                 Spider::apply_metadata(entity, d)?;
             }
         }
-        EntityKind::SplashPotion => {
-            for d in items {
-                SplashPotion::apply_metadata(entity, d)?;
-            }
-        }
         EntityKind::SpruceBoat => {
             for d in items {
                 SpruceBoat::apply_metadata(entity, d)?;
@@ -13534,11 +12638,6 @@ pub fn apply_metadata(
         EntityKind::Strider => {
             for d in items {
                 Strider::apply_metadata(entity, d)?;
-            }
-        }
-        EntityKind::SulfurCube => {
-            for d in items {
-                SulfurCube::apply_metadata(entity, d)?;
             }
         }
         EntityKind::Tadpole => {
@@ -13651,11 +12750,6 @@ pub fn apply_metadata(
                 ZombieHorse::apply_metadata(entity, d)?;
             }
         }
-        EntityKind::ZombieNautilus => {
-            for d in items {
-                ZombieNautilus::apply_metadata(entity, d)?;
-            }
-        }
         EntityKind::ZombieVillager => {
             for d in items {
                 ZombieVillager::apply_metadata(entity, d)?;
@@ -13732,9 +12826,6 @@ pub fn apply_default_metadata(entity: &mut bevy_ecs::system::EntityCommands, kin
         EntityKind::Camel => {
             entity.insert(CamelMetadataBundle::default());
         }
-        EntityKind::CamelHusk => {
-            entity.insert(CamelHuskMetadataBundle::default());
-        }
         EntityKind::Cat => {
             entity.insert(CatMetadataBundle::default());
         }
@@ -13758,9 +12849,6 @@ pub fn apply_default_metadata(entity: &mut bevy_ecs::system::EntityCommands, kin
         }
         EntityKind::CommandBlockMinecart => {
             entity.insert(CommandBlockMinecartMetadataBundle::default());
-        }
-        EntityKind::CopperGolem => {
-            entity.insert(CopperGolemMetadataBundle::default());
         }
         EntityKind::Cow => {
             entity.insert(CowMetadataBundle::default());
@@ -13864,9 +12952,6 @@ pub fn apply_default_metadata(entity: &mut bevy_ecs::system::EntityCommands, kin
         EntityKind::Guardian => {
             entity.insert(GuardianMetadataBundle::default());
         }
-        EntityKind::HappyGhast => {
-            entity.insert(HappyGhastMetadataBundle::default());
-        }
         EntityKind::Hoglin => {
             entity.insert(HoglinMetadataBundle::default());
         }
@@ -13909,9 +12994,6 @@ pub fn apply_default_metadata(entity: &mut bevy_ecs::system::EntityCommands, kin
         EntityKind::LightningBolt => {
             entity.insert(LightningBoltMetadataBundle::default());
         }
-        EntityKind::LingeringPotion => {
-            entity.insert(LingeringPotionMetadataBundle::default());
-        }
         EntityKind::Llama => {
             entity.insert(LlamaMetadataBundle::default());
         }
@@ -13927,9 +13009,6 @@ pub fn apply_default_metadata(entity: &mut bevy_ecs::system::EntityCommands, kin
         EntityKind::MangroveChestBoat => {
             entity.insert(MangroveChestBoatMetadataBundle::default());
         }
-        EntityKind::Mannequin => {
-            entity.insert(MannequinMetadataBundle::default());
-        }
         EntityKind::Marker => {
             entity.insert(MarkerMetadataBundle::default());
         }
@@ -13941,9 +13020,6 @@ pub fn apply_default_metadata(entity: &mut bevy_ecs::system::EntityCommands, kin
         }
         EntityKind::Mule => {
             entity.insert(MuleMetadataBundle::default());
-        }
-        EntityKind::Nautilus => {
-            entity.insert(NautilusMetadataBundle::default());
         }
         EntityKind::OakBoat => {
             entity.insert(OakBoatMetadataBundle::default());
@@ -13969,9 +13045,6 @@ pub fn apply_default_metadata(entity: &mut bevy_ecs::system::EntityCommands, kin
         EntityKind::Panda => {
             entity.insert(PandaMetadataBundle::default());
         }
-        EntityKind::Parched => {
-            entity.insert(ParchedMetadataBundle::default());
-        }
         EntityKind::Parrot => {
             entity.insert(ParrotMetadataBundle::default());
         }
@@ -13995,6 +13068,9 @@ pub fn apply_default_metadata(entity: &mut bevy_ecs::system::EntityCommands, kin
         }
         EntityKind::PolarBear => {
             entity.insert(PolarBearMetadataBundle::default());
+        }
+        EntityKind::Potion => {
+            entity.insert(PotionMetadataBundle::default());
         }
         EntityKind::Pufferfish => {
             entity.insert(PufferfishMetadataBundle::default());
@@ -14050,9 +13126,6 @@ pub fn apply_default_metadata(entity: &mut bevy_ecs::system::EntityCommands, kin
         EntityKind::Spider => {
             entity.insert(SpiderMetadataBundle::default());
         }
-        EntityKind::SplashPotion => {
-            entity.insert(SplashPotionMetadataBundle::default());
-        }
         EntityKind::SpruceBoat => {
             entity.insert(SpruceBoatMetadataBundle::default());
         }
@@ -14067,9 +13140,6 @@ pub fn apply_default_metadata(entity: &mut bevy_ecs::system::EntityCommands, kin
         }
         EntityKind::Strider => {
             entity.insert(StriderMetadataBundle::default());
-        }
-        EntityKind::SulfurCube => {
-            entity.insert(SulfurCubeMetadataBundle::default());
         }
         EntityKind::Tadpole => {
             entity.insert(TadpoleMetadataBundle::default());
@@ -14136,9 +13206,6 @@ pub fn apply_default_metadata(entity: &mut bevy_ecs::system::EntityCommands, kin
         }
         EntityKind::ZombieHorse => {
             entity.insert(ZombieHorseMetadataBundle::default());
-        }
-        EntityKind::ZombieNautilus => {
-            entity.insert(ZombieNautilusMetadataBundle::default());
         }
         EntityKind::ZombieVillager => {
             entity.insert(ZombieVillagerMetadataBundle::default());

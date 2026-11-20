@@ -144,6 +144,7 @@ pub static AZALEA_GROWS_ON: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| 
         BlockKind::Podzol,
         BlockKind::Sand,
         BlockKind::SuspiciousSand,
+        BlockKind::SuspiciousSand,
         BlockKind::RedSand,
         BlockKind::MuddyMangroveRoots,
         BlockKind::SnowBlock,
@@ -229,6 +230,28 @@ pub static BADLANDS_TERRACOTTA: LazyLock<RegistryTag<BlockKind>> = LazyLock::new
 pub static BAMBOO_BLOCKS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![BlockKind::BambooBlock, BlockKind::StrippedBambooBlock])
 });
+pub static BAMBOO_PLANTABLE_ON: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
+    RegistryTag::new(vec![
+        BlockKind::GrassBlock,
+        BlockKind::Dirt,
+        BlockKind::CoarseDirt,
+        BlockKind::Podzol,
+        BlockKind::Sand,
+        BlockKind::SuspiciousSand,
+        BlockKind::SuspiciousSand,
+        BlockKind::RedSand,
+        BlockKind::Gravel,
+        BlockKind::SuspiciousGravel,
+        BlockKind::MuddyMangroveRoots,
+        BlockKind::Mycelium,
+        BlockKind::BambooSapling,
+        BlockKind::Bamboo,
+        BlockKind::MossBlock,
+        BlockKind::RootedDirt,
+        BlockKind::Mud,
+        BlockKind::PaleMossBlock,
+    ])
+});
 pub static BANNERS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         BlockKind::WhiteBanner,
@@ -263,19 +286,6 @@ pub static BANNERS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::GreenWallBanner,
         BlockKind::RedWallBanner,
         BlockKind::BlackWallBanner,
-    ])
-});
-pub static BARS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::IronBars,
-        BlockKind::CopperBars,
-        BlockKind::ExposedCopperBars,
-        BlockKind::WeatheredCopperBars,
-        BlockKind::OxidizedCopperBars,
-        BlockKind::WaxedCopperBars,
-        BlockKind::WaxedExposedCopperBars,
-        BlockKind::WaxedWeatheredCopperBars,
-        BlockKind::WaxedOxidizedCopperBars,
     ])
 });
 pub static BASE_STONE_NETHER: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
@@ -353,7 +363,6 @@ pub static BEE_ATTRACTIVE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::Cornflower,
         BlockKind::WitherRose,
         BlockKind::LilyOfTheValley,
-        BlockKind::CactusFlower,
         BlockKind::Sunflower,
         BlockKind::Lilac,
         BlockKind::RoseBush,
@@ -363,7 +372,6 @@ pub static BEE_ATTRACTIVE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::SporeBlossom,
         BlockKind::FloweringAzalea,
         BlockKind::PinkPetals,
-        BlockKind::Wildflowers,
         BlockKind::OpenEyeblossom,
     ])
 });
@@ -384,36 +392,23 @@ pub static BEE_GROWABLES: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
 });
 pub static BEEHIVES: LazyLock<RegistryTag<BlockKind>> =
     LazyLock::new(|| RegistryTag::new(vec![BlockKind::BeeNest, BlockKind::Beehive]));
-pub static BENEATH_BAMBOO_PODZOL_REPLACEABLE: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| {
-        RegistryTag::new(vec![
-            BlockKind::GrassBlock,
-            BlockKind::Dirt,
-            BlockKind::CoarseDirt,
-            BlockKind::Podzol,
-            BlockKind::MuddyMangroveRoots,
-            BlockKind::Mycelium,
-            BlockKind::MossBlock,
-            BlockKind::RootedDirt,
-            BlockKind::Mud,
-            BlockKind::PaleMossBlock,
-        ])
-    });
-pub static BENEATH_TREE_PODZOL_REPLACEABLE: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| {
-        RegistryTag::new(vec![
-            BlockKind::GrassBlock,
-            BlockKind::Dirt,
-            BlockKind::CoarseDirt,
-            BlockKind::Podzol,
-            BlockKind::MuddyMangroveRoots,
-            BlockKind::Mycelium,
-            BlockKind::MossBlock,
-            BlockKind::RootedDirt,
-            BlockKind::Mud,
-            BlockKind::PaleMossBlock,
-        ])
-    });
+pub static BIG_DRIPLEAF_PLACEABLE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
+    RegistryTag::new(vec![
+        BlockKind::GrassBlock,
+        BlockKind::Dirt,
+        BlockKind::CoarseDirt,
+        BlockKind::Podzol,
+        BlockKind::MuddyMangroveRoots,
+        BlockKind::Farmland,
+        BlockKind::Clay,
+        BlockKind::Mycelium,
+        BlockKind::MossBlock,
+        BlockKind::MossBlock,
+        BlockKind::RootedDirt,
+        BlockKind::Mud,
+        BlockKind::PaleMossBlock,
+    ])
+});
 pub static BIRCH_LOGS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         BlockKind::BirchLog,
@@ -446,6 +441,7 @@ pub static CAMEL_SAND_STEP_SOUND_BLOCKS: LazyLock<RegistryTag<BlockKind>> = Lazy
     RegistryTag::new(vec![
         BlockKind::Sand,
         BlockKind::SuspiciousSand,
+        BlockKind::SuspiciousSand,
         BlockKind::RedSand,
         BlockKind::WhiteConcretePowder,
         BlockKind::OrangeConcretePowder,
@@ -465,26 +461,8 @@ pub static CAMEL_SAND_STEP_SOUND_BLOCKS: LazyLock<RegistryTag<BlockKind>> = Lazy
         BlockKind::BlackConcretePowder,
     ])
 });
-pub static CAMELS_SPAWNABLE_ON: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::Sand,
-        BlockKind::SuspiciousSand,
-        BlockKind::RedSand,
-    ])
-});
 pub static CAMPFIRES: LazyLock<RegistryTag<BlockKind>> =
     LazyLock::new(|| RegistryTag::new(vec![BlockKind::Campfire, BlockKind::SoulCampfire]));
-pub static CAN_GLIDE_THROUGH: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::Vine,
-        BlockKind::WeepingVines,
-        BlockKind::WeepingVinesPlant,
-        BlockKind::TwistingVines,
-        BlockKind::TwistingVinesPlant,
-        BlockKind::CaveVines,
-        BlockKind::CaveVinesPlant,
-    ])
-});
 pub static CANDLE_CAKES: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         BlockKind::CandleCake,
@@ -527,30 +505,6 @@ pub static CANDLES: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::BlackCandle,
     ])
 });
-pub static CANNOT_REPLACE_BELOW_TREE_TRUNK: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| {
-        RegistryTag::new(vec![
-            BlockKind::Dirt,
-            BlockKind::CoarseDirt,
-            BlockKind::Podzol,
-            BlockKind::MuddyMangroveRoots,
-            BlockKind::MossBlock,
-            BlockKind::RootedDirt,
-            BlockKind::Mud,
-            BlockKind::PaleMossBlock,
-        ])
-    });
-pub static CANNOT_SUPPORT_KELP: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::MagmaBlock]));
-pub static CANNOT_SUPPORT_SEAGRASS: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::MagmaBlock]));
-pub static CANNOT_SUPPORT_SNOW_LAYER: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::Ice,
-        BlockKind::Barrier,
-        BlockKind::PackedIce,
-    ])
-});
 pub static CAULDRONS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         BlockKind::Cauldron,
@@ -559,10 +513,6 @@ pub static CAULDRONS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::PowderSnowCauldron,
     ])
 });
-pub static CAUSES_CONTINUOUS_GEYSER_ERUPTIONS: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::Lava]));
-pub static CAUSES_PERIODIC_GEYSER_ERUPTIONS: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::MagmaBlock]));
 pub static CAVE_VINES: LazyLock<RegistryTag<BlockKind>> =
     LazyLock::new(|| RegistryTag::new(vec![BlockKind::CaveVines, BlockKind::CaveVinesPlant]));
 pub static CEILING_HANGING_SIGNS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
@@ -579,19 +529,6 @@ pub static CEILING_HANGING_SIGNS: LazyLock<RegistryTag<BlockKind>> = LazyLock::n
         BlockKind::WarpedHangingSign,
         BlockKind::MangroveHangingSign,
         BlockKind::BambooHangingSign,
-    ])
-});
-pub static CHAINS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::IronChain,
-        BlockKind::CopperChain,
-        BlockKind::ExposedCopperChain,
-        BlockKind::WeatheredCopperChain,
-        BlockKind::OxidizedCopperChain,
-        BlockKind::WaxedCopperChain,
-        BlockKind::WaxedExposedCopperChain,
-        BlockKind::WaxedWeatheredCopperChain,
-        BlockKind::WaxedOxidizedCopperChain,
     ])
 });
 pub static CHERRY_LOGS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
@@ -705,27 +642,7 @@ pub static COMPLETES_FIND_TREE_TUTORIAL: LazyLock<RegistryTag<BlockKind>> = Lazy
         BlockKind::StrippedCrimsonHyphae,
     ])
 });
-pub static CONCRETE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::WhiteConcrete,
-        BlockKind::OrangeConcrete,
-        BlockKind::MagentaConcrete,
-        BlockKind::LightBlueConcrete,
-        BlockKind::YellowConcrete,
-        BlockKind::LimeConcrete,
-        BlockKind::PinkConcrete,
-        BlockKind::GrayConcrete,
-        BlockKind::LightGrayConcrete,
-        BlockKind::CyanConcrete,
-        BlockKind::PurpleConcrete,
-        BlockKind::BlueConcrete,
-        BlockKind::BrownConcrete,
-        BlockKind::GreenConcrete,
-        BlockKind::RedConcrete,
-        BlockKind::BlackConcrete,
-    ])
-});
-pub static CONCRETE_POWDERS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
+pub static CONCRETE_POWDER: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         BlockKind::WhiteConcretePowder,
         BlockKind::OrangeConcretePowder,
@@ -750,42 +667,6 @@ pub static CONVERTIBLE_TO_MUD: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(
         BlockKind::Dirt,
         BlockKind::CoarseDirt,
         BlockKind::RootedDirt,
-    ])
-});
-pub static COPPER: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::CopperBlock,
-        BlockKind::ExposedCopper,
-        BlockKind::WeatheredCopper,
-        BlockKind::OxidizedCopper,
-        BlockKind::WaxedCopperBlock,
-        BlockKind::WaxedExposedCopper,
-        BlockKind::WaxedWeatheredCopper,
-        BlockKind::WaxedOxidizedCopper,
-    ])
-});
-pub static COPPER_CHESTS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::CopperChest,
-        BlockKind::ExposedCopperChest,
-        BlockKind::WeatheredCopperChest,
-        BlockKind::OxidizedCopperChest,
-        BlockKind::WaxedCopperChest,
-        BlockKind::WaxedExposedCopperChest,
-        BlockKind::WaxedWeatheredCopperChest,
-        BlockKind::WaxedOxidizedCopperChest,
-    ])
-});
-pub static COPPER_GOLEM_STATUES: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::CopperGolemStatue,
-        BlockKind::ExposedCopperGolemStatue,
-        BlockKind::WeatheredCopperGolemStatue,
-        BlockKind::OxidizedCopperGolemStatue,
-        BlockKind::WaxedCopperGolemStatue,
-        BlockKind::WaxedExposedCopperGolemStatue,
-        BlockKind::WaxedWeatheredCopperGolemStatue,
-        BlockKind::WaxedOxidizedCopperGolemStatue,
     ])
 });
 pub static COPPER_ORES: LazyLock<RegistryTag<BlockKind>> =
@@ -888,17 +769,57 @@ pub static DARK_OAK_LOGS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::StrippedDarkOakWood,
     ])
 });
+pub static DEAD_BUSH_MAY_PLACE_ON: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
+    RegistryTag::new(vec![
+        BlockKind::GrassBlock,
+        BlockKind::Dirt,
+        BlockKind::CoarseDirt,
+        BlockKind::Podzol,
+        BlockKind::Sand,
+        BlockKind::SuspiciousSand,
+        BlockKind::SuspiciousSand,
+        BlockKind::RedSand,
+        BlockKind::MuddyMangroveRoots,
+        BlockKind::Mycelium,
+        BlockKind::WhiteTerracotta,
+        BlockKind::OrangeTerracotta,
+        BlockKind::MagentaTerracotta,
+        BlockKind::LightBlueTerracotta,
+        BlockKind::YellowTerracotta,
+        BlockKind::LimeTerracotta,
+        BlockKind::PinkTerracotta,
+        BlockKind::GrayTerracotta,
+        BlockKind::LightGrayTerracotta,
+        BlockKind::CyanTerracotta,
+        BlockKind::PurpleTerracotta,
+        BlockKind::BlueTerracotta,
+        BlockKind::BrownTerracotta,
+        BlockKind::GreenTerracotta,
+        BlockKind::RedTerracotta,
+        BlockKind::BlackTerracotta,
+        BlockKind::Terracotta,
+        BlockKind::MossBlock,
+        BlockKind::RootedDirt,
+        BlockKind::Mud,
+        BlockKind::PaleMossBlock,
+    ])
+});
 pub static DEEPSLATE_ORE_REPLACEABLES: LazyLock<RegistryTag<BlockKind>> =
     LazyLock::new(|| RegistryTag::new(vec![BlockKind::Tuff, BlockKind::Deepslate]));
-pub static DEFAULT_IMMUNE_TO: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![]));
 pub static DIAMOND_ORES: LazyLock<RegistryTag<BlockKind>> =
     LazyLock::new(|| RegistryTag::new(vec![BlockKind::DiamondOre, BlockKind::DeepslateDiamondOre]));
 pub static DIRT: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
+        BlockKind::GrassBlock,
         BlockKind::Dirt,
         BlockKind::CoarseDirt,
+        BlockKind::Podzol,
+        BlockKind::MuddyMangroveRoots,
+        BlockKind::Mycelium,
+        BlockKind::MossBlock,
         BlockKind::RootedDirt,
+        BlockKind::Mud,
+        BlockKind::PaleMossBlock,
     ])
 });
 pub static DOES_NOT_BLOCK_HOPPERS: LazyLock<RegistryTag<BlockKind>> =
@@ -920,12 +841,12 @@ pub static DOORS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::WarpedDoor,
         BlockKind::CopperDoor,
         BlockKind::ExposedCopperDoor,
-        BlockKind::WeatheredCopperDoor,
         BlockKind::OxidizedCopperDoor,
+        BlockKind::WeatheredCopperDoor,
         BlockKind::WaxedCopperDoor,
         BlockKind::WaxedExposedCopperDoor,
-        BlockKind::WaxedWeatheredCopperDoor,
         BlockKind::WaxedOxidizedCopperDoor,
+        BlockKind::WaxedWeatheredCopperDoor,
     ])
 });
 pub static DRAGON_IMMUNE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
@@ -944,8 +865,6 @@ pub static DRAGON_IMMUNE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::ChainCommandBlock,
         BlockKind::StructureBlock,
         BlockKind::Jigsaw,
-        BlockKind::TestBlock,
-        BlockKind::TestInstanceBlock,
         BlockKind::CryingObsidian,
         BlockKind::RespawnAnchor,
         BlockKind::ReinforcedDeepslate,
@@ -964,20 +883,8 @@ pub static DRIPSTONE_REPLACEABLE_BLOCKS: LazyLock<RegistryTag<BlockKind>> = Lazy
         BlockKind::Deepslate,
     ])
 });
-pub static EDIBLE_FOR_SHEEP: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::ShortGrass,
-        BlockKind::Fern,
-        BlockKind::ShortDryGrass,
-        BlockKind::TallDryGrass,
-    ])
-});
 pub static EMERALD_ORES: LazyLock<RegistryTag<BlockKind>> =
     LazyLock::new(|| RegistryTag::new(vec![BlockKind::EmeraldOre, BlockKind::DeepslateEmeraldOre]));
-pub static ENABLES_BUBBLE_COLUMN_DRAG_DOWN: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::MagmaBlock]));
-pub static ENABLES_BUBBLE_COLUMN_PUSH_UP: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::SoulSand]));
 pub static ENCHANTMENT_POWER_PROVIDER: LazyLock<RegistryTag<BlockKind>> =
     LazyLock::new(|| RegistryTag::new(vec![BlockKind::Bookshelf]));
 pub static ENCHANTMENT_POWER_TRANSMITTER: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
@@ -988,9 +895,6 @@ pub static ENCHANTMENT_POWER_TRANSMITTER: LazyLock<RegistryTag<BlockKind>> = Laz
         BlockKind::ShortGrass,
         BlockKind::Fern,
         BlockKind::DeadBush,
-        BlockKind::Bush,
-        BlockKind::ShortDryGrass,
-        BlockKind::TallDryGrass,
         BlockKind::Seagrass,
         BlockKind::TallSeagrass,
         BlockKind::Fire,
@@ -1009,7 +913,6 @@ pub static ENCHANTMENT_POWER_TRANSMITTER: LazyLock<RegistryTag<BlockKind>> = Laz
         BlockKind::WarpedRoots,
         BlockKind::NetherSprouts,
         BlockKind::CrimsonRoots,
-        BlockKind::LeafLitter,
         BlockKind::HangingRoots,
     ])
 });
@@ -1024,7 +927,6 @@ pub static ENDERMAN_HOLDABLE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|
         BlockKind::Gravel,
         BlockKind::MuddyMangroveRoots,
         BlockKind::Dandelion,
-        BlockKind::GoldenDandelion,
         BlockKind::Torchflower,
         BlockKind::Poppy,
         BlockKind::BlueOrchid,
@@ -1042,7 +944,6 @@ pub static ENDERMAN_HOLDABLE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|
         BlockKind::RedMushroom,
         BlockKind::Tnt,
         BlockKind::Cactus,
-        BlockKind::CactusFlower,
         BlockKind::Clay,
         BlockKind::CarvedPumpkin,
         BlockKind::Pumpkin,
@@ -1138,7 +1039,6 @@ pub static FLOWER_POTS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::PottedMangrovePropagule,
         BlockKind::PottedFern,
         BlockKind::PottedDandelion,
-        BlockKind::PottedGoldenDandelion,
         BlockKind::PottedPoppy,
         BlockKind::PottedBlueOrchid,
         BlockKind::PottedAllium,
@@ -1172,7 +1072,6 @@ pub static FLOWERS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::CherryLeaves,
         BlockKind::FloweringAzaleaLeaves,
         BlockKind::Dandelion,
-        BlockKind::GoldenDandelion,
         BlockKind::Torchflower,
         BlockKind::Poppy,
         BlockKind::BlueOrchid,
@@ -1186,7 +1085,6 @@ pub static FLOWERS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::Cornflower,
         BlockKind::WitherRose,
         BlockKind::LilyOfTheValley,
-        BlockKind::CactusFlower,
         BlockKind::Sunflower,
         BlockKind::Lilac,
         BlockKind::RoseBush,
@@ -1196,33 +1094,10 @@ pub static FLOWERS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::SporeBlossom,
         BlockKind::FloweringAzalea,
         BlockKind::PinkPetals,
-        BlockKind::Wildflowers,
         BlockKind::OpenEyeblossom,
         BlockKind::ClosedEyeblossom,
     ])
 });
-pub static FOREST_ROCK_CAN_PLACE_ON: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::Stone,
-        BlockKind::Granite,
-        BlockKind::Diorite,
-        BlockKind::Andesite,
-        BlockKind::GrassBlock,
-        BlockKind::Dirt,
-        BlockKind::CoarseDirt,
-        BlockKind::Podzol,
-        BlockKind::MuddyMangroveRoots,
-        BlockKind::Mycelium,
-        BlockKind::Tuff,
-        BlockKind::MossBlock,
-        BlockKind::RootedDirt,
-        BlockKind::Mud,
-        BlockKind::Deepslate,
-        BlockKind::PaleMossBlock,
-    ])
-});
-pub static FOX_IMMUNE_TO: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::SweetBerryBush]));
 pub static FOXES_SPAWNABLE_ON: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         BlockKind::GrassBlock,
@@ -1252,26 +1127,6 @@ pub static GEODE_INVALID_BLOCKS: LazyLock<RegistryTag<BlockKind>> = LazyLock::ne
         BlockKind::BlueIce,
     ])
 });
-pub static GLAZED_TERRACOTTA: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::WhiteGlazedTerracotta,
-        BlockKind::OrangeGlazedTerracotta,
-        BlockKind::MagentaGlazedTerracotta,
-        BlockKind::LightBlueGlazedTerracotta,
-        BlockKind::YellowGlazedTerracotta,
-        BlockKind::LimeGlazedTerracotta,
-        BlockKind::PinkGlazedTerracotta,
-        BlockKind::GrayGlazedTerracotta,
-        BlockKind::LightGrayGlazedTerracotta,
-        BlockKind::CyanGlazedTerracotta,
-        BlockKind::PurpleGlazedTerracotta,
-        BlockKind::BlueGlazedTerracotta,
-        BlockKind::BrownGlazedTerracotta,
-        BlockKind::GreenGlazedTerracotta,
-        BlockKind::RedGlazedTerracotta,
-        BlockKind::BlackGlazedTerracotta,
-    ])
-});
 pub static GOATS_SPAWNABLE_ON: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         BlockKind::Stone,
@@ -1289,15 +1144,6 @@ pub static GOLD_ORES: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::NetherGoldOre,
     ])
 });
-pub static GRASS_BLOCKS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::GrassBlock,
-        BlockKind::Podzol,
-        BlockKind::Mycelium,
-    ])
-});
-pub static GROWS_CROPS: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::Farmland]));
 pub static GUARDED_BY_PIGLINS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         BlockKind::GoldOre,
@@ -1326,26 +1172,7 @@ pub static GUARDED_BY_PIGLINS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(
         BlockKind::BlackShulkerBox,
         BlockKind::Barrel,
         BlockKind::GildedBlackstone,
-        BlockKind::CopperChest,
-        BlockKind::ExposedCopperChest,
-        BlockKind::WeatheredCopperChest,
-        BlockKind::OxidizedCopperChest,
-        BlockKind::WaxedCopperChest,
-        BlockKind::WaxedExposedCopperChest,
-        BlockKind::WaxedWeatheredCopperChest,
-        BlockKind::WaxedOxidizedCopperChest,
         BlockKind::RawGoldBlock,
-    ])
-});
-pub static HAPPY_GHAST_AVOIDS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::WitherRose,
-        BlockKind::Fire,
-        BlockKind::Cactus,
-        BlockKind::MagmaBlock,
-        BlockKind::SweetBerryBush,
-        BlockKind::PointedDripstone,
-        BlockKind::SulfurSpike,
     ])
 });
 pub static HOGLIN_REPELLENTS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
@@ -1356,65 +1183,12 @@ pub static HOGLIN_REPELLENTS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|
         BlockKind::PottedWarpedFungus,
     ])
 });
-pub static HUGE_BROWN_MUSHROOM_CAN_PLACE_ON: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| {
-        RegistryTag::new(vec![
-            BlockKind::GrassBlock,
-            BlockKind::Dirt,
-            BlockKind::CoarseDirt,
-            BlockKind::Podzol,
-            BlockKind::Podzol,
-            BlockKind::MuddyMangroveRoots,
-            BlockKind::Mycelium,
-            BlockKind::Mycelium,
-            BlockKind::WarpedNylium,
-            BlockKind::CrimsonNylium,
-            BlockKind::MossBlock,
-            BlockKind::RootedDirt,
-            BlockKind::Mud,
-            BlockKind::PaleMossBlock,
-        ])
-    });
-pub static HUGE_RED_MUSHROOM_CAN_PLACE_ON: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::GrassBlock,
-        BlockKind::Dirt,
-        BlockKind::CoarseDirt,
-        BlockKind::Podzol,
-        BlockKind::Podzol,
-        BlockKind::MuddyMangroveRoots,
-        BlockKind::Mycelium,
-        BlockKind::Mycelium,
-        BlockKind::WarpedNylium,
-        BlockKind::CrimsonNylium,
-        BlockKind::MossBlock,
-        BlockKind::RootedDirt,
-        BlockKind::Mud,
-        BlockKind::PaleMossBlock,
-    ])
-});
 pub static ICE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         BlockKind::Ice,
         BlockKind::PackedIce,
         BlockKind::FrostedIce,
         BlockKind::BlueIce,
-    ])
-});
-pub static ICE_SPIKE_REPLACEABLE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::GrassBlock,
-        BlockKind::Dirt,
-        BlockKind::CoarseDirt,
-        BlockKind::Podzol,
-        BlockKind::MuddyMangroveRoots,
-        BlockKind::Ice,
-        BlockKind::SnowBlock,
-        BlockKind::Mycelium,
-        BlockKind::MossBlock,
-        BlockKind::RootedDirt,
-        BlockKind::Mud,
-        BlockKind::PaleMossBlock,
     ])
 });
 pub static IMPERMEABLE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
@@ -1436,29 +1210,7 @@ pub static IMPERMEABLE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::GreenStainedGlass,
         BlockKind::RedStainedGlass,
         BlockKind::BlackStainedGlass,
-        BlockKind::Barrier,
         BlockKind::TintedGlass,
-    ])
-});
-pub static INCORRECT_FOR_COPPER_TOOL: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::GoldOre,
-        BlockKind::DeepslateGoldOre,
-        BlockKind::GoldBlock,
-        BlockKind::Obsidian,
-        BlockKind::DiamondOre,
-        BlockKind::DeepslateDiamondOre,
-        BlockKind::DiamondBlock,
-        BlockKind::RedstoneOre,
-        BlockKind::DeepslateRedstoneOre,
-        BlockKind::EmeraldOre,
-        BlockKind::DeepslateEmeraldOre,
-        BlockKind::EmeraldBlock,
-        BlockKind::NetheriteBlock,
-        BlockKind::AncientDebris,
-        BlockKind::CryingObsidian,
-        BlockKind::RespawnAnchor,
-        BlockKind::RawGoldBlock,
     ])
 });
 pub static INCORRECT_FOR_DIAMOND_TOOL: LazyLock<RegistryTag<BlockKind>> =
@@ -1491,52 +1243,52 @@ pub static INCORRECT_FOR_GOLD_TOOL: LazyLock<RegistryTag<BlockKind>> = LazyLock:
         BlockKind::ExposedCopper,
         BlockKind::WeatheredCopper,
         BlockKind::OxidizedCopper,
-        BlockKind::WaxedCopperBlock,
-        BlockKind::WaxedExposedCopper,
-        BlockKind::WaxedWeatheredCopper,
-        BlockKind::WaxedOxidizedCopper,
         BlockKind::CopperOre,
         BlockKind::DeepslateCopperOre,
-        BlockKind::CutCopper,
-        BlockKind::ExposedCutCopper,
-        BlockKind::WeatheredCutCopper,
         BlockKind::OxidizedCutCopper,
-        BlockKind::WaxedCutCopper,
-        BlockKind::WaxedExposedCutCopper,
-        BlockKind::WaxedWeatheredCutCopper,
-        BlockKind::WaxedOxidizedCutCopper,
-        BlockKind::ChiseledCopper,
-        BlockKind::ExposedChiseledCopper,
-        BlockKind::WeatheredChiseledCopper,
+        BlockKind::WeatheredCutCopper,
+        BlockKind::ExposedCutCopper,
+        BlockKind::CutCopper,
         BlockKind::OxidizedChiseledCopper,
-        BlockKind::WaxedChiseledCopper,
-        BlockKind::WaxedExposedChiseledCopper,
-        BlockKind::WaxedWeatheredChiseledCopper,
+        BlockKind::WeatheredChiseledCopper,
+        BlockKind::ExposedChiseledCopper,
+        BlockKind::ChiseledCopper,
         BlockKind::WaxedOxidizedChiseledCopper,
-        BlockKind::CutCopperStairs,
-        BlockKind::ExposedCutCopperStairs,
-        BlockKind::WeatheredCutCopperStairs,
+        BlockKind::WaxedWeatheredChiseledCopper,
+        BlockKind::WaxedExposedChiseledCopper,
+        BlockKind::WaxedChiseledCopper,
         BlockKind::OxidizedCutCopperStairs,
-        BlockKind::WaxedCutCopperStairs,
-        BlockKind::WaxedExposedCutCopperStairs,
-        BlockKind::WaxedWeatheredCutCopperStairs,
-        BlockKind::WaxedOxidizedCutCopperStairs,
-        BlockKind::CutCopperSlab,
-        BlockKind::ExposedCutCopperSlab,
-        BlockKind::WeatheredCutCopperSlab,
+        BlockKind::WeatheredCutCopperStairs,
+        BlockKind::ExposedCutCopperStairs,
+        BlockKind::CutCopperStairs,
         BlockKind::OxidizedCutCopperSlab,
-        BlockKind::WaxedCutCopperSlab,
-        BlockKind::WaxedExposedCutCopperSlab,
-        BlockKind::WaxedWeatheredCutCopperSlab,
+        BlockKind::WeatheredCutCopperSlab,
+        BlockKind::ExposedCutCopperSlab,
+        BlockKind::CutCopperSlab,
+        BlockKind::WaxedCopperBlock,
+        BlockKind::WaxedWeatheredCopper,
+        BlockKind::WaxedExposedCopper,
+        BlockKind::WaxedOxidizedCopper,
+        BlockKind::WaxedOxidizedCutCopper,
+        BlockKind::WaxedWeatheredCutCopper,
+        BlockKind::WaxedExposedCutCopper,
+        BlockKind::WaxedCutCopper,
+        BlockKind::WaxedOxidizedCutCopperStairs,
+        BlockKind::WaxedWeatheredCutCopperStairs,
+        BlockKind::WaxedExposedCutCopperStairs,
+        BlockKind::WaxedCutCopperStairs,
         BlockKind::WaxedOxidizedCutCopperSlab,
+        BlockKind::WaxedWeatheredCutCopperSlab,
+        BlockKind::WaxedExposedCutCopperSlab,
+        BlockKind::WaxedCutCopperSlab,
         BlockKind::CopperTrapdoor,
         BlockKind::ExposedCopperTrapdoor,
-        BlockKind::WeatheredCopperTrapdoor,
         BlockKind::OxidizedCopperTrapdoor,
+        BlockKind::WeatheredCopperTrapdoor,
         BlockKind::WaxedCopperTrapdoor,
         BlockKind::WaxedExposedCopperTrapdoor,
-        BlockKind::WaxedWeatheredCopperTrapdoor,
         BlockKind::WaxedOxidizedCopperTrapdoor,
+        BlockKind::WaxedWeatheredCopperTrapdoor,
         BlockKind::CopperGrate,
         BlockKind::ExposedCopperGrate,
         BlockKind::WeatheredCopperGrate,
@@ -1553,22 +1305,7 @@ pub static INCORRECT_FOR_GOLD_TOOL: LazyLock<RegistryTag<BlockKind>> = LazyLock:
         BlockKind::WaxedExposedCopperBulb,
         BlockKind::WaxedWeatheredCopperBulb,
         BlockKind::WaxedOxidizedCopperBulb,
-        BlockKind::CopperChest,
-        BlockKind::ExposedCopperChest,
-        BlockKind::WeatheredCopperChest,
-        BlockKind::OxidizedCopperChest,
-        BlockKind::WaxedCopperChest,
-        BlockKind::WaxedExposedCopperChest,
-        BlockKind::WaxedWeatheredCopperChest,
-        BlockKind::WaxedOxidizedCopperChest,
         BlockKind::LightningRod,
-        BlockKind::ExposedLightningRod,
-        BlockKind::WeatheredLightningRod,
-        BlockKind::OxidizedLightningRod,
-        BlockKind::WaxedLightningRod,
-        BlockKind::WaxedExposedLightningRod,
-        BlockKind::WaxedWeatheredLightningRod,
-        BlockKind::WaxedOxidizedLightningRod,
         BlockKind::RawIronBlock,
         BlockKind::RawCopperBlock,
         BlockKind::RawGoldBlock,
@@ -1635,52 +1372,52 @@ pub static INCORRECT_FOR_WOODEN_TOOL: LazyLock<RegistryTag<BlockKind>> = LazyLoc
         BlockKind::ExposedCopper,
         BlockKind::WeatheredCopper,
         BlockKind::OxidizedCopper,
-        BlockKind::WaxedCopperBlock,
-        BlockKind::WaxedExposedCopper,
-        BlockKind::WaxedWeatheredCopper,
-        BlockKind::WaxedOxidizedCopper,
         BlockKind::CopperOre,
         BlockKind::DeepslateCopperOre,
-        BlockKind::CutCopper,
-        BlockKind::ExposedCutCopper,
-        BlockKind::WeatheredCutCopper,
         BlockKind::OxidizedCutCopper,
-        BlockKind::WaxedCutCopper,
-        BlockKind::WaxedExposedCutCopper,
-        BlockKind::WaxedWeatheredCutCopper,
-        BlockKind::WaxedOxidizedCutCopper,
-        BlockKind::ChiseledCopper,
-        BlockKind::ExposedChiseledCopper,
-        BlockKind::WeatheredChiseledCopper,
+        BlockKind::WeatheredCutCopper,
+        BlockKind::ExposedCutCopper,
+        BlockKind::CutCopper,
         BlockKind::OxidizedChiseledCopper,
-        BlockKind::WaxedChiseledCopper,
-        BlockKind::WaxedExposedChiseledCopper,
-        BlockKind::WaxedWeatheredChiseledCopper,
+        BlockKind::WeatheredChiseledCopper,
+        BlockKind::ExposedChiseledCopper,
+        BlockKind::ChiseledCopper,
         BlockKind::WaxedOxidizedChiseledCopper,
-        BlockKind::CutCopperStairs,
-        BlockKind::ExposedCutCopperStairs,
-        BlockKind::WeatheredCutCopperStairs,
+        BlockKind::WaxedWeatheredChiseledCopper,
+        BlockKind::WaxedExposedChiseledCopper,
+        BlockKind::WaxedChiseledCopper,
         BlockKind::OxidizedCutCopperStairs,
-        BlockKind::WaxedCutCopperStairs,
-        BlockKind::WaxedExposedCutCopperStairs,
-        BlockKind::WaxedWeatheredCutCopperStairs,
-        BlockKind::WaxedOxidizedCutCopperStairs,
-        BlockKind::CutCopperSlab,
-        BlockKind::ExposedCutCopperSlab,
-        BlockKind::WeatheredCutCopperSlab,
+        BlockKind::WeatheredCutCopperStairs,
+        BlockKind::ExposedCutCopperStairs,
+        BlockKind::CutCopperStairs,
         BlockKind::OxidizedCutCopperSlab,
-        BlockKind::WaxedCutCopperSlab,
-        BlockKind::WaxedExposedCutCopperSlab,
-        BlockKind::WaxedWeatheredCutCopperSlab,
+        BlockKind::WeatheredCutCopperSlab,
+        BlockKind::ExposedCutCopperSlab,
+        BlockKind::CutCopperSlab,
+        BlockKind::WaxedCopperBlock,
+        BlockKind::WaxedWeatheredCopper,
+        BlockKind::WaxedExposedCopper,
+        BlockKind::WaxedOxidizedCopper,
+        BlockKind::WaxedOxidizedCutCopper,
+        BlockKind::WaxedWeatheredCutCopper,
+        BlockKind::WaxedExposedCutCopper,
+        BlockKind::WaxedCutCopper,
+        BlockKind::WaxedOxidizedCutCopperStairs,
+        BlockKind::WaxedWeatheredCutCopperStairs,
+        BlockKind::WaxedExposedCutCopperStairs,
+        BlockKind::WaxedCutCopperStairs,
         BlockKind::WaxedOxidizedCutCopperSlab,
+        BlockKind::WaxedWeatheredCutCopperSlab,
+        BlockKind::WaxedExposedCutCopperSlab,
+        BlockKind::WaxedCutCopperSlab,
         BlockKind::CopperTrapdoor,
         BlockKind::ExposedCopperTrapdoor,
-        BlockKind::WeatheredCopperTrapdoor,
         BlockKind::OxidizedCopperTrapdoor,
+        BlockKind::WeatheredCopperTrapdoor,
         BlockKind::WaxedCopperTrapdoor,
         BlockKind::WaxedExposedCopperTrapdoor,
-        BlockKind::WaxedWeatheredCopperTrapdoor,
         BlockKind::WaxedOxidizedCopperTrapdoor,
+        BlockKind::WaxedWeatheredCopperTrapdoor,
         BlockKind::CopperGrate,
         BlockKind::ExposedCopperGrate,
         BlockKind::WeatheredCopperGrate,
@@ -1697,22 +1434,7 @@ pub static INCORRECT_FOR_WOODEN_TOOL: LazyLock<RegistryTag<BlockKind>> = LazyLoc
         BlockKind::WaxedExposedCopperBulb,
         BlockKind::WaxedWeatheredCopperBulb,
         BlockKind::WaxedOxidizedCopperBulb,
-        BlockKind::CopperChest,
-        BlockKind::ExposedCopperChest,
-        BlockKind::WeatheredCopperChest,
-        BlockKind::OxidizedCopperChest,
-        BlockKind::WaxedCopperChest,
-        BlockKind::WaxedExposedCopperChest,
-        BlockKind::WaxedWeatheredCopperChest,
-        BlockKind::WaxedOxidizedCopperChest,
         BlockKind::LightningRod,
-        BlockKind::ExposedLightningRod,
-        BlockKind::WeatheredLightningRod,
-        BlockKind::OxidizedLightningRod,
-        BlockKind::WaxedLightningRod,
-        BlockKind::WaxedExposedLightningRod,
-        BlockKind::WaxedWeatheredLightningRod,
-        BlockKind::WaxedOxidizedLightningRod,
         BlockKind::RawIronBlock,
         BlockKind::RawCopperBlock,
         BlockKind::RawGoldBlock,
@@ -1738,8 +1460,6 @@ pub static INSIDE_STEP_SOUND_BLOCKS: LazyLock<RegistryTag<BlockKind>> = LazyLock
         BlockKind::PowderSnow,
         BlockKind::SculkVein,
         BlockKind::PinkPetals,
-        BlockKind::Wildflowers,
-        BlockKind::LeafLitter,
     ])
 });
 pub static INVALID_SPAWN_INSIDE: LazyLock<RegistryTag<BlockKind>> =
@@ -1752,20 +1472,6 @@ pub static JUNGLE_LOGS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::StrippedJungleLog,
         BlockKind::JungleWood,
         BlockKind::StrippedJungleWood,
-    ])
-});
-pub static LANTERNS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::Lantern,
-        BlockKind::SoulLantern,
-        BlockKind::CopperLantern,
-        BlockKind::ExposedCopperLantern,
-        BlockKind::WeatheredCopperLantern,
-        BlockKind::OxidizedCopperLantern,
-        BlockKind::WaxedCopperLantern,
-        BlockKind::WaxedExposedCopperLantern,
-        BlockKind::WaxedWeatheredCopperLantern,
-        BlockKind::WaxedOxidizedCopperLantern,
     ])
 });
 pub static LAPIS_ORES: LazyLock<RegistryTag<BlockKind>> =
@@ -1849,18 +1555,6 @@ pub static LEAVES: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::MangroveLeaves,
         BlockKind::AzaleaLeaves,
         BlockKind::FloweringAzaleaLeaves,
-    ])
-});
-pub static LIGHTNING_RODS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::LightningRod,
-        BlockKind::ExposedLightningRod,
-        BlockKind::WeatheredLightningRod,
-        BlockKind::OxidizedLightningRod,
-        BlockKind::WaxedLightningRod,
-        BlockKind::WaxedExposedLightningRod,
-        BlockKind::WaxedWeatheredLightningRod,
-        BlockKind::WaxedOxidizedLightningRod,
     ])
 });
 pub static LOGS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
@@ -1978,30 +1672,17 @@ pub static LUSH_GROUND_REPLACEABLE: LazyLock<RegistryTag<BlockKind>> = LazyLock:
 });
 pub static MAINTAINS_FARMLAND: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
-        BlockKind::MovingPiston,
         BlockKind::Torchflower,
         BlockKind::Wheat,
         BlockKind::AttachedPumpkinStem,
         BlockKind::AttachedMelonStem,
         BlockKind::PumpkinStem,
         BlockKind::MelonStem,
-        BlockKind::OakFenceGate,
         BlockKind::Carrots,
         BlockKind::Potatoes,
-        BlockKind::SpruceFenceGate,
-        BlockKind::BirchFenceGate,
-        BlockKind::JungleFenceGate,
-        BlockKind::AcaciaFenceGate,
-        BlockKind::CherryFenceGate,
-        BlockKind::DarkOakFenceGate,
-        BlockKind::PaleOakFenceGate,
-        BlockKind::MangroveFenceGate,
-        BlockKind::BambooFenceGate,
         BlockKind::TorchflowerCrop,
         BlockKind::PitcherCrop,
         BlockKind::Beetroots,
-        BlockKind::CrimsonFenceGate,
-        BlockKind::WarpedFenceGate,
     ])
 });
 pub static MANGROVE_LOGS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
@@ -2050,6 +1731,15 @@ pub static MINEABLE_AXE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::MangrovePlanks,
         BlockKind::BambooPlanks,
         BlockKind::BambooMosaic,
+        BlockKind::OakSapling,
+        BlockKind::SpruceSapling,
+        BlockKind::BirchSapling,
+        BlockKind::JungleSapling,
+        BlockKind::AcaciaSapling,
+        BlockKind::CherrySapling,
+        BlockKind::DarkOakSapling,
+        BlockKind::PaleOakSapling,
+        BlockKind::MangrovePropagule,
         BlockKind::OakLog,
         BlockKind::SpruceLog,
         BlockKind::BirchLog,
@@ -2089,24 +1779,18 @@ pub static MINEABLE_AXE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::StrippedPaleOakWood,
         BlockKind::StrippedMangroveWood,
         BlockKind::NoteBlock,
+        BlockKind::ShortGrass,
+        BlockKind::Fern,
+        BlockKind::DeadBush,
+        BlockKind::BrownMushroom,
+        BlockKind::RedMushroom,
         BlockKind::Bookshelf,
         BlockKind::ChiseledBookshelf,
-        BlockKind::AcaciaShelf,
-        BlockKind::BambooShelf,
-        BlockKind::BirchShelf,
-        BlockKind::CherryShelf,
-        BlockKind::CrimsonShelf,
-        BlockKind::DarkOakShelf,
-        BlockKind::JungleShelf,
-        BlockKind::MangroveShelf,
-        BlockKind::OakShelf,
-        BlockKind::PaleOakShelf,
-        BlockKind::SpruceShelf,
-        BlockKind::WarpedShelf,
         BlockKind::CreakingHeart,
         BlockKind::OakStairs,
         BlockKind::Chest,
         BlockKind::CraftingTable,
+        BlockKind::Wheat,
         BlockKind::OakSign,
         BlockKind::SpruceSign,
         BlockKind::BirchSign,
@@ -2163,6 +1847,7 @@ pub static MINEABLE_AXE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::PaleOakPressurePlate,
         BlockKind::MangrovePressurePlate,
         BlockKind::BambooPressurePlate,
+        BlockKind::SugarCane,
         BlockKind::Jukebox,
         BlockKind::OakFence,
         BlockKind::CarvedPumpkin,
@@ -2182,13 +1867,21 @@ pub static MINEABLE_AXE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::MushroomStem,
         BlockKind::Pumpkin,
         BlockKind::Melon,
+        BlockKind::AttachedPumpkinStem,
+        BlockKind::AttachedMelonStem,
+        BlockKind::PumpkinStem,
+        BlockKind::MelonStem,
         BlockKind::Vine,
         BlockKind::GlowLichen,
         BlockKind::OakFenceGate,
+        BlockKind::LilyPad,
+        BlockKind::NetherWart,
         BlockKind::Cocoa,
         BlockKind::SpruceStairs,
         BlockKind::BirchStairs,
         BlockKind::JungleStairs,
+        BlockKind::Carrots,
+        BlockKind::Potatoes,
         BlockKind::OakButton,
         BlockKind::SpruceButton,
         BlockKind::BirchButton,
@@ -2208,6 +1901,8 @@ pub static MINEABLE_AXE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::MangroveStairs,
         BlockKind::BambooStairs,
         BlockKind::BambooMosaicStairs,
+        BlockKind::TallGrass,
+        BlockKind::LargeFern,
         BlockKind::WhiteBanner,
         BlockKind::OrangeBanner,
         BlockKind::MagentaBanner,
@@ -2280,7 +1975,9 @@ pub static MINEABLE_AXE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::BambooDoor,
         BlockKind::ChorusPlant,
         BlockKind::ChorusFlower,
+        BlockKind::Beetroots,
         BlockKind::Bamboo,
+        BlockKind::Scaffolding,
         BlockKind::Loom,
         BlockKind::Barrel,
         BlockKind::CartographyTable,
@@ -2289,14 +1986,21 @@ pub static MINEABLE_AXE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::SmithingTable,
         BlockKind::Campfire,
         BlockKind::SoulCampfire,
+        BlockKind::SweetBerryBush,
         BlockKind::WarpedStem,
         BlockKind::StrippedWarpedStem,
         BlockKind::WarpedHyphae,
         BlockKind::StrippedWarpedHyphae,
+        BlockKind::WarpedFungus,
         BlockKind::CrimsonStem,
         BlockKind::StrippedCrimsonStem,
         BlockKind::CrimsonHyphae,
         BlockKind::StrippedCrimsonHyphae,
+        BlockKind::CrimsonFungus,
+        BlockKind::WeepingVines,
+        BlockKind::WeepingVinesPlant,
+        BlockKind::TwistingVines,
+        BlockKind::TwistingVinesPlant,
         BlockKind::CrimsonPlanks,
         BlockKind::WarpedPlanks,
         BlockKind::CrimsonSlab,
@@ -2322,8 +2026,16 @@ pub static MINEABLE_AXE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::Composter,
         BlockKind::BeeNest,
         BlockKind::Beehive,
+        BlockKind::CaveVines,
+        BlockKind::CaveVinesPlant,
+        BlockKind::SporeBlossom,
+        BlockKind::Azalea,
+        BlockKind::Azalea,
+        BlockKind::FloweringAzalea,
         BlockKind::BigDripleaf,
         BlockKind::BigDripleafStem,
+        BlockKind::SmallDripleaf,
+        BlockKind::HangingRoots,
     ])
 });
 pub static MINEABLE_HOE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
@@ -2354,6 +2066,7 @@ pub static MINEABLE_HOE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::SculkCatalyst,
         BlockKind::SculkShrieker,
         BlockKind::MossCarpet,
+        BlockKind::PinkPetals,
         BlockKind::MossBlock,
         BlockKind::PaleMossBlock,
         BlockKind::PaleMossCarpet,
@@ -2422,23 +2135,7 @@ pub static MINEABLE_PICKAXE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(||
         BlockKind::InfestedCrackedStoneBricks,
         BlockKind::InfestedChiseledStoneBricks,
         BlockKind::IronBars,
-        BlockKind::CopperBars,
-        BlockKind::ExposedCopperBars,
-        BlockKind::WeatheredCopperBars,
-        BlockKind::OxidizedCopperBars,
-        BlockKind::WaxedCopperBars,
-        BlockKind::WaxedExposedCopperBars,
-        BlockKind::WaxedWeatheredCopperBars,
-        BlockKind::WaxedOxidizedCopperBars,
-        BlockKind::IronChain,
-        BlockKind::CopperChain,
-        BlockKind::ExposedCopperChain,
-        BlockKind::WeatheredCopperChain,
-        BlockKind::OxidizedCopperChain,
-        BlockKind::WaxedCopperChain,
-        BlockKind::WaxedExposedCopperChain,
-        BlockKind::WaxedWeatheredCopperChain,
-        BlockKind::WaxedOxidizedCopperChain,
+        BlockKind::Chain,
         BlockKind::BrickStairs,
         BlockKind::StoneBrickStairs,
         BlockKind::MudBrickStairs,
@@ -2661,14 +2358,6 @@ pub static MINEABLE_PICKAXE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(||
         BlockKind::Bell,
         BlockKind::Lantern,
         BlockKind::SoulLantern,
-        BlockKind::CopperLantern,
-        BlockKind::ExposedCopperLantern,
-        BlockKind::WeatheredCopperLantern,
-        BlockKind::OxidizedCopperLantern,
-        BlockKind::WaxedCopperLantern,
-        BlockKind::WaxedExposedCopperLantern,
-        BlockKind::WaxedWeatheredCopperLantern,
-        BlockKind::WaxedOxidizedCopperLantern,
         BlockKind::WarpedNylium,
         BlockKind::CrimsonNylium,
         BlockKind::NetheriteBlock,
@@ -2719,98 +2408,65 @@ pub static MINEABLE_PICKAXE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(||
         BlockKind::TuffBrickWall,
         BlockKind::TuffBrickWall,
         BlockKind::ChiseledTuffBricks,
-        BlockKind::Sulfur,
-        BlockKind::PotentSulfur,
-        BlockKind::SulfurSlab,
-        BlockKind::SulfurStairs,
-        BlockKind::SulfurWall,
-        BlockKind::SulfurWall,
-        BlockKind::PolishedSulfur,
-        BlockKind::PolishedSulfurSlab,
-        BlockKind::PolishedSulfurStairs,
-        BlockKind::PolishedSulfurWall,
-        BlockKind::PolishedSulfurWall,
-        BlockKind::SulfurBricks,
-        BlockKind::SulfurBrickSlab,
-        BlockKind::SulfurBrickStairs,
-        BlockKind::SulfurBrickWall,
-        BlockKind::SulfurBrickWall,
-        BlockKind::ChiseledSulfur,
-        BlockKind::Cinnabar,
-        BlockKind::CinnabarSlab,
-        BlockKind::CinnabarStairs,
-        BlockKind::CinnabarWall,
-        BlockKind::CinnabarWall,
-        BlockKind::PolishedCinnabar,
-        BlockKind::PolishedCinnabarSlab,
-        BlockKind::PolishedCinnabarStairs,
-        BlockKind::PolishedCinnabarWall,
-        BlockKind::PolishedCinnabarWall,
-        BlockKind::CinnabarBricks,
-        BlockKind::CinnabarBrickSlab,
-        BlockKind::CinnabarBrickStairs,
-        BlockKind::CinnabarBrickWall,
-        BlockKind::CinnabarBrickWall,
-        BlockKind::ChiseledCinnabar,
         BlockKind::Calcite,
         BlockKind::CopperBlock,
         BlockKind::ExposedCopper,
         BlockKind::WeatheredCopper,
         BlockKind::OxidizedCopper,
-        BlockKind::WaxedCopperBlock,
-        BlockKind::WaxedExposedCopper,
-        BlockKind::WaxedWeatheredCopper,
-        BlockKind::WaxedOxidizedCopper,
         BlockKind::CopperOre,
         BlockKind::DeepslateCopperOre,
-        BlockKind::CutCopper,
-        BlockKind::ExposedCutCopper,
-        BlockKind::WeatheredCutCopper,
         BlockKind::OxidizedCutCopper,
-        BlockKind::WaxedCutCopper,
-        BlockKind::WaxedExposedCutCopper,
-        BlockKind::WaxedWeatheredCutCopper,
-        BlockKind::WaxedOxidizedCutCopper,
-        BlockKind::ChiseledCopper,
-        BlockKind::ExposedChiseledCopper,
-        BlockKind::WeatheredChiseledCopper,
+        BlockKind::WeatheredCutCopper,
+        BlockKind::ExposedCutCopper,
+        BlockKind::CutCopper,
         BlockKind::OxidizedChiseledCopper,
-        BlockKind::WaxedChiseledCopper,
-        BlockKind::WaxedExposedChiseledCopper,
-        BlockKind::WaxedWeatheredChiseledCopper,
+        BlockKind::WeatheredChiseledCopper,
+        BlockKind::ExposedChiseledCopper,
+        BlockKind::ChiseledCopper,
         BlockKind::WaxedOxidizedChiseledCopper,
-        BlockKind::CutCopperStairs,
-        BlockKind::ExposedCutCopperStairs,
-        BlockKind::WeatheredCutCopperStairs,
+        BlockKind::WaxedWeatheredChiseledCopper,
+        BlockKind::WaxedExposedChiseledCopper,
+        BlockKind::WaxedChiseledCopper,
         BlockKind::OxidizedCutCopperStairs,
-        BlockKind::WaxedCutCopperStairs,
-        BlockKind::WaxedExposedCutCopperStairs,
-        BlockKind::WaxedWeatheredCutCopperStairs,
-        BlockKind::WaxedOxidizedCutCopperStairs,
-        BlockKind::CutCopperSlab,
-        BlockKind::ExposedCutCopperSlab,
-        BlockKind::WeatheredCutCopperSlab,
+        BlockKind::WeatheredCutCopperStairs,
+        BlockKind::ExposedCutCopperStairs,
+        BlockKind::CutCopperStairs,
         BlockKind::OxidizedCutCopperSlab,
-        BlockKind::WaxedCutCopperSlab,
-        BlockKind::WaxedExposedCutCopperSlab,
-        BlockKind::WaxedWeatheredCutCopperSlab,
+        BlockKind::WeatheredCutCopperSlab,
+        BlockKind::ExposedCutCopperSlab,
+        BlockKind::CutCopperSlab,
+        BlockKind::WaxedCopperBlock,
+        BlockKind::WaxedWeatheredCopper,
+        BlockKind::WaxedExposedCopper,
+        BlockKind::WaxedOxidizedCopper,
+        BlockKind::WaxedOxidizedCutCopper,
+        BlockKind::WaxedWeatheredCutCopper,
+        BlockKind::WaxedExposedCutCopper,
+        BlockKind::WaxedCutCopper,
+        BlockKind::WaxedOxidizedCutCopperStairs,
+        BlockKind::WaxedWeatheredCutCopperStairs,
+        BlockKind::WaxedExposedCutCopperStairs,
+        BlockKind::WaxedCutCopperStairs,
         BlockKind::WaxedOxidizedCutCopperSlab,
+        BlockKind::WaxedWeatheredCutCopperSlab,
+        BlockKind::WaxedExposedCutCopperSlab,
+        BlockKind::WaxedCutCopperSlab,
         BlockKind::CopperDoor,
         BlockKind::ExposedCopperDoor,
-        BlockKind::WeatheredCopperDoor,
         BlockKind::OxidizedCopperDoor,
+        BlockKind::WeatheredCopperDoor,
         BlockKind::WaxedCopperDoor,
         BlockKind::WaxedExposedCopperDoor,
-        BlockKind::WaxedWeatheredCopperDoor,
         BlockKind::WaxedOxidizedCopperDoor,
+        BlockKind::WaxedWeatheredCopperDoor,
         BlockKind::CopperTrapdoor,
         BlockKind::ExposedCopperTrapdoor,
-        BlockKind::WeatheredCopperTrapdoor,
         BlockKind::OxidizedCopperTrapdoor,
+        BlockKind::WeatheredCopperTrapdoor,
         BlockKind::WaxedCopperTrapdoor,
         BlockKind::WaxedExposedCopperTrapdoor,
-        BlockKind::WaxedWeatheredCopperTrapdoor,
         BlockKind::WaxedOxidizedCopperTrapdoor,
+        BlockKind::WaxedWeatheredCopperTrapdoor,
         BlockKind::CopperGrate,
         BlockKind::ExposedCopperGrate,
         BlockKind::WeatheredCopperGrate,
@@ -2827,33 +2483,9 @@ pub static MINEABLE_PICKAXE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(||
         BlockKind::WaxedExposedCopperBulb,
         BlockKind::WaxedWeatheredCopperBulb,
         BlockKind::WaxedOxidizedCopperBulb,
-        BlockKind::CopperChest,
-        BlockKind::ExposedCopperChest,
-        BlockKind::WeatheredCopperChest,
-        BlockKind::OxidizedCopperChest,
-        BlockKind::WaxedCopperChest,
-        BlockKind::WaxedExposedCopperChest,
-        BlockKind::WaxedWeatheredCopperChest,
-        BlockKind::WaxedOxidizedCopperChest,
-        BlockKind::CopperGolemStatue,
-        BlockKind::ExposedCopperGolemStatue,
-        BlockKind::WeatheredCopperGolemStatue,
-        BlockKind::OxidizedCopperGolemStatue,
-        BlockKind::WaxedCopperGolemStatue,
-        BlockKind::WaxedExposedCopperGolemStatue,
-        BlockKind::WaxedWeatheredCopperGolemStatue,
-        BlockKind::WaxedOxidizedCopperGolemStatue,
         BlockKind::LightningRod,
-        BlockKind::ExposedLightningRod,
-        BlockKind::WeatheredLightningRod,
-        BlockKind::OxidizedLightningRod,
-        BlockKind::WaxedLightningRod,
-        BlockKind::WaxedExposedLightningRod,
-        BlockKind::WaxedWeatheredLightningRod,
-        BlockKind::WaxedOxidizedLightningRod,
-        BlockKind::DripstoneBlock,
         BlockKind::PointedDripstone,
-        BlockKind::SulfurSpike,
+        BlockKind::DripstoneBlock,
         BlockKind::Deepslate,
         BlockKind::CobbledDeepslate,
         BlockKind::CobbledDeepslateStairs,
@@ -2939,18 +2571,16 @@ pub static MOB_INTERACTABLE_DOORS: LazyLock<RegistryTag<BlockKind>> = LazyLock::
         BlockKind::WarpedDoor,
         BlockKind::CopperDoor,
         BlockKind::ExposedCopperDoor,
-        BlockKind::WeatheredCopperDoor,
         BlockKind::OxidizedCopperDoor,
+        BlockKind::WeatheredCopperDoor,
         BlockKind::WaxedCopperDoor,
         BlockKind::WaxedExposedCopperDoor,
-        BlockKind::WaxedWeatheredCopperDoor,
         BlockKind::WaxedOxidizedCopperDoor,
+        BlockKind::WaxedWeatheredCopperDoor,
     ])
 });
 pub static MOOSHROOMS_SPAWNABLE_ON: LazyLock<RegistryTag<BlockKind>> =
     LazyLock::new(|| RegistryTag::new(vec![BlockKind::Mycelium]));
-pub static MOSS_BLOCKS: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::MossBlock, BlockKind::PaleMossBlock]));
 pub static MOSS_REPLACEABLE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         BlockKind::Stone,
@@ -2973,8 +2603,14 @@ pub static MOSS_REPLACEABLE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(||
         BlockKind::PaleMossBlock,
     ])
 });
-pub static MUD: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::MuddyMangroveRoots, BlockKind::Mud]));
+pub static MUSHROOM_GROW_BLOCK: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
+    RegistryTag::new(vec![
+        BlockKind::Podzol,
+        BlockKind::Mycelium,
+        BlockKind::WarpedNylium,
+        BlockKind::CrimsonNylium,
+    ])
+});
 pub static NEEDS_DIAMOND_TOOL: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         BlockKind::Obsidian,
@@ -3012,52 +2648,52 @@ pub static NEEDS_STONE_TOOL: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(||
         BlockKind::ExposedCopper,
         BlockKind::WeatheredCopper,
         BlockKind::OxidizedCopper,
-        BlockKind::WaxedCopperBlock,
-        BlockKind::WaxedExposedCopper,
-        BlockKind::WaxedWeatheredCopper,
-        BlockKind::WaxedOxidizedCopper,
         BlockKind::CopperOre,
         BlockKind::DeepslateCopperOre,
-        BlockKind::CutCopper,
-        BlockKind::ExposedCutCopper,
-        BlockKind::WeatheredCutCopper,
         BlockKind::OxidizedCutCopper,
-        BlockKind::WaxedCutCopper,
-        BlockKind::WaxedExposedCutCopper,
-        BlockKind::WaxedWeatheredCutCopper,
-        BlockKind::WaxedOxidizedCutCopper,
-        BlockKind::ChiseledCopper,
-        BlockKind::ExposedChiseledCopper,
-        BlockKind::WeatheredChiseledCopper,
+        BlockKind::WeatheredCutCopper,
+        BlockKind::ExposedCutCopper,
+        BlockKind::CutCopper,
         BlockKind::OxidizedChiseledCopper,
-        BlockKind::WaxedChiseledCopper,
-        BlockKind::WaxedExposedChiseledCopper,
-        BlockKind::WaxedWeatheredChiseledCopper,
+        BlockKind::WeatheredChiseledCopper,
+        BlockKind::ExposedChiseledCopper,
+        BlockKind::ChiseledCopper,
         BlockKind::WaxedOxidizedChiseledCopper,
-        BlockKind::CutCopperStairs,
-        BlockKind::ExposedCutCopperStairs,
-        BlockKind::WeatheredCutCopperStairs,
+        BlockKind::WaxedWeatheredChiseledCopper,
+        BlockKind::WaxedExposedChiseledCopper,
+        BlockKind::WaxedChiseledCopper,
         BlockKind::OxidizedCutCopperStairs,
-        BlockKind::WaxedCutCopperStairs,
-        BlockKind::WaxedExposedCutCopperStairs,
-        BlockKind::WaxedWeatheredCutCopperStairs,
-        BlockKind::WaxedOxidizedCutCopperStairs,
-        BlockKind::CutCopperSlab,
-        BlockKind::ExposedCutCopperSlab,
-        BlockKind::WeatheredCutCopperSlab,
+        BlockKind::WeatheredCutCopperStairs,
+        BlockKind::ExposedCutCopperStairs,
+        BlockKind::CutCopperStairs,
         BlockKind::OxidizedCutCopperSlab,
-        BlockKind::WaxedCutCopperSlab,
-        BlockKind::WaxedExposedCutCopperSlab,
-        BlockKind::WaxedWeatheredCutCopperSlab,
+        BlockKind::WeatheredCutCopperSlab,
+        BlockKind::ExposedCutCopperSlab,
+        BlockKind::CutCopperSlab,
+        BlockKind::WaxedCopperBlock,
+        BlockKind::WaxedWeatheredCopper,
+        BlockKind::WaxedExposedCopper,
+        BlockKind::WaxedOxidizedCopper,
+        BlockKind::WaxedOxidizedCutCopper,
+        BlockKind::WaxedWeatheredCutCopper,
+        BlockKind::WaxedExposedCutCopper,
+        BlockKind::WaxedCutCopper,
+        BlockKind::WaxedOxidizedCutCopperStairs,
+        BlockKind::WaxedWeatheredCutCopperStairs,
+        BlockKind::WaxedExposedCutCopperStairs,
+        BlockKind::WaxedCutCopperStairs,
         BlockKind::WaxedOxidizedCutCopperSlab,
+        BlockKind::WaxedWeatheredCutCopperSlab,
+        BlockKind::WaxedExposedCutCopperSlab,
+        BlockKind::WaxedCutCopperSlab,
         BlockKind::CopperTrapdoor,
         BlockKind::ExposedCopperTrapdoor,
-        BlockKind::WeatheredCopperTrapdoor,
         BlockKind::OxidizedCopperTrapdoor,
+        BlockKind::WeatheredCopperTrapdoor,
         BlockKind::WaxedCopperTrapdoor,
         BlockKind::WaxedExposedCopperTrapdoor,
-        BlockKind::WaxedWeatheredCopperTrapdoor,
         BlockKind::WaxedOxidizedCopperTrapdoor,
+        BlockKind::WaxedWeatheredCopperTrapdoor,
         BlockKind::CopperGrate,
         BlockKind::ExposedCopperGrate,
         BlockKind::WeatheredCopperGrate,
@@ -3074,22 +2710,7 @@ pub static NEEDS_STONE_TOOL: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(||
         BlockKind::WaxedExposedCopperBulb,
         BlockKind::WaxedWeatheredCopperBulb,
         BlockKind::WaxedOxidizedCopperBulb,
-        BlockKind::CopperChest,
-        BlockKind::ExposedCopperChest,
-        BlockKind::WeatheredCopperChest,
-        BlockKind::OxidizedCopperChest,
-        BlockKind::WaxedCopperChest,
-        BlockKind::WaxedExposedCopperChest,
-        BlockKind::WaxedWeatheredCopperChest,
-        BlockKind::WaxedOxidizedCopperChest,
         BlockKind::LightningRod,
-        BlockKind::ExposedLightningRod,
-        BlockKind::WeatheredLightningRod,
-        BlockKind::OxidizedLightningRod,
-        BlockKind::WaxedLightningRod,
-        BlockKind::WaxedExposedLightningRod,
-        BlockKind::WaxedWeatheredLightningRod,
-        BlockKind::WaxedOxidizedLightningRod,
         BlockKind::RawIronBlock,
         BlockKind::RawCopperBlock,
         BlockKind::Crafter,
@@ -3154,15 +2775,6 @@ pub static OCCLUDES_VIBRATION_SIGNALS: LazyLock<RegistryTag<BlockKind>> = LazyLo
         BlockKind::BlackWool,
     ])
 });
-pub static OVERRIDES_MUSHROOM_LIGHT_REQUIREMENT: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| {
-        RegistryTag::new(vec![
-            BlockKind::Podzol,
-            BlockKind::Mycelium,
-            BlockKind::WarpedNylium,
-            BlockKind::CrimsonNylium,
-        ])
-    });
 pub static OVERWORLD_CARVER_REPLACEABLES: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         BlockKind::Stone,
@@ -3175,6 +2787,7 @@ pub static OVERWORLD_CARVER_REPLACEABLES: LazyLock<RegistryTag<BlockKind>> = Laz
         BlockKind::Podzol,
         BlockKind::Water,
         BlockKind::Sand,
+        BlockKind::SuspiciousSand,
         BlockKind::SuspiciousSand,
         BlockKind::RedSand,
         BlockKind::Gravel,
@@ -3206,9 +2819,6 @@ pub static OVERWORLD_CARVER_REPLACEABLES: LazyLock<RegistryTag<BlockKind>> = Laz
         BlockKind::PackedIce,
         BlockKind::RedSandstone,
         BlockKind::Tuff,
-        BlockKind::Sulfur,
-        BlockKind::PotentSulfur,
-        BlockKind::Cinnabar,
         BlockKind::Calcite,
         BlockKind::PowderSnow,
         BlockKind::CopperOre,
@@ -3329,8 +2939,6 @@ pub static PLANKS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::WarpedPlanks,
     ])
 });
-pub static POLAR_BEAR_IMMUNE_TO: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::PowderSnow]));
 pub static POLAR_BEARS_SPAWNABLE_ON_ALTERNATE: LazyLock<RegistryTag<BlockKind>> =
     LazyLock::new(|| RegistryTag::new(vec![BlockKind::Ice]));
 pub static PORTALS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
@@ -3368,54 +2976,6 @@ pub static PREVENT_MOB_SPAWNING_INSIDE: LazyLock<RegistryTag<BlockKind>> = LazyL
         BlockKind::ActivatorRail,
     ])
 });
-pub static PREVENTS_NEARBY_LEAF_DECAY: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::PaleOakWood,
-        BlockKind::OakLog,
-        BlockKind::SpruceLog,
-        BlockKind::BirchLog,
-        BlockKind::JungleLog,
-        BlockKind::AcaciaLog,
-        BlockKind::CherryLog,
-        BlockKind::DarkOakLog,
-        BlockKind::PaleOakLog,
-        BlockKind::MangroveLog,
-        BlockKind::StrippedSpruceLog,
-        BlockKind::StrippedBirchLog,
-        BlockKind::StrippedJungleLog,
-        BlockKind::StrippedAcaciaLog,
-        BlockKind::StrippedCherryLog,
-        BlockKind::StrippedDarkOakLog,
-        BlockKind::StrippedPaleOakLog,
-        BlockKind::StrippedOakLog,
-        BlockKind::StrippedMangroveLog,
-        BlockKind::OakWood,
-        BlockKind::SpruceWood,
-        BlockKind::BirchWood,
-        BlockKind::JungleWood,
-        BlockKind::AcaciaWood,
-        BlockKind::CherryWood,
-        BlockKind::DarkOakWood,
-        BlockKind::MangroveWood,
-        BlockKind::StrippedOakWood,
-        BlockKind::StrippedSpruceWood,
-        BlockKind::StrippedBirchWood,
-        BlockKind::StrippedJungleWood,
-        BlockKind::StrippedAcaciaWood,
-        BlockKind::StrippedCherryWood,
-        BlockKind::StrippedDarkOakWood,
-        BlockKind::StrippedPaleOakWood,
-        BlockKind::StrippedMangroveWood,
-        BlockKind::WarpedStem,
-        BlockKind::StrippedWarpedStem,
-        BlockKind::WarpedHyphae,
-        BlockKind::StrippedWarpedHyphae,
-        BlockKind::CrimsonStem,
-        BlockKind::StrippedCrimsonStem,
-        BlockKind::CrimsonHyphae,
-        BlockKind::StrippedCrimsonHyphae,
-    ])
-});
 pub static RABBITS_SPAWNABLE_ON: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         BlockKind::GrassBlock,
@@ -3446,9 +3006,6 @@ pub static REPLACEABLE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::ShortGrass,
         BlockKind::Fern,
         BlockKind::DeadBush,
-        BlockKind::Bush,
-        BlockKind::ShortDryGrass,
-        BlockKind::TallDryGrass,
         BlockKind::Seagrass,
         BlockKind::TallSeagrass,
         BlockKind::Fire,
@@ -3467,69 +3024,7 @@ pub static REPLACEABLE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::WarpedRoots,
         BlockKind::NetherSprouts,
         BlockKind::CrimsonRoots,
-        BlockKind::LeafLitter,
         BlockKind::HangingRoots,
-    ])
-});
-pub static REPLACEABLE_BY_MUSHROOMS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::Water,
-        BlockKind::OakLeaves,
-        BlockKind::SpruceLeaves,
-        BlockKind::BirchLeaves,
-        BlockKind::JungleLeaves,
-        BlockKind::AcaciaLeaves,
-        BlockKind::CherryLeaves,
-        BlockKind::DarkOakLeaves,
-        BlockKind::PaleOakLeaves,
-        BlockKind::MangroveLeaves,
-        BlockKind::AzaleaLeaves,
-        BlockKind::FloweringAzaleaLeaves,
-        BlockKind::ShortGrass,
-        BlockKind::Fern,
-        BlockKind::DeadBush,
-        BlockKind::Bush,
-        BlockKind::ShortDryGrass,
-        BlockKind::TallDryGrass,
-        BlockKind::Seagrass,
-        BlockKind::TallSeagrass,
-        BlockKind::Dandelion,
-        BlockKind::GoldenDandelion,
-        BlockKind::Torchflower,
-        BlockKind::Poppy,
-        BlockKind::BlueOrchid,
-        BlockKind::Allium,
-        BlockKind::AzureBluet,
-        BlockKind::RedTulip,
-        BlockKind::OrangeTulip,
-        BlockKind::WhiteTulip,
-        BlockKind::PinkTulip,
-        BlockKind::OxeyeDaisy,
-        BlockKind::Cornflower,
-        BlockKind::WitherRose,
-        BlockKind::LilyOfTheValley,
-        BlockKind::BrownMushroom,
-        BlockKind::RedMushroom,
-        BlockKind::BrownMushroomBlock,
-        BlockKind::RedMushroomBlock,
-        BlockKind::Vine,
-        BlockKind::GlowLichen,
-        BlockKind::Sunflower,
-        BlockKind::Lilac,
-        BlockKind::RoseBush,
-        BlockKind::Peony,
-        BlockKind::TallGrass,
-        BlockKind::LargeFern,
-        BlockKind::PitcherPlant,
-        BlockKind::WarpedRoots,
-        BlockKind::NetherSprouts,
-        BlockKind::CrimsonRoots,
-        BlockKind::LeafLitter,
-        BlockKind::HangingRoots,
-        BlockKind::PaleMossCarpet,
-        BlockKind::OpenEyeblossom,
-        BlockKind::ClosedEyeblossom,
-        BlockKind::FireflyBush,
     ])
 });
 pub static REPLACEABLE_BY_TREES: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
@@ -3549,13 +3044,9 @@ pub static REPLACEABLE_BY_TREES: LazyLock<RegistryTag<BlockKind>> = LazyLock::ne
         BlockKind::ShortGrass,
         BlockKind::Fern,
         BlockKind::DeadBush,
-        BlockKind::Bush,
-        BlockKind::ShortDryGrass,
-        BlockKind::TallDryGrass,
         BlockKind::Seagrass,
         BlockKind::TallSeagrass,
         BlockKind::Dandelion,
-        BlockKind::GoldenDandelion,
         BlockKind::Torchflower,
         BlockKind::Poppy,
         BlockKind::BlueOrchid,
@@ -3581,17 +3072,16 @@ pub static REPLACEABLE_BY_TREES: LazyLock<RegistryTag<BlockKind>> = LazyLock::ne
         BlockKind::WarpedRoots,
         BlockKind::NetherSprouts,
         BlockKind::CrimsonRoots,
-        BlockKind::LeafLitter,
         BlockKind::HangingRoots,
         BlockKind::PaleMossCarpet,
         BlockKind::OpenEyeblossom,
         BlockKind::ClosedEyeblossom,
-        BlockKind::FireflyBush,
     ])
 });
 pub static SAND: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         BlockKind::Sand,
+        BlockKind::SuspiciousSand,
         BlockKind::SuspiciousSand,
         BlockKind::RedSand,
     ])
@@ -3655,8 +3145,6 @@ pub static SCULK_REPLACEABLE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|
         BlockKind::CrimsonNylium,
         BlockKind::Blackstone,
         BlockKind::Tuff,
-        BlockKind::Sulfur,
-        BlockKind::Cinnabar,
         BlockKind::Calcite,
         BlockKind::DripstoneBlock,
         BlockKind::MossBlock,
@@ -3711,8 +3199,6 @@ pub static SCULK_REPLACEABLE_WORLD_GEN: LazyLock<RegistryTag<BlockKind>> = LazyL
         BlockKind::CrimsonNylium,
         BlockKind::Blackstone,
         BlockKind::Tuff,
-        BlockKind::Sulfur,
-        BlockKind::Cinnabar,
         BlockKind::Calcite,
         BlockKind::DripstoneBlock,
         BlockKind::MossBlock,
@@ -3729,43 +3215,6 @@ pub static SCULK_REPLACEABLE_WORLD_GEN: LazyLock<RegistryTag<BlockKind>> = LazyL
         BlockKind::PaleMossBlock,
     ])
 });
-pub static SHEARS_EXTREME_BREAKING_SPEED: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::OakLeaves,
-        BlockKind::SpruceLeaves,
-        BlockKind::BirchLeaves,
-        BlockKind::JungleLeaves,
-        BlockKind::AcaciaLeaves,
-        BlockKind::CherryLeaves,
-        BlockKind::DarkOakLeaves,
-        BlockKind::PaleOakLeaves,
-        BlockKind::MangroveLeaves,
-        BlockKind::AzaleaLeaves,
-        BlockKind::FloweringAzaleaLeaves,
-    ])
-});
-pub static SHEARS_MAJOR_BREAKING_SPEED: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::WhiteWool,
-        BlockKind::OrangeWool,
-        BlockKind::MagentaWool,
-        BlockKind::LightBlueWool,
-        BlockKind::YellowWool,
-        BlockKind::LimeWool,
-        BlockKind::PinkWool,
-        BlockKind::GrayWool,
-        BlockKind::LightGrayWool,
-        BlockKind::CyanWool,
-        BlockKind::PurpleWool,
-        BlockKind::BlueWool,
-        BlockKind::BrownWool,
-        BlockKind::GreenWool,
-        BlockKind::RedWool,
-        BlockKind::BlackWool,
-    ])
-});
-pub static SHEARS_MINOR_BREAKING_SPEED: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::Vine, BlockKind::GlowLichen]));
 pub static SHULKER_BOXES: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         BlockKind::ShulkerBox,
@@ -3867,30 +3316,25 @@ pub static SLABS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::TuffSlab,
         BlockKind::PolishedTuffSlab,
         BlockKind::TuffBrickSlab,
-        BlockKind::SulfurSlab,
-        BlockKind::PolishedSulfurSlab,
-        BlockKind::SulfurBrickSlab,
-        BlockKind::CinnabarSlab,
-        BlockKind::PolishedCinnabarSlab,
-        BlockKind::CinnabarBrickSlab,
-        BlockKind::CutCopperSlab,
-        BlockKind::ExposedCutCopperSlab,
-        BlockKind::WeatheredCutCopperSlab,
         BlockKind::OxidizedCutCopperSlab,
-        BlockKind::WaxedCutCopperSlab,
-        BlockKind::WaxedExposedCutCopperSlab,
-        BlockKind::WaxedWeatheredCutCopperSlab,
+        BlockKind::WeatheredCutCopperSlab,
+        BlockKind::ExposedCutCopperSlab,
+        BlockKind::CutCopperSlab,
         BlockKind::WaxedOxidizedCutCopperSlab,
+        BlockKind::WaxedWeatheredCutCopperSlab,
+        BlockKind::WaxedExposedCutCopperSlab,
+        BlockKind::WaxedCutCopperSlab,
         BlockKind::CobbledDeepslateSlab,
         BlockKind::PolishedDeepslateSlab,
         BlockKind::DeepslateTileSlab,
         BlockKind::DeepslateBrickSlab,
     ])
 });
+pub static SMALL_DRIPLEAF_PLACEABLE: LazyLock<RegistryTag<BlockKind>> =
+    LazyLock::new(|| RegistryTag::new(vec![BlockKind::Clay, BlockKind::MossBlock]));
 pub static SMALL_FLOWERS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         BlockKind::Dandelion,
-        BlockKind::GoldenDandelion,
         BlockKind::Torchflower,
         BlockKind::Poppy,
         BlockKind::BlueOrchid,
@@ -3951,14 +3395,24 @@ pub static SNOW: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::PowderSnow,
     ])
 });
-pub static SNOW_GOLEM_IMMUNE_TO: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::PowderSnow]));
+pub static SNOW_LAYER_CAN_SURVIVE_ON: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
+    RegistryTag::new(vec![
+        BlockKind::SoulSand,
+        BlockKind::HoneyBlock,
+        BlockKind::Mud,
+    ])
+});
+pub static SNOW_LAYER_CANNOT_SURVIVE_ON: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
+    RegistryTag::new(vec![
+        BlockKind::Ice,
+        BlockKind::Barrier,
+        BlockKind::PackedIce,
+    ])
+});
 pub static SOUL_FIRE_BASE_BLOCKS: LazyLock<RegistryTag<BlockKind>> =
     LazyLock::new(|| RegistryTag::new(vec![BlockKind::SoulSand, BlockKind::SoulSoil]));
 pub static SOUL_SPEED_BLOCKS: LazyLock<RegistryTag<BlockKind>> =
     LazyLock::new(|| RegistryTag::new(vec![BlockKind::SoulSand, BlockKind::SoulSoil]));
-pub static SPELEOTHEMS: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::PointedDripstone, BlockKind::SulfurSpike]));
 pub static SPRUCE_LOGS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         BlockKind::SpruceLog,
@@ -4015,20 +3469,14 @@ pub static STAIRS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::TuffStairs,
         BlockKind::PolishedTuffStairs,
         BlockKind::TuffBrickStairs,
-        BlockKind::SulfurStairs,
-        BlockKind::PolishedSulfurStairs,
-        BlockKind::SulfurBrickStairs,
-        BlockKind::CinnabarStairs,
-        BlockKind::PolishedCinnabarStairs,
-        BlockKind::CinnabarBrickStairs,
-        BlockKind::CutCopperStairs,
-        BlockKind::ExposedCutCopperStairs,
-        BlockKind::WeatheredCutCopperStairs,
         BlockKind::OxidizedCutCopperStairs,
-        BlockKind::WaxedCutCopperStairs,
-        BlockKind::WaxedExposedCutCopperStairs,
-        BlockKind::WaxedWeatheredCutCopperStairs,
+        BlockKind::WeatheredCutCopperStairs,
+        BlockKind::ExposedCutCopperStairs,
+        BlockKind::CutCopperStairs,
         BlockKind::WaxedOxidizedCutCopperStairs,
+        BlockKind::WaxedWeatheredCutCopperStairs,
+        BlockKind::WaxedExposedCutCopperStairs,
+        BlockKind::WaxedCutCopperStairs,
         BlockKind::CobbledDeepslateStairs,
         BlockKind::PolishedDeepslateStairs,
         BlockKind::DeepslateTileStairs,
@@ -4079,369 +3527,19 @@ pub static STONE_PRESSURE_PLATES: LazyLock<RegistryTag<BlockKind>> = LazyLock::n
         BlockKind::PolishedBlackstonePressurePlate,
     ])
 });
-pub static STRAY_IMMUNE_TO: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::PowderSnow]));
 pub static STRIDER_WARM_BLOCKS: LazyLock<RegistryTag<BlockKind>> =
     LazyLock::new(|| RegistryTag::new(vec![BlockKind::Lava]));
-pub static SUBSTRATE_OVERWORLD: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::GrassBlock,
-        BlockKind::Dirt,
-        BlockKind::CoarseDirt,
-        BlockKind::Podzol,
-        BlockKind::MuddyMangroveRoots,
-        BlockKind::Mycelium,
-        BlockKind::MossBlock,
-        BlockKind::RootedDirt,
-        BlockKind::Mud,
-        BlockKind::PaleMossBlock,
-    ])
-});
-pub static SULFUR_SPIKE_REPLACEABLE_BLOCKS: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::Sulfur, BlockKind::Cinnabar]));
-pub static SUPPORT_OVERRIDE_CACTUS_FLOWER: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::Farmland, BlockKind::Cactus]));
-pub static SUPPORT_OVERRIDE_SNOW_LAYER: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::SoulSand,
-        BlockKind::HoneyBlock,
-        BlockKind::Mud,
-    ])
-});
-pub static SUPPORTS_AZALEA: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::GrassBlock,
-        BlockKind::Dirt,
-        BlockKind::CoarseDirt,
-        BlockKind::Podzol,
-        BlockKind::MuddyMangroveRoots,
-        BlockKind::Farmland,
-        BlockKind::Clay,
-        BlockKind::Mycelium,
-        BlockKind::MossBlock,
-        BlockKind::RootedDirt,
-        BlockKind::Mud,
-        BlockKind::PaleMossBlock,
-    ])
-});
-pub static SUPPORTS_BAMBOO: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::GrassBlock,
-        BlockKind::Dirt,
-        BlockKind::CoarseDirt,
-        BlockKind::Podzol,
-        BlockKind::Sand,
-        BlockKind::SuspiciousSand,
-        BlockKind::RedSand,
-        BlockKind::Gravel,
-        BlockKind::SuspiciousGravel,
-        BlockKind::MuddyMangroveRoots,
-        BlockKind::Mycelium,
-        BlockKind::BambooSapling,
-        BlockKind::Bamboo,
-        BlockKind::MossBlock,
-        BlockKind::RootedDirt,
-        BlockKind::Mud,
-        BlockKind::PaleMossBlock,
-    ])
-});
-pub static SUPPORTS_BIG_DRIPLEAF: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::GrassBlock,
-        BlockKind::Dirt,
-        BlockKind::CoarseDirt,
-        BlockKind::Podzol,
-        BlockKind::MuddyMangroveRoots,
-        BlockKind::Farmland,
-        BlockKind::Clay,
-        BlockKind::Mycelium,
-        BlockKind::MossBlock,
-        BlockKind::MossBlock,
-        BlockKind::RootedDirt,
-        BlockKind::Mud,
-    ])
-});
-pub static SUPPORTS_CACTUS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::Sand,
-        BlockKind::SuspiciousSand,
-        BlockKind::RedSand,
-    ])
-});
-pub static SUPPORTS_CHORUS_FLOWER: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::EndStone]));
-pub static SUPPORTS_CHORUS_PLANT: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::EndStone]));
-pub static SUPPORTS_COCOA: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::JungleLog,
-        BlockKind::StrippedJungleLog,
-        BlockKind::JungleWood,
-        BlockKind::StrippedJungleWood,
-    ])
-});
-pub static SUPPORTS_CRIMSON_FUNGUS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::GrassBlock,
-        BlockKind::Dirt,
-        BlockKind::CoarseDirt,
-        BlockKind::Podzol,
-        BlockKind::MuddyMangroveRoots,
-        BlockKind::Farmland,
-        BlockKind::SoulSoil,
-        BlockKind::Mycelium,
-        BlockKind::Mycelium,
-        BlockKind::WarpedNylium,
-        BlockKind::CrimsonNylium,
-        BlockKind::MossBlock,
-        BlockKind::RootedDirt,
-        BlockKind::Mud,
-        BlockKind::PaleMossBlock,
-    ])
-});
-pub static SUPPORTS_CRIMSON_ROOTS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::GrassBlock,
-        BlockKind::Dirt,
-        BlockKind::CoarseDirt,
-        BlockKind::Podzol,
-        BlockKind::MuddyMangroveRoots,
-        BlockKind::Farmland,
-        BlockKind::SoulSoil,
-        BlockKind::Mycelium,
-        BlockKind::WarpedNylium,
-        BlockKind::CrimsonNylium,
-        BlockKind::MossBlock,
-        BlockKind::RootedDirt,
-        BlockKind::Mud,
-        BlockKind::PaleMossBlock,
-    ])
-});
-pub static SUPPORTS_CROPS: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::Farmland]));
-pub static SUPPORTS_DRY_VEGETATION: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::GrassBlock,
-        BlockKind::Dirt,
-        BlockKind::CoarseDirt,
-        BlockKind::Podzol,
-        BlockKind::Sand,
-        BlockKind::SuspiciousSand,
-        BlockKind::RedSand,
-        BlockKind::MuddyMangroveRoots,
-        BlockKind::Farmland,
-        BlockKind::Mycelium,
-        BlockKind::WhiteTerracotta,
-        BlockKind::OrangeTerracotta,
-        BlockKind::MagentaTerracotta,
-        BlockKind::LightBlueTerracotta,
-        BlockKind::YellowTerracotta,
-        BlockKind::LimeTerracotta,
-        BlockKind::PinkTerracotta,
-        BlockKind::GrayTerracotta,
-        BlockKind::LightGrayTerracotta,
-        BlockKind::CyanTerracotta,
-        BlockKind::PurpleTerracotta,
-        BlockKind::BlueTerracotta,
-        BlockKind::BrownTerracotta,
-        BlockKind::GreenTerracotta,
-        BlockKind::RedTerracotta,
-        BlockKind::BlackTerracotta,
-        BlockKind::Terracotta,
-        BlockKind::MossBlock,
-        BlockKind::RootedDirt,
-        BlockKind::Mud,
-        BlockKind::PaleMossBlock,
-    ])
-});
-pub static SUPPORTS_FROGSPAWN: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![]));
-pub static SUPPORTS_HANGING_MANGROVE_PROPAGULE: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::MangroveLeaves]));
-pub static SUPPORTS_LILY_PAD: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::Ice, BlockKind::FrostedIce]));
-pub static SUPPORTS_MANGROVE_PROPAGULE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::GrassBlock,
-        BlockKind::Dirt,
-        BlockKind::CoarseDirt,
-        BlockKind::Podzol,
-        BlockKind::MuddyMangroveRoots,
-        BlockKind::Farmland,
-        BlockKind::Clay,
-        BlockKind::Mycelium,
-        BlockKind::MossBlock,
-        BlockKind::RootedDirt,
-        BlockKind::Mud,
-        BlockKind::PaleMossBlock,
-    ])
-});
-pub static SUPPORTS_MELON_STEM: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::Farmland]));
-pub static SUPPORTS_MELON_STEM_FRUIT: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::GrassBlock,
-        BlockKind::Dirt,
-        BlockKind::CoarseDirt,
-        BlockKind::Podzol,
-        BlockKind::MuddyMangroveRoots,
-        BlockKind::Farmland,
-        BlockKind::Mycelium,
-        BlockKind::MossBlock,
-        BlockKind::RootedDirt,
-        BlockKind::Mud,
-        BlockKind::PaleMossBlock,
-    ])
-});
-pub static SUPPORTS_NETHER_SPROUTS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::GrassBlock,
-        BlockKind::Dirt,
-        BlockKind::CoarseDirt,
-        BlockKind::Podzol,
-        BlockKind::MuddyMangroveRoots,
-        BlockKind::Farmland,
-        BlockKind::SoulSoil,
-        BlockKind::Mycelium,
-        BlockKind::WarpedNylium,
-        BlockKind::CrimsonNylium,
-        BlockKind::MossBlock,
-        BlockKind::RootedDirt,
-        BlockKind::Mud,
-        BlockKind::PaleMossBlock,
-    ])
-});
-pub static SUPPORTS_NETHER_WART: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::SoulSand]));
-pub static SUPPORTS_PUMPKIN_STEM: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::Farmland]));
-pub static SUPPORTS_PUMPKIN_STEM_FRUIT: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::GrassBlock,
-        BlockKind::Dirt,
-        BlockKind::CoarseDirt,
-        BlockKind::Podzol,
-        BlockKind::MuddyMangroveRoots,
-        BlockKind::Farmland,
-        BlockKind::Mycelium,
-        BlockKind::MossBlock,
-        BlockKind::RootedDirt,
-        BlockKind::Mud,
-        BlockKind::PaleMossBlock,
-    ])
-});
-pub static SUPPORTS_SMALL_DRIPLEAF: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::Clay, BlockKind::MossBlock]));
-pub static SUPPORTS_STEM_CROPS: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::Farmland]));
-pub static SUPPORTS_STEM_FRUIT: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::GrassBlock,
-        BlockKind::Dirt,
-        BlockKind::CoarseDirt,
-        BlockKind::Podzol,
-        BlockKind::MuddyMangroveRoots,
-        BlockKind::Farmland,
-        BlockKind::Mycelium,
-        BlockKind::MossBlock,
-        BlockKind::RootedDirt,
-        BlockKind::Mud,
-        BlockKind::PaleMossBlock,
-    ])
-});
-pub static SUPPORTS_SUGAR_CANE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::GrassBlock,
-        BlockKind::Dirt,
-        BlockKind::CoarseDirt,
-        BlockKind::Podzol,
-        BlockKind::Sand,
-        BlockKind::SuspiciousSand,
-        BlockKind::RedSand,
-        BlockKind::MuddyMangroveRoots,
-        BlockKind::Mycelium,
-        BlockKind::MossBlock,
-        BlockKind::RootedDirt,
-        BlockKind::Mud,
-        BlockKind::PaleMossBlock,
-    ])
-});
-pub static SUPPORTS_SUGAR_CANE_ADJACENTLY: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::FrostedIce]));
-pub static SUPPORTS_VEGETATION: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::GrassBlock,
-        BlockKind::Dirt,
-        BlockKind::CoarseDirt,
-        BlockKind::Podzol,
-        BlockKind::MuddyMangroveRoots,
-        BlockKind::Farmland,
-        BlockKind::Mycelium,
-        BlockKind::MossBlock,
-        BlockKind::RootedDirt,
-        BlockKind::Mud,
-        BlockKind::PaleMossBlock,
-    ])
-});
-pub static SUPPORTS_WARPED_FUNGUS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::GrassBlock,
-        BlockKind::Dirt,
-        BlockKind::CoarseDirt,
-        BlockKind::Podzol,
-        BlockKind::MuddyMangroveRoots,
-        BlockKind::Farmland,
-        BlockKind::SoulSoil,
-        BlockKind::Mycelium,
-        BlockKind::Mycelium,
-        BlockKind::WarpedNylium,
-        BlockKind::CrimsonNylium,
-        BlockKind::MossBlock,
-        BlockKind::RootedDirt,
-        BlockKind::Mud,
-        BlockKind::PaleMossBlock,
-    ])
-});
-pub static SUPPORTS_WARPED_ROOTS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::GrassBlock,
-        BlockKind::Dirt,
-        BlockKind::CoarseDirt,
-        BlockKind::Podzol,
-        BlockKind::MuddyMangroveRoots,
-        BlockKind::Farmland,
-        BlockKind::SoulSoil,
-        BlockKind::Mycelium,
-        BlockKind::WarpedNylium,
-        BlockKind::CrimsonNylium,
-        BlockKind::MossBlock,
-        BlockKind::RootedDirt,
-        BlockKind::Mud,
-        BlockKind::PaleMossBlock,
-    ])
-});
-pub static SUPPORTS_WITHER_ROSE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::GrassBlock,
-        BlockKind::Dirt,
-        BlockKind::CoarseDirt,
-        BlockKind::Podzol,
-        BlockKind::MuddyMangroveRoots,
-        BlockKind::Farmland,
-        BlockKind::Netherrack,
-        BlockKind::SoulSand,
-        BlockKind::SoulSoil,
-        BlockKind::Mycelium,
-        BlockKind::MossBlock,
-        BlockKind::RootedDirt,
-        BlockKind::Mud,
-        BlockKind::PaleMossBlock,
-    ])
-});
-pub static SUPPRESSES_BOUNCE: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::HoneyBlock]));
 pub static SWORD_EFFICIENT: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
+        BlockKind::OakSapling,
+        BlockKind::SpruceSapling,
+        BlockKind::BirchSapling,
+        BlockKind::JungleSapling,
+        BlockKind::AcaciaSapling,
+        BlockKind::CherrySapling,
+        BlockKind::DarkOakSapling,
+        BlockKind::PaleOakSapling,
+        BlockKind::MangrovePropagule,
         BlockKind::OakLeaves,
         BlockKind::SpruceLeaves,
         BlockKind::BirchLeaves,
@@ -4453,21 +3551,63 @@ pub static SWORD_EFFICIENT: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| 
         BlockKind::MangroveLeaves,
         BlockKind::AzaleaLeaves,
         BlockKind::FloweringAzaleaLeaves,
+        BlockKind::ShortGrass,
+        BlockKind::Fern,
+        BlockKind::DeadBush,
+        BlockKind::BrownMushroom,
+        BlockKind::RedMushroom,
+        BlockKind::Wheat,
+        BlockKind::SugarCane,
         BlockKind::CarvedPumpkin,
         BlockKind::JackOLantern,
         BlockKind::Pumpkin,
         BlockKind::Melon,
+        BlockKind::AttachedPumpkinStem,
+        BlockKind::AttachedMelonStem,
+        BlockKind::PumpkinStem,
+        BlockKind::MelonStem,
         BlockKind::Vine,
         BlockKind::GlowLichen,
+        BlockKind::LilyPad,
+        BlockKind::NetherWart,
         BlockKind::Cocoa,
+        BlockKind::Carrots,
+        BlockKind::Potatoes,
+        BlockKind::Sunflower,
+        BlockKind::Lilac,
+        BlockKind::RoseBush,
+        BlockKind::Peony,
+        BlockKind::TallGrass,
+        BlockKind::LargeFern,
         BlockKind::ChorusPlant,
         BlockKind::ChorusFlower,
+        BlockKind::TorchflowerCrop,
+        BlockKind::PitcherCrop,
+        BlockKind::PitcherCrop,
+        BlockKind::PitcherPlant,
+        BlockKind::Beetroots,
+        BlockKind::SweetBerryBush,
+        BlockKind::WarpedFungus,
+        BlockKind::WarpedRoots,
+        BlockKind::NetherSprouts,
+        BlockKind::CrimsonFungus,
+        BlockKind::WeepingVines,
+        BlockKind::WeepingVinesPlant,
+        BlockKind::TwistingVines,
+        BlockKind::TwistingVinesPlant,
+        BlockKind::CrimsonRoots,
+        BlockKind::CaveVines,
+        BlockKind::CaveVinesPlant,
+        BlockKind::SporeBlossom,
+        BlockKind::Azalea,
+        BlockKind::FloweringAzalea,
+        BlockKind::PinkPetals,
         BlockKind::BigDripleaf,
         BlockKind::BigDripleafStem,
+        BlockKind::SmallDripleaf,
+        BlockKind::HangingRoots,
     ])
 });
-pub static SWORD_INSTANTLY_MINES: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::BambooSapling, BlockKind::Bamboo]));
 pub static TERRACOTTA: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         BlockKind::WhiteTerracotta,
@@ -4508,42 +3648,14 @@ pub static TRAPDOORS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::WarpedTrapdoor,
         BlockKind::CopperTrapdoor,
         BlockKind::ExposedCopperTrapdoor,
-        BlockKind::WeatheredCopperTrapdoor,
         BlockKind::OxidizedCopperTrapdoor,
+        BlockKind::WeatheredCopperTrapdoor,
         BlockKind::WaxedCopperTrapdoor,
         BlockKind::WaxedExposedCopperTrapdoor,
-        BlockKind::WaxedWeatheredCopperTrapdoor,
         BlockKind::WaxedOxidizedCopperTrapdoor,
+        BlockKind::WaxedWeatheredCopperTrapdoor,
     ])
 });
-pub static TRIGGERS_AMBIENT_DESERT_DRY_VEGETATION_BLOCK_SOUNDS: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| {
-        RegistryTag::new(vec![
-            BlockKind::Sand,
-            BlockKind::RedSand,
-            BlockKind::WhiteTerracotta,
-            BlockKind::OrangeTerracotta,
-            BlockKind::MagentaTerracotta,
-            BlockKind::LightBlueTerracotta,
-            BlockKind::YellowTerracotta,
-            BlockKind::LimeTerracotta,
-            BlockKind::PinkTerracotta,
-            BlockKind::GrayTerracotta,
-            BlockKind::LightGrayTerracotta,
-            BlockKind::CyanTerracotta,
-            BlockKind::PurpleTerracotta,
-            BlockKind::BlueTerracotta,
-            BlockKind::BrownTerracotta,
-            BlockKind::GreenTerracotta,
-            BlockKind::RedTerracotta,
-            BlockKind::BlackTerracotta,
-            BlockKind::Terracotta,
-        ])
-    });
-pub static TRIGGERS_AMBIENT_DESERT_SAND_BLOCK_SOUNDS: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::Sand, BlockKind::RedSand]));
-pub static TRIGGERS_AMBIENT_DRIED_GHAST_BLOCK_SOUNDS: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::SoulSand, BlockKind::SoulSoil]));
 pub static UNDERWATER_BONEMEALS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         BlockKind::Seagrass,
@@ -4644,9 +3756,7 @@ pub static WALL_POST_OVERRIDE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(
         BlockKind::MangrovePressurePlate,
         BlockKind::BambooPressurePlate,
         BlockKind::RedstoneTorch,
-        BlockKind::CactusFlower,
         BlockKind::SoulTorch,
-        BlockKind::CopperTorch,
         BlockKind::Tripwire,
         BlockKind::LightWeightedPressurePlate,
         BlockKind::HeavyWeightedPressurePlate,
@@ -4731,12 +3841,6 @@ pub static WALLS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::TuffWall,
         BlockKind::PolishedTuffWall,
         BlockKind::TuffBrickWall,
-        BlockKind::SulfurWall,
-        BlockKind::PolishedSulfurWall,
-        BlockKind::SulfurBrickWall,
-        BlockKind::CinnabarWall,
-        BlockKind::PolishedCinnabarWall,
-        BlockKind::CinnabarBrickWall,
         BlockKind::CobbledDeepslateWall,
         BlockKind::PolishedDeepslateWall,
         BlockKind::DeepslateTileWall,
@@ -4768,15 +3872,9 @@ pub static WITHER_IMMUNE: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
         BlockKind::ChainCommandBlock,
         BlockKind::StructureBlock,
         BlockKind::Jigsaw,
-        BlockKind::TestBlock,
-        BlockKind::TestInstanceBlock,
         BlockKind::ReinforcedDeepslate,
     ])
 });
-pub static WITHER_IMMUNE_TO: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::WitherRose]));
-pub static WITHER_SKELETON_IMMUNE_TO: LazyLock<RegistryTag<BlockKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![BlockKind::WitherRose]));
 pub static WITHER_SUMMON_BASE_BLOCKS: LazyLock<RegistryTag<BlockKind>> =
     LazyLock::new(|| RegistryTag::new(vec![BlockKind::SoulSand, BlockKind::SoulSoil]));
 pub static WOLVES_SPAWNABLE_ON: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
@@ -4850,22 +3948,6 @@ pub static WOODEN_PRESSURE_PLATES: LazyLock<RegistryTag<BlockKind>> = LazyLock::
         BlockKind::BambooPressurePlate,
         BlockKind::CrimsonPressurePlate,
         BlockKind::WarpedPressurePlate,
-    ])
-});
-pub static WOODEN_SHELVES: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        BlockKind::AcaciaShelf,
-        BlockKind::BambooShelf,
-        BlockKind::BirchShelf,
-        BlockKind::CherryShelf,
-        BlockKind::CrimsonShelf,
-        BlockKind::DarkOakShelf,
-        BlockKind::JungleShelf,
-        BlockKind::MangroveShelf,
-        BlockKind::OakShelf,
-        BlockKind::PaleOakShelf,
-        BlockKind::SpruceShelf,
-        BlockKind::WarpedShelf,
     ])
 });
 pub static WOODEN_SLABS: LazyLock<RegistryTag<BlockKind>> = LazyLock::new(|| {

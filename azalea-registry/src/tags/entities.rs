@@ -4,8 +4,6 @@ use std::sync::LazyLock;
 
 use crate::{builtin::EntityKind, tags::RegistryTag};
 
-pub static ACCEPTS_IRON_GOLEM_GIFT: LazyLock<RegistryTag<EntityKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![EntityKind::CopperGolem]));
 pub static AQUATIC: LazyLock<RegistryTag<EntityKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         EntityKind::Axolotl,
@@ -14,14 +12,12 @@ pub static AQUATIC: LazyLock<RegistryTag<EntityKind>> = LazyLock::new(|| {
         EntityKind::ElderGuardian,
         EntityKind::GlowSquid,
         EntityKind::Guardian,
-        EntityKind::Nautilus,
         EntityKind::Pufferfish,
         EntityKind::Salmon,
         EntityKind::Squid,
         EntityKind::Tadpole,
         EntityKind::TropicalFish,
         EntityKind::Turtle,
-        EntityKind::ZombieNautilus,
     ])
 });
 pub static ARROWS: LazyLock<RegistryTag<EntityKind>> =
@@ -69,36 +65,18 @@ pub static BOAT: LazyLock<RegistryTag<EntityKind>> = LazyLock::new(|| {
         EntityKind::SpruceBoat,
     ])
 });
-pub static BURN_IN_DAYLIGHT: LazyLock<RegistryTag<EntityKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        EntityKind::Bogged,
-        EntityKind::Drowned,
-        EntityKind::Phantom,
-        EntityKind::Skeleton,
-        EntityKind::Stray,
-        EntityKind::WitherSkeleton,
-        EntityKind::Zombie,
-        EntityKind::ZombieHorse,
-        EntityKind::ZombieNautilus,
-        EntityKind::ZombieVillager,
-    ])
-});
 pub static CAN_BREATHE_UNDER_WATER: LazyLock<RegistryTag<EntityKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         EntityKind::ArmorStand,
         EntityKind::Axolotl,
         EntityKind::Bogged,
-        EntityKind::CamelHusk,
         EntityKind::Cod,
-        EntityKind::CopperGolem,
         EntityKind::Drowned,
         EntityKind::ElderGuardian,
         EntityKind::Frog,
         EntityKind::GlowSquid,
         EntityKind::Guardian,
         EntityKind::Husk,
-        EntityKind::Nautilus,
-        EntityKind::Parched,
         EntityKind::Phantom,
         EntityKind::Pufferfish,
         EntityKind::Salmon,
@@ -114,71 +92,12 @@ pub static CAN_BREATHE_UNDER_WATER: LazyLock<RegistryTag<EntityKind>> = LazyLock
         EntityKind::Zoglin,
         EntityKind::Zombie,
         EntityKind::ZombieHorse,
-        EntityKind::ZombieNautilus,
         EntityKind::ZombieVillager,
         EntityKind::ZombifiedPiglin,
     ])
 });
-pub static CAN_EQUIP_HARNESS: LazyLock<RegistryTag<EntityKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![EntityKind::HappyGhast]));
-pub static CAN_EQUIP_SADDLE: LazyLock<RegistryTag<EntityKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        EntityKind::Camel,
-        EntityKind::CamelHusk,
-        EntityKind::Donkey,
-        EntityKind::Horse,
-        EntityKind::Mule,
-        EntityKind::Nautilus,
-        EntityKind::Pig,
-        EntityKind::SkeletonHorse,
-        EntityKind::Strider,
-        EntityKind::ZombieHorse,
-        EntityKind::ZombieNautilus,
-    ])
-});
-pub static CAN_FLOAT_WHILE_RIDDEN: LazyLock<RegistryTag<EntityKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        EntityKind::Camel,
-        EntityKind::CamelHusk,
-        EntityKind::Donkey,
-        EntityKind::Horse,
-        EntityKind::Mule,
-        EntityKind::ZombieHorse,
-    ])
-});
 pub static CAN_TURN_IN_BOATS: LazyLock<RegistryTag<EntityKind>> =
     LazyLock::new(|| RegistryTag::new(vec![EntityKind::Breeze]));
-pub static CAN_WEAR_HORSE_ARMOR: LazyLock<RegistryTag<EntityKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![EntityKind::Horse, EntityKind::ZombieHorse]));
-pub static CAN_WEAR_NAUTILUS_ARMOR: LazyLock<RegistryTag<EntityKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![EntityKind::Nautilus, EntityKind::ZombieNautilus]));
-pub static CANDIDATE_FOR_IRON_GOLEM_GIFT: LazyLock<RegistryTag<EntityKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![EntityKind::CopperGolem, EntityKind::Villager]));
-pub static CANNOT_BE_AGE_LOCKED: LazyLock<RegistryTag<EntityKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        EntityKind::SkeletonHorse,
-        EntityKind::Villager,
-        EntityKind::ZombieHorse,
-    ])
-});
-pub static CANNOT_BE_PUSHED_ONTO_BOATS: LazyLock<RegistryTag<EntityKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        EntityKind::Cod,
-        EntityKind::Creaking,
-        EntityKind::Dolphin,
-        EntityKind::ElderGuardian,
-        EntityKind::GlowSquid,
-        EntityKind::Nautilus,
-        EntityKind::Pufferfish,
-        EntityKind::Salmon,
-        EntityKind::Squid,
-        EntityKind::SulfurCube,
-        EntityKind::Tadpole,
-        EntityKind::TropicalFish,
-        EntityKind::ZombieNautilus,
-        EntityKind::Player,
-    ])
-});
 pub static DEFLECTS_PROJECTILES: LazyLock<RegistryTag<EntityKind>> =
     LazyLock::new(|| RegistryTag::new(vec![EntityKind::Breeze]));
 pub static DISMOUNTS_UNDERWATER: LazyLock<RegistryTag<EntityKind>> = LazyLock::new(|| {
@@ -186,7 +105,6 @@ pub static DISMOUNTS_UNDERWATER: LazyLock<RegistryTag<EntityKind>> = LazyLock::n
         EntityKind::Camel,
         EntityKind::Chicken,
         EntityKind::Donkey,
-        EntityKind::HappyGhast,
         EntityKind::Horse,
         EntityKind::Llama,
         EntityKind::Mule,
@@ -207,9 +125,7 @@ pub static FALL_DAMAGE_IMMUNE: LazyLock<RegistryTag<EntityKind>> = LazyLock::new
         EntityKind::Breeze,
         EntityKind::Cat,
         EntityKind::Chicken,
-        EntityKind::CopperGolem,
         EntityKind::Ghast,
-        EntityKind::HappyGhast,
         EntityKind::IronGolem,
         EntityKind::MagmaCube,
         EntityKind::Ocelot,
@@ -218,35 +134,6 @@ pub static FALL_DAMAGE_IMMUNE: LazyLock<RegistryTag<EntityKind>> = LazyLock::new
         EntityKind::Shulker,
         EntityKind::SnowGolem,
         EntityKind::Wither,
-    ])
-});
-pub static FOLLOWABLE_FRIENDLY_MOBS: LazyLock<RegistryTag<EntityKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        EntityKind::Armadillo,
-        EntityKind::Bee,
-        EntityKind::Camel,
-        EntityKind::Cat,
-        EntityKind::Chicken,
-        EntityKind::Cow,
-        EntityKind::Donkey,
-        EntityKind::Fox,
-        EntityKind::HappyGhast,
-        EntityKind::Goat,
-        EntityKind::Horse,
-        EntityKind::Llama,
-        EntityKind::Mule,
-        EntityKind::Ocelot,
-        EntityKind::Panda,
-        EntityKind::Parrot,
-        EntityKind::Pig,
-        EntityKind::PolarBear,
-        EntityKind::Rabbit,
-        EntityKind::Sheep,
-        EntityKind::SkeletonHorse,
-        EntityKind::Sniffer,
-        EntityKind::Strider,
-        EntityKind::Villager,
-        EntityKind::Wolf,
     ])
 });
 pub static FREEZE_HURTS_EXTRA_TYPES: LazyLock<RegistryTag<EntityKind>> = LazyLock::new(|| {
@@ -269,10 +156,8 @@ pub static FROG_FOOD: LazyLock<RegistryTag<EntityKind>> =
 pub static IGNORES_POISON_AND_REGEN: LazyLock<RegistryTag<EntityKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         EntityKind::Bogged,
-        EntityKind::CamelHusk,
         EntityKind::Drowned,
         EntityKind::Husk,
-        EntityKind::Parched,
         EntityKind::Phantom,
         EntityKind::Skeleton,
         EntityKind::SkeletonHorse,
@@ -282,7 +167,6 @@ pub static IGNORES_POISON_AND_REGEN: LazyLock<RegistryTag<EntityKind>> = LazyLoc
         EntityKind::Zoglin,
         EntityKind::Zombie,
         EntityKind::ZombieHorse,
-        EntityKind::ZombieNautilus,
         EntityKind::ZombieVillager,
         EntityKind::ZombifiedPiglin,
     ])
@@ -326,10 +210,8 @@ pub static IMPACT_PROJECTILES: LazyLock<RegistryTag<EntityKind>> = LazyLock::new
 pub static INVERTED_HEALING_AND_HARM: LazyLock<RegistryTag<EntityKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         EntityKind::Bogged,
-        EntityKind::CamelHusk,
         EntityKind::Drowned,
         EntityKind::Husk,
-        EntityKind::Parched,
         EntityKind::Phantom,
         EntityKind::Skeleton,
         EntityKind::SkeletonHorse,
@@ -339,13 +221,10 @@ pub static INVERTED_HEALING_AND_HARM: LazyLock<RegistryTag<EntityKind>> = LazyLo
         EntityKind::Zoglin,
         EntityKind::Zombie,
         EntityKind::ZombieHorse,
-        EntityKind::ZombieNautilus,
         EntityKind::ZombieVillager,
         EntityKind::ZombifiedPiglin,
     ])
 });
-pub static NAUTILUS_HOSTILES: LazyLock<RegistryTag<EntityKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![EntityKind::Pufferfish]));
 pub static NO_ANGER_FROM_WIND_CHARGE: LazyLock<RegistryTag<EntityKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         EntityKind::Bogged,
@@ -359,15 +238,8 @@ pub static NO_ANGER_FROM_WIND_CHARGE: LazyLock<RegistryTag<EntityKind>> = LazyLo
         EntityKind::Zombie,
     ])
 });
-pub static NON_CONTROLLING_RIDER: LazyLock<RegistryTag<EntityKind>> = LazyLock::new(|| {
-    RegistryTag::new(vec![
-        EntityKind::MagmaCube,
-        EntityKind::Slime,
-        EntityKind::SulfurCube,
-    ])
-});
-pub static NOT_AFFECTED_BY_GEYSERS: LazyLock<RegistryTag<EntityKind>> =
-    LazyLock::new(|| RegistryTag::new(vec![EntityKind::EnderDragon]));
+pub static NON_CONTROLLING_RIDER: LazyLock<RegistryTag<EntityKind>> =
+    LazyLock::new(|| RegistryTag::new(vec![EntityKind::MagmaCube, EntityKind::Slime]));
 pub static NOT_SCARY_FOR_PUFFERFISH: LazyLock<RegistryTag<EntityKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         EntityKind::Cod,
@@ -375,15 +247,12 @@ pub static NOT_SCARY_FOR_PUFFERFISH: LazyLock<RegistryTag<EntityKind>> = LazyLoc
         EntityKind::ElderGuardian,
         EntityKind::GlowSquid,
         EntityKind::Guardian,
-        EntityKind::Nautilus,
         EntityKind::Pufferfish,
         EntityKind::Salmon,
         EntityKind::Squid,
-        EntityKind::SulfurCube,
         EntityKind::Tadpole,
         EntityKind::TropicalFish,
         EntityKind::Turtle,
-        EntityKind::ZombieNautilus,
     ])
 });
 pub static POWDER_SNOW_WALKABLE_MOBS: LazyLock<RegistryTag<EntityKind>> = LazyLock::new(|| {
@@ -429,23 +298,19 @@ pub static SENSITIVE_TO_IMPALING: LazyLock<RegistryTag<EntityKind>> = LazyLock::
         EntityKind::ElderGuardian,
         EntityKind::GlowSquid,
         EntityKind::Guardian,
-        EntityKind::Nautilus,
         EntityKind::Pufferfish,
         EntityKind::Salmon,
         EntityKind::Squid,
         EntityKind::Tadpole,
         EntityKind::TropicalFish,
         EntityKind::Turtle,
-        EntityKind::ZombieNautilus,
     ])
 });
 pub static SENSITIVE_TO_SMITE: LazyLock<RegistryTag<EntityKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         EntityKind::Bogged,
-        EntityKind::CamelHusk,
         EntityKind::Drowned,
         EntityKind::Husk,
-        EntityKind::Parched,
         EntityKind::Phantom,
         EntityKind::Skeleton,
         EntityKind::SkeletonHorse,
@@ -455,7 +320,6 @@ pub static SENSITIVE_TO_SMITE: LazyLock<RegistryTag<EntityKind>> = LazyLock::new
         EntityKind::Zoglin,
         EntityKind::Zombie,
         EntityKind::ZombieHorse,
-        EntityKind::ZombieNautilus,
         EntityKind::ZombieVillager,
         EntityKind::ZombifiedPiglin,
     ])
@@ -463,7 +327,6 @@ pub static SENSITIVE_TO_SMITE: LazyLock<RegistryTag<EntityKind>> = LazyLock::new
 pub static SKELETONS: LazyLock<RegistryTag<EntityKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         EntityKind::Bogged,
-        EntityKind::Parched,
         EntityKind::Skeleton,
         EntityKind::SkeletonHorse,
         EntityKind::Stray,
@@ -473,10 +336,8 @@ pub static SKELETONS: LazyLock<RegistryTag<EntityKind>> = LazyLock::new(|| {
 pub static UNDEAD: LazyLock<RegistryTag<EntityKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         EntityKind::Bogged,
-        EntityKind::CamelHusk,
         EntityKind::Drowned,
         EntityKind::Husk,
-        EntityKind::Parched,
         EntityKind::Phantom,
         EntityKind::Skeleton,
         EntityKind::SkeletonHorse,
@@ -486,7 +347,6 @@ pub static UNDEAD: LazyLock<RegistryTag<EntityKind>> = LazyLock::new(|| {
         EntityKind::Zoglin,
         EntityKind::Zombie,
         EntityKind::ZombieHorse,
-        EntityKind::ZombieNautilus,
         EntityKind::ZombieVillager,
         EntityKind::ZombifiedPiglin,
     ])
@@ -494,10 +354,8 @@ pub static UNDEAD: LazyLock<RegistryTag<EntityKind>> = LazyLock::new(|| {
 pub static WITHER_FRIENDS: LazyLock<RegistryTag<EntityKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
         EntityKind::Bogged,
-        EntityKind::CamelHusk,
         EntityKind::Drowned,
         EntityKind::Husk,
-        EntityKind::Parched,
         EntityKind::Phantom,
         EntityKind::Skeleton,
         EntityKind::SkeletonHorse,
@@ -507,20 +365,17 @@ pub static WITHER_FRIENDS: LazyLock<RegistryTag<EntityKind>> = LazyLock::new(|| 
         EntityKind::Zoglin,
         EntityKind::Zombie,
         EntityKind::ZombieHorse,
-        EntityKind::ZombieNautilus,
         EntityKind::ZombieVillager,
         EntityKind::ZombifiedPiglin,
     ])
 });
 pub static ZOMBIES: LazyLock<RegistryTag<EntityKind>> = LazyLock::new(|| {
     RegistryTag::new(vec![
-        EntityKind::CamelHusk,
         EntityKind::Drowned,
         EntityKind::Husk,
         EntityKind::Zoglin,
         EntityKind::Zombie,
         EntityKind::ZombieHorse,
-        EntityKind::ZombieNautilus,
         EntityKind::ZombieVillager,
         EntityKind::ZombifiedPiglin,
     ])
