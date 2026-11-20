@@ -156,6 +156,13 @@ pub fn start_ecs_runner(
     (ecs, start_running_systems, appexit_rx)
 }
 
+/// Called by the ECS runner after every frame with how long the frame took
+/// (the `Update` schedule, and the `GameTick` schedule if it ran: the bool).
+/// For per-client tick time metrics; it runs on the app's thread while the
+/// ECS is locked, so it must be quick.
+#[derive(Clone, Resource)]
+pub struct FrameTimeHook(pub Arc<dyn Fn(Duration, bool) + Send + Sync>);
+
 /// Runs the `Update` schedule 60 times per second and the `GameTick` schedule
 /// 20 times per second.
 ///
@@ -186,6 +193,8 @@ async fn run_schedule_loop(
         last_update = Some(now);
 
         let mut ecs = ecs.write();
+        let frame_start = Instant::now();
+        let mut ticked = false;
 
         // if last tick is None or more than 50ms ago, run the GameTick schedule
         ecs.run_schedule(outer_schedule_label);
@@ -209,9 +218,13 @@ async fn run_schedule_loop(
                 last_tick = Some(now);
             }
             ecs.run_schedule(GameTick);
+            ticked = true;
         }
 
         ecs.clear_trackers();
+        if let Some(hook) = ecs.get_resource::<FrameTimeHook>() {
+            (hook.0)(frame_start.elapsed(), ticked);
+        }
         if let Some(exit) = should_exit(&mut ecs) {
             // it's possible for references to the World to stay around, so we
             // clear the ecs

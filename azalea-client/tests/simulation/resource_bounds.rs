@@ -377,3 +377,39 @@ fn light_kept_per_chunk_and_dropped_with_it() {
     assert!(weak.upgrade().is_none());
     assert_eq!(weak_map_len(&s), 0);
 }
+
+/// The resource snapshot reads every bounded map.
+#[test]
+fn resource_snapshot_reads_the_maps() {
+    use azalea_client::resources::AppResources;
+    use azalea_registry::builtin::EntityKind;
+
+    let _lock = init();
+    let mut s = Simulation::new(ConnectionProtocol::Game);
+    s.with_component_mut::<azalea_client::ClientInformation>(|mut ci| ci.view_distance = 7);
+    s.receive_packet(default_login_packet());
+    let mut chunk = make_basic_empty_chunk(ChunkPos::new(0, 0), SECTIONS);
+    chunk.light_data = light_packet(&[(1, 0x12)], &[]);
+    s.receive_packet(chunk);
+    s.receive_packet(make_basic_empty_chunk(ChunkPos::new(1, 0), SECTIONS));
+    s.tick();
+    let mut add = make_basic_add_entity(EntityKind::Cow, 50, (20.0, 64., 0.5));
+    add.uuid = uuid::Uuid::from_u128(50);
+    s.receive_packet(add);
+    s.tick();
+    let r = AppResources::read(s.app.world_mut());
+    assert_eq!(r.clients.len(), 1);
+    let c = &r.clients[0];
+    assert_eq!(c.ring_loaded, 2);
+    assert_eq!(c.ring_capacity, 441);
+    assert_eq!(c.ring_radius, 10);
+    assert_eq!(c.weak_map_len, 2);
+    assert_eq!(c.entities, 2);
+    assert_eq!(c.entities_by_chunk, 2);
+    assert_eq!(c.entities_by_chunk_empty, 0);
+    assert_eq!(c.updates_received_unknown, 0);
+    assert!(c.light_bytes >= 2048 && c.light_max_chunk >= 2048, "{c:?}");
+    assert_eq!(r.worlds, 1);
+    assert_eq!(r.worlds_live, 1);
+    assert!(r.ecs_entities >= 2);
+}

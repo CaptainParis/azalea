@@ -25,7 +25,8 @@ pub use azalea_protocol::common::client_information::ClientInformation;
 // version.
 pub use bevy_tasks;
 pub use client::{
-    InConfigState, InGameState, JoinedClientBundle, LocalPlayerBundle, start_ecs_runner,
+    FrameTimeHook, InConfigState, InGameState, JoinedClientBundle, LocalPlayerBundle,
+    start_ecs_runner,
 };
 pub use movement::{StartSprintEvent, StartWalkEvent};
 pub use plugins::*;

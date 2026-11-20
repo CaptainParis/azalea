@@ -180,3 +180,104 @@ pub fn enforce_entity_cap(ecs: &mut World) {
         }
     }
 }
+
+/// What one client holds, for metrics and the WP4 bound checks.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ClientResources {
+    pub player: Option<Entity>,
+    /// Ring slots holding a chunk (stale slots included).
+    pub ring_loaded: usize,
+    /// The ring's capacity (its hard cap).
+    pub ring_capacity: usize,
+    pub ring_radius: u32,
+    /// Entries in the shared weak chunk map of the client's world.
+    pub weak_map_len: usize,
+    /// Heap bytes of the light kept in the ring's chunks.
+    pub light_bytes: usize,
+    /// The most light bytes one of those chunks holds.
+    pub light_max_chunk: usize,
+    /// Entries of the world's `entities_by_chunk`.
+    pub entities_by_chunk: usize,
+    /// Of those, entries whose set is empty (0 when bounded).
+    pub entities_by_chunk_empty: usize,
+    /// Entries of `updates_received`.
+    pub updates_received: usize,
+    /// Of those, entries for ids the client doesn't know (0 when bounded).
+    pub updates_received_unknown: usize,
+    /// Entities the client knows (its id index, itself included).
+    pub entities: usize,
+}
+
+/// What an app holds: every client's [`ClientResources`] plus the app-wide
+/// maps.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppResources {
+    pub clients: Vec<ClientResources>,
+    /// Entries of the [`Worlds`] map.
+    pub worlds: usize,
+    /// Of those, worlds still held.
+    pub worlds_live: usize,
+    /// ECS entities spawned in the app.
+    pub ecs_entities: usize,
+}
+
+impl AppResources {
+    /// Read the counts from an app's ECS (O(entities + ring); for metrics,
+    /// not every tick).
+    pub fn read(ecs: &mut World) -> Self {
+        let (worlds, worlds_live) = ecs
+            .get_resource::<Worlds>()
+            .map_or((0, 0), |w| (w.map.len(), w.live_count()));
+        let ecs_entities = ecs.entities().count_spawned() as usize;
+        let mut q = ecs
+            .query_filtered::<(Entity, &WorldHolder, Option<&EntityIdIndex>), With<LocalEntity>>();
+        let clients = q
+            .iter(ecs)
+            .map(|(player, holder, index)| client_resources(player, holder, index))
+            .collect();
+        Self {
+            clients,
+            worlds,
+            worlds_live,
+            ecs_entities,
+        }
+    }
+}
+
+fn client_resources(
+    player: Entity,
+    holder: &WorldHolder,
+    index: Option<&EntityIdIndex>,
+) -> ClientResources {
+    let mut r = ClientResources {
+        player: Some(player),
+        entities: index.map_or(0, |i| i.len()),
+        ..Default::default()
+    };
+    {
+        let partial = holder.partial.read();
+        r.ring_loaded = partial.chunks.loaded_count();
+        r.ring_capacity = partial.chunks.capacity();
+        r.ring_radius = partial.chunks.chunk_radius();
+        for chunk in partial.chunks.chunks().flatten() {
+            let b = chunk.read().light.heap_bytes();
+            r.light_bytes += b;
+            r.light_max_chunk = r.light_max_chunk.max(b);
+        }
+        let updates = &partial.entity_infos.updates_received;
+        r.updates_received = updates.len();
+        r.updates_received_unknown = updates
+            .keys()
+            .filter(|id| !index.is_some_and(|i| i.contains_minecraft_entity(**id)))
+            .count();
+    }
+    let world = holder.shared.read();
+    r.weak_map_len = world.chunks.len();
+    r.entities_by_chunk = world.entities_by_chunk.len();
+    r.entities_by_chunk_empty = world
+        .entities_by_chunk
+        .values()
+        .filter(|s| s.is_empty())
+        .count();
+    r
+}
