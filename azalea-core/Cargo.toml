@@ -17,7 +17,6 @@ simdnbt.workspace = true
 tracing.workspace = true
 azalea-chat = { workspace = true, features = ["simdnbt"] }
 indexmap.workspace = true
-crc32c.workspace = true
 thiserror.workspace = true
 uuid.workspace = true
 derive_more = { workspace = true, features = ["deref", "deref_mut"] }

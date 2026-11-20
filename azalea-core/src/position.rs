@@ -508,7 +508,7 @@ impl serde::Serialize for BlockPos {
     where
         S: Serializer,
     {
-        // makes sure it gets serialized correctly for the checksum
+        // vanilla's codec encodes block positions as an int array
 
         use crate::codec_utils::IntArray;
         IntArray([self.x, self.y, self.z]).serialize(serializer)

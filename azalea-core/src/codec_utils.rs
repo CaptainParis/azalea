@@ -52,18 +52,16 @@ pub fn uuid<'a, S: Serializer>(
 
 /// An internal type that makes the i32 array be serialized differently.
 ///
-/// Azalea currently only uses this when writing checksums, but Minecraft also
-/// uses this internally when converting types to NBT.
+/// Minecraft uses this internally when converting types to NBT.
 pub struct IntArray<const N: usize>(pub [i32; N]);
 /// An internal type that makes the i64 array be serialized differently.
 ///
-/// Azalea currently only uses this when writing checksums, but Minecraft also
-/// uses this internally when converting types to NBT.
+/// Minecraft uses this internally when converting types to NBT.
 pub struct LongArray<const N: usize>(pub [i64; N]);
 
 impl<const N: usize> Serialize for IntArray<N> {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        // see checksum::serialize_tuple_struct
+        // serializers can tell these apart by the tuple struct name
         let mut seq = serializer.serialize_tuple_struct("azalea:int_array", N)?;
         for &item in &self.0 {
             seq.serialize_field(&item)?;
@@ -73,7 +71,7 @@ impl<const N: usize> Serialize for IntArray<N> {
 }
 impl<const N: usize> Serialize for LongArray<N> {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        // see checksum::serialize_tuple_struct
+        // serializers can tell these apart by the tuple struct name
         let mut seq = serializer.serialize_tuple_struct("azalea:long_array", N)?;
         for &item in &self.0 {
             seq.serialize_field(&item)?;
