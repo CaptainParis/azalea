@@ -21,6 +21,7 @@ pub struct LoginPlugin;
 impl Plugin for LoginPlugin {
     fn build(&self, app: &mut App) {
         app.add_observer(handle_receive_hello_event)
+            .add_message::<AuthFailedEvent>()
             .add_systems(Update, (poll_auth_task, reply_to_custom_queries));
     }
 }
@@ -58,11 +59,30 @@ fn handle_receive_hello_event(
 #[derive(Component)]
 pub struct IsAuthenticated;
 
+/// The sessionserver join (or the token refresh before it) failed during
+/// login. The connection is closed at once (the server would otherwise wait
+/// for the key until its login timeout), and a `DisconnectEvent` follows.
+#[derive(Clone, Debug, Message)]
+pub struct AuthFailedEvent {
+    pub entity: Entity,
+    pub error: String,
+    /// The sessionserver said the access token is not valid (refresh it).
+    pub invalid_session: bool,
+    /// The sessionserver rate-limited the join.
+    pub rate_limited: bool,
+}
+
 pub fn poll_auth_task(
     mut commands: Commands,
-    mut query: Query<(Entity, &mut AuthTask, &mut RawConnection)>,
+    mut query: Query<(
+        Entity,
+        &mut AuthTask,
+        &mut RawConnection,
+        Option<&super::connection::ConnectionSocket>,
+    )>,
+    mut failed: MessageWriter<AuthFailedEvent>,
 ) {
-    for (entity, mut auth_task, mut raw_conn) in query.iter_mut() {
+    for (entity, mut auth_task, mut raw_conn, socket) in query.iter_mut() {
         if let Some(poll_res) = future::block_on(future::poll_once(&mut auth_task.0)) {
             debug!("Finished auth");
             commands
@@ -85,6 +105,32 @@ pub fn poll_auth_task(
                 }
                 Err(err) => {
                     error!("Error during authentication: {err:?}");
+                    #[cfg(feature = "online-mode")]
+                    let (invalid_session, rate_limited) = match &err {
+                        AuthWithAccountError::SessionServer(e) => (
+                            matches!(
+                                e,
+                                ClientSessionServerError::InvalidSession
+                                    | ClientSessionServerError::ForbiddenOperation
+                            ),
+                            matches!(e, ClientSessionServerError::RateLimited),
+                        ),
+                        _ => (false, false),
+                    };
+                    #[cfg(not(feature = "online-mode"))]
+                    let (invalid_session, rate_limited) = (false, false);
+                    failed.write(AuthFailedEvent {
+                        entity,
+                        error: err.to_string(),
+                        invalid_session,
+                        rate_limited,
+                    });
+                    if let Some(socket) = socket {
+                        // the duplicate keeps the socket open after the
+                        // halves are dropped
+                        let _ = socket.0.shutdown(std::net::Shutdown::Both);
+                    }
+                    raw_conn.close(format!("authentication failed: {err}"));
                 }
             }
         }
