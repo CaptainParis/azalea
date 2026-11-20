@@ -2,6 +2,7 @@ mod events;
 
 use std::io::Cursor;
 
+use azalea_core::decode_errors::{DecodeErrorKind, record_decode_error};
 use azalea_entity::LocalEntity;
 use azalea_protocol::{
     packets::{ConnectionProtocol, config::*},
@@ -67,7 +68,12 @@ pub struct ConfigPacketHandler<'a> {
 impl ConfigPacketHandler<'_> {
     pub fn registry_data(&mut self, p: &ClientboundRegistryData) {
         as_system::<Query<&WorldHolder>>(self.ecs, |mut query| {
-            let world_holder = query.get_mut(self.player).unwrap();
+            let Ok(world_holder) = query.get_mut(self.player) else {
+                warn!("Got registry data packet but our player has no WorldHolder");
+                // decode error hook: our own player's components are missing
+                record_decode_error(DecodeErrorKind::HandlerState);
+                return;
+            };
             let mut world = world_holder.shared.write();
 
             // add the new registry data
@@ -97,7 +103,13 @@ impl ConfigPacketHandler<'_> {
         as_system::<(Commands, Query<&mut RawConnection>)>(
             self.ecs,
             |(mut commands, mut query)| {
-                let mut raw_conn = query.get_mut(self.player).unwrap();
+                let Ok(mut raw_conn) = query.get_mut(self.player) else {
+                    warn!("Got finish configuration packet but our player has no RawConnection");
+                    // decode error hook: our own player's components are
+                    // missing
+                    record_decode_error(DecodeErrorKind::HandlerState);
+                    return;
+                };
                 raw_conn.state = ConnectionProtocol::Game;
 
                 commands.trigger(SendConfigPacketEvent::new(
@@ -112,8 +124,8 @@ impl ConfigPacketHandler<'_> {
                     .remove::<InConfigState>()
                     .insert((
                         crate::JoinedClientBundle::default(),
-                        // localentity should already be added, but in case the user forgot or
-                        // something we also add it here
+                        // localentity should already be added, but in case the
+                        // user forgot or something we also add it here
                         LocalEntity,
                     ));
             },

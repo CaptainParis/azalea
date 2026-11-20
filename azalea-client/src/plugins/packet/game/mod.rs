@@ -229,14 +229,21 @@ impl GamePacketHandler<'_> {
                 mut entity_uuid_index,
                 mut loaded_by_query,
             )| {
-                let (
+                let Ok((
                     game_profile,
                     client_information,
                     world_name,
                     loaded_by,
                     mut entity_id_index,
                     mut world_holder,
-                ) = query.get_mut(self.player).unwrap();
+                )) = query.get_mut(self.player)
+                else {
+                    warn!("Got login packet but our player is missing components");
+                    // decode error hook: our own player's components are
+                    // missing
+                    record_decode_error(DecodeErrorKind::HandlerState);
+                    return;
+                };
 
                 let new_world_name = WorldName(p.common.dimension.clone());
 
@@ -285,8 +292,8 @@ impl GamePacketHandler<'_> {
                     azalea_world::chunk::calculate_chunk_storage_range(
                         client_information.view_distance.into(),
                     ),
-                    // this argument makes it so other clients don't update this player entity in a
-                    // shared world
+                    // this argument makes it so other clients don't update this
+                    // player entity in a shared world
                     Some(self.player),
                 );
                 {
@@ -382,7 +389,12 @@ impl GamePacketHandler<'_> {
         debug!("Got player abilities packet {p:?}");
 
         as_system::<Query<&mut PlayerAbilities>>(self.ecs, |mut query| {
-            let mut player_abilities = query.get_mut(self.player).unwrap();
+            let Ok(mut player_abilities) = query.get_mut(self.player) else {
+                warn!("Got player_abilities packet but our player is missing components");
+                // decode error hook: our own player's components are missing
+                record_decode_error(DecodeErrorKind::HandlerState);
+                return;
+            };
 
             *player_abilities = PlayerAbilities::from(p);
         });
@@ -391,8 +403,9 @@ impl GamePacketHandler<'_> {
     pub fn set_cursor_item(&mut self, p: &ClientboundSetCursorItem) {
         debug!("Got set cursor item packet {p:?}");
 
-        // 1.21.4 handleSetCursorItem: `player.containerMenu.setCarried(contents)`
-        // (unless the creative inventory screen is open, which we never have)
+        // 1.21.4 handleSetCursorItem:
+        // `player.containerMenu.setCarried(contents)` (unless the creative
+        // inventory screen is open, which we never have)
         as_system::<Query<&mut Inventory>>(self.ecs, |mut query| {
             let Ok(mut inventory) = query.get_mut(self.player) else {
                 warn!("Got set cursor item packet but our player doesn't have an Inventory");
@@ -483,7 +496,13 @@ impl GamePacketHandler<'_> {
                 mut update_player_events,
                 mut tab_list_resource,
             )| {
-                let mut tab_list = query.get_mut(self.player).unwrap();
+                let Ok(mut tab_list) = query.get_mut(self.player) else {
+                    warn!("Got player_info_update packet but our player is missing components");
+                    // decode error hook: our own player's components are
+                    // missing
+                    record_decode_error(DecodeErrorKind::HandlerState);
+                    return;
+                };
 
                 for updated_info in &p.entries {
                     // add the new player maybe
@@ -537,7 +556,13 @@ impl GamePacketHandler<'_> {
         )>(
             self.ecs,
             |(mut query, mut remove_player_events, mut tab_list_resource)| {
-                let mut tab_list = query.get_mut(self.player).unwrap();
+                let Ok(mut tab_list) = query.get_mut(self.player) else {
+                    warn!("Got player_info_remove packet but our player is missing components");
+                    // decode error hook: our own player's components are
+                    // missing
+                    record_decode_error(DecodeErrorKind::HandlerState);
+                    return;
+                };
 
                 for uuid in &p.profile_ids {
                     if let Some(info) = tab_list.remove(uuid) {
@@ -556,7 +581,12 @@ impl GamePacketHandler<'_> {
         debug!("Got chunk cache center packet {p:?}");
 
         as_system::<Query<&WorldHolder>>(self.ecs, |mut query| {
-            let world_holder = query.get_mut(self.player).unwrap();
+            let Ok(world_holder) = query.get_mut(self.player) else {
+                warn!("Got set_chunk_cache_center packet but our player is missing components");
+                // decode error hook: our own player's components are missing
+                record_decode_error(DecodeErrorKind::HandlerState);
+                return;
+            };
             let mut partial_world = world_holder.partial.write();
 
             partial_world
@@ -602,8 +632,14 @@ impl GamePacketHandler<'_> {
                 worlds,
                 mut entity_uuid_index,
             )| {
-                let (mut entity_id_index, world_name, tab_list) =
-                    query.get_mut(self.player).unwrap();
+                let Ok((mut entity_id_index, world_name, tab_list)) = query.get_mut(self.player)
+                else {
+                    warn!("Got add_entity packet but our player is missing components");
+                    // decode error hook: our own player's components are
+                    // missing
+                    record_decode_error(DecodeErrorKind::HandlerState);
+                    return;
+                };
 
                 let entity_id = p.id;
 
@@ -614,7 +650,12 @@ impl GamePacketHandler<'_> {
 
                 // check if the entity already exists, and if it does then only
                 // add to LoadedBy
-                let world = worlds.get(world_name).unwrap();
+                let Some(world) = worlds.get(world_name) else {
+                    warn!("Got add entity packet but our world {world_name} isn't loaded");
+                    // decode error hook: our own world is missing
+                    record_decode_error(DecodeErrorKind::HandlerState);
+                    return;
+                };
                 if let Some(&ecs_entity) = world.read().entity_by_id.get(&entity_id) {
                     // entity already exists
                     let Ok(mut loaded_by) = loaded_by_query.get_mut(ecs_entity) else {
@@ -685,11 +726,17 @@ impl GamePacketHandler<'_> {
         as_system::<(
             Commands,
             Query<(&EntityIdIndex, &WorldHolder)>,
-            // this is a separate query since it's applied on the entity id that's being updated
-            // instead of the player that received the packet
+            // this is a separate query since it's applied on the entity id
+            // that's being updated instead of the player that received the
+            // packet
             Query<&EntityKindComponent>,
         )>(self.ecs, |(mut commands, query, entity_kind_query)| {
-            let (entity_id_index, world_holder) = query.get(self.player).unwrap();
+            let Ok((entity_id_index, world_holder)) = query.get(self.player) else {
+                warn!("Got set_entity_data packet but our player is missing components");
+                // decode error hook: our own player's components are missing
+                record_decode_error(DecodeErrorKind::HandlerState);
+                return;
+            };
 
             let entity = entity_id_index.get_by_minecraft_entity(p.id);
 
@@ -754,7 +801,12 @@ impl GamePacketHandler<'_> {
             Query<(&EntityIdIndex, &WorldHolder)>,
             EntityUpdateQuery,
         )>(self.ecs, |(mut commands, query, entity_update_query)| {
-            let (entity_id_index, world_holder) = query.get(self.player).unwrap();
+            let Ok((entity_id_index, world_holder)) = query.get(self.player) else {
+                warn!("Got set_entity_motion packet but our player is missing components");
+                // decode error hook: our own player's components are missing
+                record_decode_error(DecodeErrorKind::HandlerState);
+                return;
+            };
 
             let Some(entity) = entity_id_index.get_by_minecraft_entity(p.id) else {
                 // note that this log (and some other ones like the one in
@@ -805,7 +857,12 @@ impl GamePacketHandler<'_> {
         debug!("Got set health packet {p:?}");
 
         as_system::<Query<(&mut Health, &mut Hunger)>>(self.ecs, |mut query| {
-            let (mut health, mut hunger) = query.get_mut(self.player).unwrap();
+            let Ok((mut health, mut hunger)) = query.get_mut(self.player) else {
+                warn!("Got set_health packet but our player is missing components");
+                // decode error hook: our own player's components are missing
+                record_decode_error(DecodeErrorKind::HandlerState);
+                return;
+            };
 
             **health = p.health;
             (hunger.food, hunger.saturation) = (p.food, p.saturation);
@@ -820,7 +877,12 @@ impl GamePacketHandler<'_> {
         debug!("Got set experience packet {p:?}");
 
         as_system::<Query<&mut Experience>>(self.ecs, |mut query| {
-            let mut experience = query.get_mut(self.player).unwrap();
+            let Ok(mut experience) = query.get_mut(self.player) else {
+                warn!("Got set_experience packet but our player is missing components");
+                // decode error hook: our own player's components are missing
+                record_decode_error(DecodeErrorKind::HandlerState);
+                return;
+            };
             experience.progress = p.experience_progress;
             experience.level = p.experience_level;
             experience.total = p.total_experience;
@@ -833,7 +895,13 @@ impl GamePacketHandler<'_> {
         as_system::<(Commands, Query<(&EntityIdIndex, &WorldHolder)>)>(
             self.ecs,
             |(mut commands, query)| {
-                let (entity_id_index, world_holder) = query.get(self.player).unwrap();
+                let Ok((entity_id_index, world_holder)) = query.get(self.player) else {
+                    warn!("Got teleport_entity packet but our player is missing components");
+                    // decode error hook: our own player's components are
+                    // missing
+                    record_decode_error(DecodeErrorKind::HandlerState);
+                    return;
+                };
 
                 let Some(entity) = entity_id_index.get_by_minecraft_entity(p.id) else {
                     warn!("Got teleport entity packet for unknown entity id {}", p.id);
@@ -852,8 +920,12 @@ impl GamePacketHandler<'_> {
                         entity.world_scope(move |world| {
                             let mut query =
                                 world.query::<(&mut Physics, &mut LookDirection, &mut Position)>();
-                            let (mut physics, mut look_direction, mut position) =
-                                query.get_mut(world, entity_id).unwrap();
+                            let Ok((mut physics, mut look_direction, mut position)) = query.get_mut(world, entity_id) else {
+                                warn!("Got teleport_entity packet but the entity is missing components every entity has");
+                                // decode error hook: an indexed entity without the components every entity has
+                                record_decode_error(DecodeErrorKind::EntityIndex);
+                                return;
+                            };
                             let old_position = *position;
                             relative.apply(
                                 &change,
@@ -1055,7 +1127,12 @@ impl GamePacketHandler<'_> {
         debug!("Got block update packet {p:?}");
 
         as_system::<Query<&mut QueuedServerBlockUpdates>>(self.ecs, |mut query| {
-            let mut queued = query.get_mut(self.player).unwrap();
+            let Ok(mut queued) = query.get_mut(self.player) else {
+                warn!("Got block_update packet but our player is missing components");
+                // decode error hook: our own player's components are missing
+                record_decode_error(DecodeErrorKind::HandlerState);
+                return;
+            };
             queued.list.push((p.pos, p.block_state));
         });
     }
@@ -1068,7 +1145,12 @@ impl GamePacketHandler<'_> {
         debug!("Got section blocks update packet {p:?}");
 
         as_system::<Query<&mut QueuedServerBlockUpdates>>(self.ecs, |mut query| {
-            let mut queued = query.get_mut(self.player).unwrap();
+            let Ok(mut queued) = query.get_mut(self.player) else {
+                warn!("Got section_blocks_update packet but our player is missing components");
+                // decode error hook: our own player's components are missing
+                record_decode_error(DecodeErrorKind::HandlerState);
+                return;
+            };
             for new_state in &p.states {
                 let pos = p.section_pos + new_state.pos;
                 queued.list.push((pos, new_state.state));
@@ -1085,7 +1167,13 @@ impl GamePacketHandler<'_> {
         match p.event {
             EventType::ChangeGameMode => {
                 as_system::<Query<&mut GameMode>>(self.ecs, |mut query| {
-                    let mut game_mode = query.get_mut(self.player).unwrap();
+                    let Ok(mut game_mode) = query.get_mut(self.player) else {
+                        warn!("Got game_event packet but our player is missing components");
+                        // decode error hook: our own player's components are
+                        // missing
+                        record_decode_error(DecodeErrorKind::HandlerState);
+                        return;
+                    };
                     if let Some(new_game_mode) = GameMode::from_id(p.param as u8) {
                         *game_mode = new_game_mode;
                     }
@@ -1115,7 +1203,12 @@ impl GamePacketHandler<'_> {
             Query<(&EntityIdIndex, &WorldHolder)>,
             EntityUpdateQuery,
         )>(self.ecs, |(mut commands, query, entity_update_query)| {
-            let (entity_id_index, world_holder) = query.get(self.player).unwrap();
+            let Ok((entity_id_index, world_holder)) = query.get(self.player) else {
+                warn!("Got update_mob_effect packet but our player is missing components");
+                // decode error hook: our own player's components are missing
+                record_decode_error(DecodeErrorKind::HandlerState);
+                return;
+            };
 
             let Some(entity) = entity_id_index.get_by_minecraft_entity(p.entity_id) else {
                 debug!(
@@ -1152,7 +1245,13 @@ impl GamePacketHandler<'_> {
         as_system::<Query<(&WorldHolder, &mut BlockStatePredictionHandler)>>(
             self.ecs,
             |mut query| {
-                let (local_player, mut prediction_handler) = query.get_mut(self.player).unwrap();
+                let Ok((local_player, mut prediction_handler)) = query.get_mut(self.player) else {
+                    warn!("Got block_changed_ack packet but our player is missing components");
+                    // decode error hook: our own player's components are
+                    // missing
+                    record_decode_error(DecodeErrorKind::HandlerState);
+                    return;
+                };
                 let world = local_player.shared.read();
                 prediction_handler.end_prediction_up_to(p.seq, &world);
             },
@@ -1175,12 +1274,17 @@ impl GamePacketHandler<'_> {
         debug!("Got container set content packet {p:?}");
 
         as_system::<(Commands, Query<&mut Inventory>)>(self.ecs, |(mut commands, mut query)| {
-            let mut inventory = query.get_mut(self.player).unwrap();
+            let Ok(mut inventory) = query.get_mut(self.player) else {
+                warn!("Got container_set_content packet but our player is missing components");
+                // decode error hook: our own player's components are missing
+                record_decode_error(DecodeErrorKind::HandlerState);
+                return;
+            };
 
             // 1.21.4 ClientPacketListener.handleContainerContent and
-            // AbstractContainerMenu.initializeContents: the menu takes the items,
-            // the carried item and the state id. A stale state id makes the
-            // server answer the next click with a full resync.
+            // AbstractContainerMenu.initializeContents: the menu takes the
+            // items, the carried item and the state id. A stale state id makes
+            // the server answer the next click with a full resync.
             if p.container_id == 0 {
                 // container id 0 is always the player's inventory, open or not
                 for (i, slot) in p.items.iter().enumerate() {
@@ -1222,7 +1326,12 @@ impl GamePacketHandler<'_> {
         debug!("Got container set slot packet {p:?}");
 
         as_system::<Query<&mut Inventory>>(self.ecs, |mut query| {
-            let mut inventory = query.get_mut(self.player).unwrap();
+            let Ok(mut inventory) = query.get_mut(self.player) else {
+                warn!("Got container_set_slot packet but our player is missing components");
+                // decode error hook: our own player's components are missing
+                record_decode_error(DecodeErrorKind::HandlerState);
+                return;
+            };
 
             if p.container_id == -1 {
                 // -1 means carried item
@@ -1233,9 +1342,9 @@ impl GamePacketHandler<'_> {
                 }
             } else if p.container_id == 0 {
                 // 1.21.4 handleContainerSetSlot: container 0 is
-                // `player.inventoryMenu.setItem(slot, stateId, item)` for any slot,
-                // whatever container is open (minecraft also sets a "pop time"
-                // for the hotbar animation, not needed here)
+                // `player.inventoryMenu.setItem(slot, stateId, item)` for any
+                // slot, whatever container is open (minecraft also sets a "pop
+                // time" for the hotbar animation, not needed here)
                 inventory.set_inventory_menu_slot(p.slot.into(), p.item_stack.clone());
                 inventory.inventory_menu_state_id = p.state_id;
                 if inventory.id == 0 {
@@ -1287,7 +1396,12 @@ impl GamePacketHandler<'_> {
         debug!("Got forget level chunk packet {p:?}");
 
         as_system::<Query<&WorldHolder>>(self.ecs, |mut query| {
-            let local_player = query.get_mut(self.player).unwrap();
+            let Ok(local_player) = query.get_mut(self.player) else {
+                warn!("Got forget_level_chunk packet but our player is missing components");
+                // decode error hook: our own player's components are missing
+                record_decode_error(DecodeErrorKind::HandlerState);
+                return;
+            };
 
             let mut partial_world = local_player.partial.write();
 
@@ -1345,7 +1459,12 @@ impl GamePacketHandler<'_> {
             Query<(&MinecraftEntityId, Option<&Dead>)>,
             MessageWriter<_>,
         )>(self.ecs, |(mut commands, mut query, mut events)| {
-            let (entity_id, dead) = query.get_mut(self.player).unwrap();
+            let Ok((entity_id, dead)) = query.get_mut(self.player) else {
+                warn!("Got player_combat_kill packet but our player is missing components");
+                // decode error hook: our own player's components are missing
+                record_decode_error(DecodeErrorKind::HandlerState);
+                return;
+            };
 
             if *entity_id == p.player_id && dead.is_none() {
                 commands.entity(self.player).insert(Dead);
@@ -1367,7 +1486,12 @@ impl GamePacketHandler<'_> {
             Query<(&EntityIdIndex, &WorldHolder)>,
             EntityUpdateQuery,
         )>(self.ecs, |(mut commands, query, entity_update_query)| {
-            let (entity_id_index, world_holder) = query.get(self.player).unwrap();
+            let Ok((entity_id_index, world_holder)) = query.get(self.player) else {
+                warn!("Got remove_mob_effect packet but our player is missing components");
+                // decode error hook: our own player's components are missing
+                record_decode_error(DecodeErrorKind::HandlerState);
+                return;
+            };
 
             let Some(entity) = entity_id_index.get_by_minecraft_entity(p.entity_id) else {
                 debug!(
@@ -1563,10 +1687,19 @@ impl GamePacketHandler<'_> {
         )>(
             self.ecs,
             |(mut commands, mut query, mut entity_query, entity_update_query)| {
-                let (entity_id_index, world_holder) = query.get_mut(self.player).unwrap();
+                let Ok((entity_id_index, world_holder)) = query.get_mut(self.player) else {
+                    warn!("Got entity_position_sync packet but our player is missing components");
+                    // decode error hook: our own player's components are
+                    // missing
+                    record_decode_error(DecodeErrorKind::HandlerState);
+                    return;
+                };
 
                 let Some(entity) = entity_id_index.get_by_minecraft_entity(p.id) else {
-                    debug!("Got entity position sync packet for unknown entity id {}", p.id);
+                    debug!(
+                        "Got entity position sync packet for unknown entity id {}",
+                        p.id
+                    );
                     // decode error hook: entity id not in our index
                     record_decode_error(DecodeErrorKind::UnknownEntity);
                     return;
@@ -1588,7 +1721,10 @@ impl GamePacketHandler<'_> {
                 let Ok((mut physics, mut position, mut look_direction, local_entity)) =
                     entity_query.get_mut(entity)
                 else {
-                    warn!("Got entity position sync packet for an indexed entity without Physics/Position {}", p.id);
+                    warn!(
+                        "Got entity position sync packet for an indexed entity without Physics/Position {}",
+                        p.id
+                    );
                     // decode error hook: indexed entity missing components
                     record_decode_error(DecodeErrorKind::EntityIndex);
                     return;
@@ -1673,7 +1809,12 @@ impl GamePacketHandler<'_> {
         debug!("Got set held slot packet {p:?}");
 
         as_system::<Query<&mut Inventory>>(self.ecs, |mut query| {
-            let mut inventory = query.get_mut(self.player).unwrap();
+            let Ok(mut inventory) = query.get_mut(self.player) else {
+                warn!("Got set_held_slot packet but our player is missing components");
+                // decode error hook: our own player's components are missing
+                record_decode_error(DecodeErrorKind::HandlerState);
+                return;
+            };
             if p.slot <= 8 {
                 inventory.selected_hotbar_slot = p.slot as u8;
             }
@@ -1690,11 +1831,15 @@ impl GamePacketHandler<'_> {
                 record_decode_error(DecodeErrorKind::HandlerState);
                 return;
             };
-            // vanilla reads the slot as a signed varint; a negative one throws in
-            // `NonNullList.set` and the client disconnects with a packet error.
-            // Indexes past the offhand do nothing there, so they do nothing here.
+            // vanilla reads the slot as a signed varint; a negative one throws
+            // in `NonNullList.set` and the client disconnects with a packet
+            // error. Indexes past the offhand do nothing there, so they do
+            // nothing here.
             if p.slot > i32::MAX as u32 {
-                warn!("Got set player inventory packet with negative slot {}", p.slot as i32);
+                warn!(
+                    "Got set player inventory packet with negative slot {}",
+                    p.slot as i32
+                );
                 record_decode_error(DecodeErrorKind::PacketHandler);
                 return;
             }
@@ -1728,7 +1873,12 @@ fn move_entity(
     mut entity_query: MoveEntityQuery,
     entity_update_query: EntityUpdateQuery,
 ) {
-    let (entity_id_index, world_holder) = player_query.get(player_entity).unwrap();
+    let Ok((entity_id_index, world_holder)) = player_query.get(player_entity) else {
+        warn!("Got move_entity packet but our player is missing components");
+        // decode error hook: our own player's components are missing
+        record_decode_error(DecodeErrorKind::HandlerState);
+        return;
+    };
 
     let entity_id = p.entity_id;
     let entity = entity_id_index.get_by_minecraft_entity(entity_id);

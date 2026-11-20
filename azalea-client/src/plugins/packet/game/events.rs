@@ -1,12 +1,12 @@
 use std::sync::{Arc, Weak};
 
 use azalea_chat::FormattedText;
+use azalea_core::decode_errors::{DecodeErrorKind, record_decode_error};
 use azalea_protocol::packets::{
     Packet,
     game::{ClientboundGamePacket, ClientboundPlayerCombatKill, ServerboundGamePacket},
 };
 use azalea_world::{World, WorldName};
-use azalea_core::decode_errors::{DecodeErrorKind, record_decode_error};
 use bevy_ecs::prelude::*;
 use parking_lot::RwLock;
 use tracing::{error, trace};

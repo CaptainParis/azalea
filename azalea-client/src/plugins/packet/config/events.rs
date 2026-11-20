@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
+use azalea_core::decode_errors::{DecodeErrorKind, record_decode_error};
 use azalea_protocol::packets::{
     Packet,
     config::{ClientboundConfigPacket, ServerboundConfigPacket},
 };
-use azalea_core::decode_errors::{DecodeErrorKind, record_decode_error};
 use bevy_ecs::prelude::*;
 use tracing::{debug, error};
 

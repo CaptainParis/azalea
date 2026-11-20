@@ -71,6 +71,8 @@ where
     };
     let values = system_state
         .get_mut(ecs)
+        // network-safe: the parameter types are fixed in code and the
+        // resources they need are inserted by the plugins at startup
         .expect("system parameters should be valid");
     f(values);
     system_state.apply(ecs);

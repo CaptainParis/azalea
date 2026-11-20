@@ -14,7 +14,7 @@ use azalea_protocol::packets::{
 };
 use bevy_ecs::prelude::*;
 pub use events::*;
-use tracing::{debug, error};
+use tracing::{debug, error, warn};
 
 use super::as_system;
 use crate::{
@@ -99,9 +99,13 @@ impl LoginPacketHandler<'_> {
                     .insert(InConfigState)
                     .insert(GameProfileComponent(p.game_profile.clone()));
 
-                let mut conn = query
-                    .get_mut(self.player)
-                    .expect("RawConnection component should be present when receiving packets");
+                let Ok(mut conn) = query.get_mut(self.player) else {
+                    warn!("Got login finished packet but our player has no RawConnection");
+                    // decode error hook: our own player's components are
+                    // missing
+                    record_decode_error(DecodeErrorKind::HandlerState);
+                    return;
+                };
                 conn.state = ConnectionProtocol::Configuration;
             },
         );
@@ -110,9 +114,12 @@ impl LoginPacketHandler<'_> {
         debug!("Got compression request {p:?}");
 
         as_system::<Query<&mut RawConnection>>(self.ecs, |mut query| {
-            let mut conn = query
-                .get_mut(self.player)
-                .expect("RawConnection component should be present when receiving packets");
+            let Ok(mut conn) = query.get_mut(self.player) else {
+                warn!("Got login compression packet but our player has no RawConnection");
+                // decode error hook: our own player's components are missing
+                record_decode_error(DecodeErrorKind::HandlerState);
+                return;
+            };
             if let Some(net_conn) = &mut conn.net_conn() {
                 net_conn.set_compression_threshold(Some(p.compression_threshold as u32));
             }
