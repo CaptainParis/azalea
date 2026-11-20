@@ -4,7 +4,7 @@ use std::{
 };
 
 use azalea_block::BlockState;
-use azalea_buf::{AzBuf, BufReadError};
+use azalea_buf::{AzBuf, AzBufVar, BufReadError};
 use azalea_core::position::{ChunkSectionBiomePos, ChunkSectionBlockPos};
 use azalea_registry::data::Biome;
 use tracing::{debug, warn};
@@ -141,9 +141,29 @@ impl<S: PalletedContainerKind> PalettedContainer<S> {
             }
         };
 
-        // now read the data
-        for i in 0..storage.data.len() {
-            storage.data[i] = u64::azalea_read(buf)?;
+        // now read the data. 1.21.4 prefixes the long array with its length
+        // (PalettedContainer.read -> FriendlyByteBuf.readLongArray(long[])). if
+        // the length doesn't match the storage we expect, vanilla reads the
+        // longs into a new array and throws it away, so the storage stays
+        // zeroed. we do the same.
+        let data_len = <u32 as AzBufVar>::azalea_read_var(buf)? as usize;
+        if data_len == storage.data.len() {
+            for i in 0..storage.data.len() {
+                storage.data[i] = u64::azalea_read(buf)?;
+            }
+        } else {
+            let remaining = buf.get_ref().len() - buf.position() as usize;
+            if data_len > remaining / 8 {
+                return Err(BufReadError::Custom(format!(
+                    "Paletted container long array with size {data_len} is bigger than allowed {}",
+                    remaining / 8
+                )));
+            }
+            debug!(
+                "Paletted container data length {data_len} doesn't match expected {}, ignoring the data",
+                storage.data.len()
+            );
+            buf.set_position(buf.position() + data_len as u64 * 8);
         }
 
         Ok(PalettedContainer {
@@ -301,6 +321,8 @@ impl<S: PalletedContainerKind> PalettedContainer<S> {
     pub fn write(&self, buf: &mut impl Write) -> io::Result<()> {
         self.bits_per_entry.azalea_write(buf)?;
         self.palette.write(buf)?;
+        // 1.21.4 writes the length of the long array before it
+        (self.storage.data.len() as u32).azalea_write_var(buf)?;
         for word in &self.storage.data {
             word.azalea_write(buf)?;
         }

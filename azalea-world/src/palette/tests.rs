@@ -78,3 +78,45 @@ fn test_coords_from_index() {
         }
     }
 }
+
+#[test]
+fn test_read_1_21_4_single_value_container() {
+    // bits per entry 0, single value palette (state 1), long array length 0
+    let bytes = [0u8, 1, 0];
+    let mut buf = std::io::Cursor::new(&bytes[..]);
+    let container = PalettedContainer::<BlockState>::read(&mut buf).unwrap();
+    assert_eq!(buf.position(), bytes.len() as u64);
+    assert_eq!(container.get_at_index(0), BlockState::try_from(1_u32).unwrap());
+}
+
+#[test]
+fn test_write_and_read_1_21_4_linear_container() {
+    let mut container = PalettedContainer::<BlockState>::new();
+    container.set_at_index(0, BlockState::try_from(1_u32).unwrap());
+    container.set_at_index(5, BlockState::try_from(2_u32).unwrap());
+
+    let mut bytes = Vec::new();
+    container.write(&mut bytes).unwrap();
+    // u8 bits, palette (varint len 3 + three varint ids), then the varint
+    // length of the long array
+    let longs = container.storage.data.len();
+    assert_eq!(longs, 128);
+    assert_eq!(&bytes[..2], &[container.bits_per_entry, 3]);
+    assert_eq!(&bytes[5..7], &[0x80, 0x01]);
+    assert_eq!(bytes.len(), 7 + longs * 8);
+
+    let mut buf = std::io::Cursor::new(&bytes[..]);
+    let read = PalettedContainer::<BlockState>::read(&mut buf).unwrap();
+    assert_eq!(buf.position(), bytes.len() as u64);
+    assert_eq!(read, container);
+}
+
+#[test]
+fn test_read_container_with_wrong_data_length() {
+    // like vanilla 1.21.4, a long array of the wrong size is read and ignored
+    let bytes = [4u8, 2, 0, 1, 1, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff];
+    let mut buf = std::io::Cursor::new(&bytes[..]);
+    let container = PalettedContainer::<BlockState>::read(&mut buf).unwrap();
+    assert_eq!(buf.position(), bytes.len() as u64);
+    assert_eq!(container.get_at_index(0), BlockState::AIR);
+}
