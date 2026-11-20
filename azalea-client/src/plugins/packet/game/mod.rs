@@ -424,8 +424,14 @@ impl GamePacketHandler<'_> {
         )>(self.ecs, |(mut query, mut commands)| {
             let Ok((mut physics, mut direction, mut position)) = query.get_mut(self.player) else {
                 warn!("Got player position packet but our player doesn't have Physics/Position");
-                // decode error hook: the teleport is dropped and never accepted
+                // decode error hook: the position change is dropped. Vanilla's
+                // handleMovePlayer always accepts the teleport, so we still do,
+                // or the server would wait for it and ignore our movement.
                 record_decode_error(DecodeErrorKind::HandlerState);
+                commands.trigger(SendGamePacketEvent::new(
+                    self.player,
+                    ServerboundAcceptTeleportation { id: p.id },
+                ));
                 return;
             };
 
