@@ -144,12 +144,6 @@ const NOT_DECODE_ERRORS: &[(&str, &str, usize, &str)] = &[
     ),
     (
         "src/plugins/packet/game/mod.rs",
-        "warn!(\"Got teleport entity packet for unknown entity id {}\", p.id);",
-        1,
-        "entity isn't in our world",
-    ),
-    (
-        "src/plugins/packet/game/mod.rs",
         "let Ok(mut loaded_by) = entity_query.get_mut(entity) else {",
         1,
         "ECS lookup of an entity we already know",

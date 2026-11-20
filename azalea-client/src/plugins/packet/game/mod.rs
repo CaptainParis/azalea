@@ -674,6 +674,8 @@ impl GamePacketHandler<'_> {
                     "Server sent an entity data packet for an entity id ({}) that we don't know about",
                     p.id
                 );
+                // decode error hook: entity id not in our index
+                record_decode_error(DecodeErrorKind::UnknownEntity);
                 return;
             };
 
@@ -738,6 +740,8 @@ impl GamePacketHandler<'_> {
                     "Got set entity motion packet for unknown entity id {}",
                     p.id
                 );
+                // decode error hook: entity id not in our index
+                record_decode_error(DecodeErrorKind::UnknownEntity);
                 return;
             };
 
@@ -808,6 +812,8 @@ impl GamePacketHandler<'_> {
 
                 let Some(entity) = entity_id_index.get_by_minecraft_entity(p.id) else {
                     warn!("Got teleport entity packet for unknown entity id {}", p.id);
+                    // decode error hook: entity id not in our index
+                    record_decode_error(DecodeErrorKind::UnknownEntity);
                     return;
                 };
 
@@ -956,6 +962,8 @@ impl GamePacketHandler<'_> {
                         debug!(
                             "Tried to remove entity with id {id} but it wasn't in the EntityIdIndex. This may be expected on certain server setups (like if they're using VeryManyPlayers)."
                         );
+                        // decode error hook: entity id not in our index
+                        record_decode_error(DecodeErrorKind::UnknownEntity);
                         continue;
                     };
                     let Ok(mut loaded_by) = entity_query.get_mut(entity) else {
@@ -1087,6 +1095,8 @@ impl GamePacketHandler<'_> {
                     "Got update mob effect packet for unknown entity id {}",
                     p.entity_id
                 );
+                // decode error hook: entity id not in our index
+                record_decode_error(DecodeErrorKind::UnknownEntity);
                 return;
             };
 
@@ -1337,6 +1347,8 @@ impl GamePacketHandler<'_> {
                     "Got remove mob effect packet for unknown entity id {}",
                     p.entity_id
                 );
+                // decode error hook: entity id not in our index
+                record_decode_error(DecodeErrorKind::UnknownEntity);
                 return;
             };
 
@@ -1520,7 +1532,9 @@ impl GamePacketHandler<'_> {
                 let (entity_id_index, world_holder) = query.get_mut(self.player).unwrap();
 
                 let Some(entity) = entity_id_index.get_by_minecraft_entity(p.id) else {
-                    debug!("Got teleport entity packet for unknown entity id {}", p.id);
+                    debug!("Got entity position sync packet for unknown entity id {}", p.id);
+                    // decode error hook: entity id not in our index
+                    record_decode_error(DecodeErrorKind::UnknownEntity);
                     return;
                 };
 
@@ -1664,6 +1678,8 @@ fn move_entity(
     let Some(entity) = entity else {
         // often triggered by hypixel :(
         debug!("Got move entity packet for unknown entity id {entity_id}");
+        // decode error hook: entity id not in our index
+        record_decode_error(DecodeErrorKind::UnknownEntity);
         return;
     };
 
