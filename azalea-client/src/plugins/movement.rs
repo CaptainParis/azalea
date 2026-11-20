@@ -178,7 +178,9 @@ pub fn send_position(
                     }
                     .into_variant(),
                 )
-            } else if physics.last_on_ground() != physics.on_ground() {
+            } else if physics.last_on_ground() != physics.on_ground()
+                || physics_state.last_horizontal_collision != physics.horizontal_collision
+            {
                 Some(ServerboundMovePlayerStatusOnly { flags }.into_variant())
             } else {
                 None
@@ -195,6 +197,7 @@ pub fn send_position(
 
             let on_ground = physics.on_ground();
             physics.set_last_on_ground(on_ground);
+            physics_state.last_horizontal_collision = physics.horizontal_collision;
             // minecraft checks for autojump here, but also autojump is bad so
 
             packet
