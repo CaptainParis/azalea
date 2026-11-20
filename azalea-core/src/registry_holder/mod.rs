@@ -198,11 +198,11 @@ impl RegistryDeserializesTo for dimension_type::DimensionKindElement {
         registry_name: &'static str,
         protocol_id: u32,
     ) -> Option<(&'a Identifier, &'a Self)> {
-        if registry_name != "dimension_type" {
-            error!(
-                "called RegistryDeserializesTo::get_for_registry with the wrong registry: {registry_name}"
-            );
-        }
+        // it would return an entry from the wrong registry
+        debug_assert!(
+            registry_name == "dimension_type",
+            "called RegistryDeserializesTo::get_for_registry with the wrong registry: {registry_name}"
+        );
         registries
             .dimension_type
             .map
@@ -215,11 +215,11 @@ impl RegistryDeserializesTo for enchantment::EnchantmentData {
         registry_name: &'static str,
         protocol_id: u32,
     ) -> Option<(&'a Identifier, &'a Self)> {
-        if registry_name != "enchantment" {
-            error!(
-                "called RegistryDeserializesTo::get_for_registry with the wrong registry: {registry_name}"
-            );
-        }
+        // it would return an entry from the wrong registry
+        debug_assert!(
+            registry_name == "enchantment",
+            "called RegistryDeserializesTo::get_for_registry with the wrong registry: {registry_name}"
+        );
         registries.enchantment.map.get_index(protocol_id as usize)
     }
 }

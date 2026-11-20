@@ -187,12 +187,6 @@ const NOT_DECODE_ERRORS: &[(&str, &str, usize, &str)] = &[
         1,
         "FromNbtTag returns None, which the caller turns into an error",
     ),
-    (
-        "../azalea-core/src/registry_holder/mod.rs",
-        "error!(",
-        2,
-        "get_for_registry called with the wrong registry name is a bug in our code",
-    ),
 ];
 
 fn rust_files(path: &Path, out: &mut Vec<PathBuf>) {
