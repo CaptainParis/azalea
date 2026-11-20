@@ -387,7 +387,21 @@ impl<S: PalletedContainerKind> PalettedContainer<S> {
 
 impl<S: PalletedContainerKind> PalettedContainer<S> {
     pub fn write(&self, buf: &mut impl Write) -> io::Result<()> {
-        self.bits_per_entry.azalea_write(buf)?;
+        // vanilla writes the storage bits. A global palette read from a
+        // container sent with a small registry (biomes) can have fewer bits
+        // than the global range starts at, which would read back as another
+        // palette kind; a vanilla server never sends one (it picks a linear
+        // palette there), so this changes no vanilla bytes.
+        let bits = if matches!(self.palette, Palette::Global)
+            && S::bits_per_entry_to_palette_kind(self.bits_per_entry) != PaletteKind::Global
+        {
+            (0..=u8::MAX)
+                .find(|&b| S::bits_per_entry_to_palette_kind(b) == PaletteKind::Global)
+                .unwrap_or(self.bits_per_entry)
+        } else {
+            self.bits_per_entry
+        };
+        bits.azalea_write(buf)?;
         self.palette.write(buf)?;
         // 1.21.4 writes the length of the long array before it
         (self.storage.data.len() as u32).azalea_write_var(buf)?;
