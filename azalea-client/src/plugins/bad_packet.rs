@@ -421,7 +421,10 @@ impl Default for BadPacketConfig {
 #[derive(Clone, Component, Debug)]
 pub struct InventoryUnknown {
     pub since: Instant,
-    /// Resync clicks sent so far (at most 2).
+    /// Resync clicks sent so far: the first and at most one timed retry,
+    /// plus one for each menu the server opened meanwhile (a bad
+    /// `open_screen`). Kept, like `since`, when another packet goes bad
+    /// while the inventory is unknown.
     pub clicks_sent: u8,
 }
 
@@ -865,6 +868,16 @@ fn send(ecs: &mut World, event: BadPacketEvent, alert: Option<AlertReason>) {
 // --- inventory ---
 
 fn start_inventory_resync(ecs: &mut World, entity: Entity) -> BadPacketAction {
+    resync_inventory(ecs, entity, false)
+}
+
+/// Make the inventory unknown and send the resync click. If it's unknown
+/// already, its state ([`InventoryUnknown::since`], so the give-up deadline,
+/// and the clicks sent) is kept: a stream of bad packets can't put the
+/// give-up off. A second click is sent then only if `new_menu` (the server
+/// opened another container, the first click was for one it no longer has);
+/// it counts towards the timed retry.
+fn resync_inventory(ecs: &mut World, entity: Entity, new_menu: bool) -> BadPacketAction {
     // decode error hook: inventory or container packet, the inventory is
     // unknown until the resync
     record_decode_error(DecodeErrorKind::InventoryUnknown);
@@ -875,6 +888,8 @@ fn start_inventory_resync(ecs: &mut World, entity: Entity) -> BadPacketAction {
             since: now,
             clicks_sent: 0,
         });
+        send_resync_click(ecs, entity);
+    } else if new_menu {
         send_resync_click(ecs, entity);
     }
     BadPacketAction::InventoryResync { container_id }
@@ -902,8 +917,6 @@ fn open_screen_failed(ecs: &mut World, entity: Entity, name: &str, body: &[u8]) 
     } else {
         None
     };
-    // a new menu: start a new resync for it (one for an older menu is moot)
-    ecs.entity_mut(entity).remove::<InventoryUnknown>();
     match menu_type {
         Some(menu_type) => {
             ecs.trigger(MenuOpenedEvent {
@@ -942,7 +955,9 @@ fn open_screen_failed(ecs: &mut World, entity: Entity, name: &str, body: &[u8]) 
             }
         }
     }
-    start_inventory_resync(ecs, entity)
+    // a new menu: resync it (a click for an older menu is moot), keeping the
+    // deadline of a resync already under way
+    resync_inventory(ecs, entity, true)
 }
 
 /// The resync click: slot -1, PICKUP, button 0 (changes nothing on the
@@ -963,7 +978,7 @@ fn send_resync_click(ecs: &mut World, entity: Entity) {
         carried_item: inventory.carried.clone(),
     };
     if let Some(mut unknown) = ecs.get_mut::<InventoryUnknown>(entity) {
-        unknown.clicks_sent += 1;
+        unknown.clicks_sent = unknown.clicks_sent.saturating_add(1);
     }
     ecs.trigger(SendGamePacketEvent::new(entity, packet));
 }

@@ -379,3 +379,57 @@ fn bad_open_screen_with_only_its_id_closes_it_and_resyncs_the_inventory() {
     assert_eq!(c.len(), 1, "{c:?}");
     assert!(is_resync_click(&c[0], 4), "{:?}", c[0]);
 }
+
+#[test]
+fn repeated_bad_open_screen_keeps_the_resync_deadline() {
+    let _lock = init_expecting_errors();
+    let (mut simulation, sent) = setup();
+    simulation.app.insert_resource(BadPacketConfig {
+        resync_retry: Duration::from_millis(200),
+        resync_give_up: Duration::from_millis(500),
+        ..Default::default()
+    });
+    let disconnects = simulation.record_disconnects();
+    let before = decode_errors();
+
+    simulation.receive_raw_packet(bad_open_screen(3));
+    simulation.tick();
+    let first = simulation.component::<InventoryUnknown>().clone();
+    let (_, c) = sent_closes(&sent);
+    assert_eq!(c.len(), 1, "{c:?}");
+
+    // a stream of bad open_screens, one every 100 ms, past the give-up time:
+    // each new menu gets its click, but the deadline is the first one's
+    let mut closed_at = None;
+    for i in 1..=8 {
+        std::thread::sleep(Duration::from_millis(100));
+        if !disconnects.lock().is_empty() {
+            closed_at = Some(i);
+            break;
+        }
+        simulation.receive_raw_packet(bad_open_screen(3));
+        simulation.tick();
+        simulation.tick();
+        if let Some(unknown) = simulation.get_component::<InventoryUnknown>() {
+            assert_eq!(unknown.since, first.since, "deadline kept");
+            assert!(unknown.clicks_sent > first.clicks_sent);
+        }
+    }
+    simulation.tick();
+    let closed_at = closed_at.or((!disconnects.lock().is_empty()).then_some(9));
+    assert!(
+        closed_at.is_some_and(|i| i <= 7),
+        "gave up about 500 ms after the first bad open_screen: {closed_at:?}"
+    );
+    let after = decode_errors();
+    assert_eq!(
+        after.inventory_resync_failed,
+        before.inventory_resync_failed + 1
+    );
+    assert!(
+        disconnects.lock()[0]
+            .as_deref()
+            .unwrap_or_default()
+            .contains("inventory still unknown")
+    );
+}
