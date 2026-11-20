@@ -751,6 +751,9 @@ pub fn update_pose(
         &GameMode,
         &WorldHolder,
         &Position,
+        &PlayerAbilities,
+        &metadata::Swimming,
+        &metadata::SleepingPos,
     )>,
     aabb_query: AabbQuery,
     collidable_entity_query: CollidableEntityQuery,
@@ -764,6 +767,9 @@ pub fn update_pose(
         &game_mode,
         world_holder,
         position,
+        abilities,
+        swimming,
+        sleeping_pos,
     ) in query.iter_mut()
     {
         let world = world_holder.shared.read();
@@ -781,12 +787,16 @@ pub fn update_pose(
             continue;
         }
 
-        // TODO: implement everything else from getDesiredPose: sleeping,
-        // swimming, fallFlying, spinAttack
-        let desired_pose = if physics_state.trying_to_crouch {
-            Pose::Crouching
-        } else if **fall_flying {
+        // 1.21.4 Player.updatePlayerPose
+        // TODO: spin attack (riptide)
+        let desired_pose = if **fall_flying {
             Pose::FallFlying
+        } else if sleeping_pos.is_some() {
+            Pose::Sleeping
+        } else if **swimming {
+            Pose::Swimming
+        } else if physics_state.trying_to_crouch && !abilities.flying {
+            Pose::Crouching
         } else {
             Pose::Standing
         };
