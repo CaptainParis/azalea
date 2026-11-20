@@ -31,7 +31,7 @@ impl AzBuf for ClientboundLoginDisconnect {
     }
     fn azalea_write(&self, buf: &mut impl Write) -> io::Result<()> {
         let status_string = FormattedText::serialize(&self.reason, serde_json::value::Serializer)
-            .unwrap()
+            .map_err(io::Error::other)?
             .to_string();
         status_string.azalea_write(buf)?;
         Ok(())

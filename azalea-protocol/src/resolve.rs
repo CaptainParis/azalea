@@ -31,6 +31,7 @@ static RESOLVER: LazyLock<TokioResolver> = LazyLock::new(|| {
             )
         })
         .build()
+        // network-safe: local resolver setup, no server input
         .unwrap()
 });
 

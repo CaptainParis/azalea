@@ -117,6 +117,7 @@ fn read_frame_length(data: &[u8]) -> Result<Option<(usize, usize)>, FrameSplitte
 /// never longer than [`MAX_FRAME_LENGTH`].
 fn parse_frame(buffer: &mut Cursor<Vec<u8>>) -> Result<Option<Box<[u8]>>, FrameSplitterError> {
     let start = (buffer.position() as usize).min(buffer.get_ref().len());
+    // network-safe: start is at most the length (min above)
     let available = &buffer.get_ref()[start..];
     let Some((length, prefix_length)) = read_frame_length(available)? else {
         return Ok(None);
@@ -237,6 +238,7 @@ pub fn compression_decoder(
     if n == 0 {
         // no data size, no compression
         let start = (stream.position() as usize).min(stream.get_ref().len());
+        // network-safe: start is at most the length (min above)
         let buf = stream.get_ref()[start..].to_vec().into_boxed_slice();
         stream.set_position(stream.get_ref().len() as u64);
         return Ok(buf);
@@ -432,6 +434,7 @@ where
     };
 
     if let Some(compression_threshold) = compression_threshold {
+        // network-safe: a full-range slice
         buf = compression_decoder(&mut Cursor::new(&buf[..]), compression_threshold).map_err(
             |e| {
                 record_decode_error(e.kind());
@@ -449,6 +452,7 @@ where
 
         let buf_string: String = {
             if !*DO_NOT_CUT_OFF_PACKET_LOGS && buf.len() > 500 {
+                // network-safe: only when buf.len() > 500
                 let cut_off_buf = &buf[..500];
                 format!("{cut_off_buf:?}...")
             } else {

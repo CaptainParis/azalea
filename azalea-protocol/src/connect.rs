@@ -241,15 +241,18 @@ where
 {
     /// Write a packet to the server.
     pub async fn write(&mut self, packet: W) -> io::Result<()> {
-        self.raw.write(&serialize_packet(&packet).unwrap()).await
+        // a packet can fail to encode (too big, a string over its limit),
+        // and its contents can come from the server, so that's an error
+        let raw = serialize_packet(&packet).map_err(io::Error::other)?;
+        self.raw.write(&raw).await
     }
 
     /// Write a batch of packets to the server
     pub async fn write_batch(&mut self, packets: &[W]) -> io::Result<()> {
         let serialized_packets: Vec<Box<[u8]>> = packets
             .iter()
-            .map(|packet| serialize_packet(packet).unwrap())
-            .collect();
+            .map(|packet| serialize_packet(packet).map_err(io::Error::other))
+            .collect::<io::Result<_>>()?;
         self.raw
             .write_batch(serialized_packets.iter().map(|data| data.as_ref()))
             .await
@@ -340,6 +343,7 @@ impl Display for Proxy {
 impl From<Proxy> for reqwest::Proxy {
     fn from(proxy: Proxy) -> Self {
         reqwest::Proxy::all(proxy.to_string())
+            // network-safe: the proxy comes from our own configuration
             .expect("azalea proxies should not fail to parse as reqwest proxies")
     }
 }

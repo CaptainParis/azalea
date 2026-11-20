@@ -50,7 +50,7 @@ impl AzBuf for ClientboundStatusResponse {
     }
     fn azalea_write(&self, buf: &mut impl Write) -> io::Result<()> {
         let status_string = ClientboundStatusResponse::serialize(self, Serializer)
-            .unwrap()
+            .map_err(io::Error::other)?
             .to_string();
         status_string.azalea_write(buf)?;
         Ok(())

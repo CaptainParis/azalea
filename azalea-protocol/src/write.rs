@@ -25,7 +25,7 @@ where
     W: AsyncWrite + Unpin + Send,
 {
     trace!("Sending packet: {packet:?}");
-    let raw_packet = serialize_packet(packet).unwrap();
+    let raw_packet = serialize_packet(packet).map_err(io::Error::other)?;
     write_raw_packet(&raw_packet, stream, compression_threshold, cipher).await
 }
 
@@ -86,8 +86,10 @@ pub fn encode_to_network_packet(
     trace!("Writing raw packet: {raw_packet:?}");
     let mut raw_packet = raw_packet.to_vec();
     if let Some(threshold) = compression_threshold {
+        // network-safe: compressing a slice into a Vec has no IO to fail
         raw_packet = compression_encoder(&raw_packet, threshold).unwrap();
     }
+    // network-safe: writing into a Vec can't fail
     raw_packet = frame_prepender(raw_packet).unwrap();
     // if we were given a cipher, encrypt the packet
     if let Some(cipher) = cipher {
