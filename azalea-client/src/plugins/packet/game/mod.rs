@@ -327,7 +327,10 @@ impl GamePacketHandler<'_> {
                 #[cfg(feature = "online-mode")]
                 commands
                     .entity(self.player)
-                    .remove::<crate::chat_signing::ChatSigningSession>();
+                    .remove::<(
+                        crate::chat_signing::ChatSigningSession,
+                        crate::chat_signing::BrokenChatKey,
+                    )>();
 
                 if let Some(mut world_name) = world_name {
                     *world_name = new_world_name.clone();
@@ -1895,9 +1898,10 @@ impl GamePacketHandler<'_> {
                     .entity(self.player)
                     .remove::<crate::secure_chat::SecureChatState>();
                 #[cfg(feature = "online-mode")]
-                commands
-                    .entity(self.player)
-                    .remove::<crate::chat_signing::ChatSigningSession>();
+                commands.entity(self.player).remove::<(
+                    crate::chat_signing::ChatSigningSession,
+                    crate::chat_signing::BrokenChatKey,
+                )>();
 
                 commands
                     .entity(self.player)

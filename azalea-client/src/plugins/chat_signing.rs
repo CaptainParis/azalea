@@ -18,9 +18,10 @@ use crate::{InGameState, account::Account};
 pub struct ChatSigningPlugin;
 impl Plugin for ChatSigningPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
+        app.add_message::<ChatChainBrokenEvent>().add_systems(
             Update,
             (
+                detect_broken_chain,
                 request_certs_if_needed,
                 poll_request_certs_task,
                 handle_queued_certs_to_send,
@@ -117,6 +118,71 @@ impl Default for CertRefreshMargin {
     }
 }
 
+/// The server's system messages for a broken signed chat chain (vanilla
+/// `SignedMessageChain.DecodeException`: the chain is broken after these, and
+/// every signed message is refused until a chat session with another key).
+pub const CHAIN_BROKEN_KEYS: &[&str] = &[
+    "chat.disabled.chain_broken",
+    "chat.disabled.invalid_signature",
+    "chat.disabled.out_of_order_chat",
+];
+
+/// The server said this connection's signed chat chain is broken.
+#[derive(Clone, Debug, Message)]
+pub struct ChatChainBrokenEvent {
+    pub entity: Entity,
+    /// The translation key of the server's message.
+    pub key: String,
+}
+
+/// The key whose chat session the server broke on this connection: the
+/// server ignores a session update with the same key (vanilla
+/// `handleChatSessionUpdate`), so it is never announced again here; the next
+/// session uses the next key (Mojang gives one at `refreshedAfter`), and a new
+/// connection starts clean (removed on play `Login` and configuration).
+#[derive(Clone, Component, Debug)]
+pub struct BrokenChatKey {
+    pub public_key_der: Vec<u8>,
+}
+
+/// A broken chain: drop the session (chat goes unsigned meanwhile, which the
+/// server refuses as a message, never with a kick), remember its key, and
+/// tell the bot (alert). A new session starts as soon as there's another key.
+pub fn detect_broken_chain(
+    mut commands: Commands,
+    mut chat: MessageReader<client_chat::ChatReceivedEvent>,
+    sessions: Query<&ChatSigningSession>,
+    mut broken: MessageWriter<ChatChainBrokenEvent>,
+) {
+    for e in chat.read() {
+        let client_chat::ChatPacket::System(p) = &e.packet else {
+            continue;
+        };
+        let azalea_chat::FormattedText::Translatable(t) = &p.content else {
+            continue;
+        };
+        if !CHAIN_BROKEN_KEYS.contains(&t.key.as_str()) {
+            continue;
+        }
+        error!(
+            "the server broke this connection's signed chat chain ({}): new chat session at the next key",
+            t.key
+        );
+        if let Ok(s) = sessions.get(e.entity) {
+            commands
+                .entity(e.entity)
+                .remove::<ChatSigningSession>()
+                .insert(BrokenChatKey {
+                    public_key_der: s.public_key_der.clone(),
+                });
+        }
+        broken.write(ChatChainBrokenEvent {
+            entity: e.entity,
+            key: t.key.clone(),
+        });
+    }
+}
+
 /// The least time between two certificate fetches of one client.
 pub const REFETCH_SPACING: Duration = Duration::from_secs(60);
 
@@ -157,18 +223,27 @@ pub struct KeyView<'a> {
 ///   key, at `refreshedAfter` (vanilla's `dueRefresh`), or within `margin` of
 ///   expiry, unless a fetch is on hold (`hold`: before the last fetch's
 ///   `refreshedAfter`, or after a failure).
+///
+/// `broken`: the key of a session the server broke on this connection (never
+/// announced again; a fetch for another key is due at once).
 pub fn cert_action(
     owner: bool,
     key: Option<KeyView<'_>>,
     session_key: Option<&[u8]>,
+    broken: Option<&[u8]>,
     margin: Duration,
     now: chrono::DateTime<Utc>,
     hold: bool,
 ) -> CertAction {
     let margin = chrono::Duration::from_std(margin).unwrap_or(chrono::Duration::MAX);
-    let announce = key.is_some_and(|k| now < k.expires_at && session_key != Some(k.public_key_der));
+    let announce = key.is_some_and(|k| {
+        now < k.expires_at
+            && session_key != Some(k.public_key_der)
+            && broken != Some(k.public_key_der)
+    });
     let due = key.is_none_or(|k| {
-        now >= k.refresh_after
+        broken == Some(k.public_key_der)
+            || now >= k.refresh_after
             || k.expires_at
                 .checked_sub_signed(margin)
                 .is_none_or(|t| now >= t)
@@ -189,6 +264,7 @@ pub fn request_certs_if_needed(
             Option<&OnlyRefreshCertsAfter>,
             Option<&ChatSigningSession>,
             Option<&CertRefreshMargin>,
+            Option<&BrokenChatKey>,
         ),
         (
             Without<RequestCertsTask>,
@@ -201,7 +277,7 @@ pub fn request_certs_if_needed(
         ),
     >,
 ) {
-    for (entity, account, only_refresh_certs_after, chat_signing_session, margin) in
+    for (entity, account, only_refresh_certs_after, chat_signing_session, margin, broken) in
         query.iter_mut()
     {
         let margin = margin.copied().unwrap_or_default().0;
@@ -215,6 +291,7 @@ pub fn request_certs_if_needed(
                 refresh_after: c.refresh_after,
             }),
             chat_signing_session.map(|s| s.public_key_der.as_slice()),
+            broken.map(|b| b.public_key_der.as_slice()),
             margin,
             Utc::now(),
             hold,
@@ -224,7 +301,10 @@ pub fn request_certs_if_needed(
         {
             // a new chat session with the account's key (renewed elsewhere,
             // or the connection's first), as vanilla's setKeyPair
-            commands.entity(entity).insert(QueuedCertsToSend { certs });
+            commands
+                .entity(entity)
+                .insert(QueuedCertsToSend { certs })
+                .remove::<BrokenChatKey>();
         }
         if !action.fetch {
             continue;
@@ -323,44 +403,80 @@ mod tests {
         let six = Duration::from_secs(6 * 3600);
         let k = key(b"A", 48 * H, 40 * H);
         // first session of the connection
-        assert!(cert_action(false, Some(k), None, six, t(0), false).announce);
+        assert!(cert_action(false, Some(k), None, None, six, t(0), false).announce);
         // the same key (Mojang before refreshedAfter): not again
-        assert!(!cert_action(false, Some(k), Some(b"A"), six, t(0), false).announce);
+        assert!(!cert_action(false, Some(k), Some(b"A"), None, six, t(0), false).announce);
         // a new key: a new session
-        assert!(cert_action(false, Some(k), Some(b"B"), six, t(0), false).announce);
+        assert!(cert_action(false, Some(k), Some(b"B"), None, six, t(0), false).announce);
         // never an expired one
-        assert!(!cert_action(false, Some(k), Some(b"B"), six, t(48 * H), false).announce);
+        assert!(!cert_action(false, Some(k), Some(b"B"), None, six, t(48 * H), false).announce);
     }
 
     #[test]
     fn fetch_at_refreshed_after_or_margin_and_never_for_an_owner() {
         let six = Duration::from_secs(6 * 3600);
         let k = key(b"A", 48 * H, 40 * H);
-        assert!(!cert_action(false, Some(k), Some(b"A"), six, t(39 * H), false).fetch);
+        assert!(!cert_action(false, Some(k), Some(b"A"), None, six, t(39 * H), false).fetch);
         assert!(
-            cert_action(false, Some(k), Some(b"A"), six, t(40 * H), false).fetch,
+            cert_action(false, Some(k), Some(b"A"), None, six, t(40 * H), false).fetch,
             "refreshedAfter"
         );
         // short-lived keys: within the margin from the start, but a fetch on
         // hold (before the last fetch's refreshedAfter) doesn't loop
         let short = key(b"A", 2 * H, H);
-        assert!(cert_action(false, Some(short), Some(b"A"), six, t(0), false).fetch);
-        assert!(!cert_action(false, Some(short), Some(b"A"), six, t(0), true).fetch);
+        assert!(cert_action(false, Some(short), Some(b"A"), None, six, t(0), false).fetch);
+        assert!(!cert_action(false, Some(short), Some(b"A"), None, six, t(0), true).fetch);
         // no key: fetch, unless the account renews its own
-        assert!(cert_action(false, None, None, six, t(0), false).fetch);
-        assert!(!cert_action(true, None, None, six, t(0), false).fetch);
-        assert!(!cert_action(true, Some(short), Some(b"A"), six, t(2 * H), false).fetch);
+        assert!(cert_action(false, None, None, None, six, t(0), false).fetch);
+        assert!(!cert_action(true, None, None, None, six, t(0), false).fetch);
+        assert!(!cert_action(true, Some(short), Some(b"A"), None, six, t(2 * H), false).fetch);
         assert!(
             cert_action(
                 true,
                 Some(key(b"N", 48 * H, 40 * H)),
                 Some(b"A"),
+                None,
                 six,
                 t(0),
                 false
             )
             .announce
         );
+    }
+
+    #[test]
+    fn a_broken_key_is_never_announced_again() {
+        let six = Duration::from_secs(6 * 3600);
+        let k = key(b"A", 48 * H, 40 * H);
+        // session dropped after chain_broken: same key not announced, a
+        // fetch for another key at once (unless on hold)
+        let a = cert_action(false, Some(k), None, Some(b"A"), six, t(0), false);
+        assert_eq!(
+            a,
+            CertAction {
+                announce: false,
+                fetch: true
+            }
+        );
+        let a = cert_action(false, Some(k), None, Some(b"A"), six, t(0), true);
+        assert_eq!(
+            a,
+            CertAction {
+                announce: false,
+                fetch: false
+            }
+        );
+        // the owner renews; once its key differs, a new session
+        let a = cert_action(true, Some(k), None, Some(b"A"), six, t(0), false);
+        assert_eq!(
+            a,
+            CertAction {
+                announce: false,
+                fetch: false
+            }
+        );
+        let n = key(b"N", 50 * H, 42 * H);
+        assert!(cert_action(true, Some(n), None, Some(b"A"), six, t(0), false).announce);
     }
 
     #[test]
