@@ -221,6 +221,9 @@ pub fn poll_create_connection_task(
 
             let (read_conn, write_conn) = conn.into_split();
             let (read_conn, write_conn) = (read_conn.raw, write_conn.raw);
+            if let Some(socket) = &read_conn.socket {
+                entity_mut.insert(crate::connection::ConnectionSocket(socket.clone()));
+            }
 
             let world = World::default();
             let world_holder = WorldHolder::new(

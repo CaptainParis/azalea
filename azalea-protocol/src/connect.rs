@@ -5,6 +5,7 @@ use std::{
     io::{self, Cursor},
     marker::PhantomData,
     net::SocketAddr,
+    sync::Arc,
 };
 
 #[cfg(feature = "online-mode")]
@@ -45,6 +46,14 @@ pub struct RawReadConnection {
     pub buffer: Cursor<Vec<u8>>,
     pub compression_threshold: Option<u32>,
     pub dec_cipher: Option<Aes128CfbDec>,
+    /// An owned duplicate of the connection's socket, taken before the
+    /// stream was split (client connections only).
+    ///
+    /// Shutting it down closes the connection for both halves from any
+    /// thread, even one that can't reach the halves (a watchdog closing the
+    /// connection of a stuck bot). It's its own file descriptor, so it can
+    /// never refer to another connection's socket after this one is closed.
+    pub socket: Option<Arc<socket2::Socket>>,
 }
 
 pub struct RawWriteConnection {
@@ -381,6 +390,7 @@ impl Connection<ClientboundHandshakePacket, ServerboundHandshakePacket> {
     /// Useful if you want to set custom options on the stream. Otherwise, just
     /// use [`Self::new`].
     pub async fn new_from_stream(stream: TcpStream) -> Result<Self, ConnectionError> {
+        let socket = socket2::SockRef::from(&stream).try_clone()?;
         let (read_stream, write_stream) = stream.into_split();
 
         Ok(Connection {
@@ -390,6 +400,7 @@ impl Connection<ClientboundHandshakePacket, ServerboundHandshakePacket> {
                     buffer: Cursor::new(Vec::new()),
                     compression_threshold: None,
                     dec_cipher: None,
+                    socket: Some(Arc::new(socket)),
                 },
                 _reading: PhantomData,
             },
@@ -675,6 +686,7 @@ where
                     buffer: Cursor::new(Vec::new()),
                     compression_threshold: None,
                     dec_cipher: None,
+                    socket: None,
                 },
                 _reading: PhantomData,
             },

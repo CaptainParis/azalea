@@ -165,6 +165,16 @@ fn log_for_error(error: &ReadPacketError) {
     }
 }
 
+/// An owned duplicate of the socket of the client's current connection,
+/// taken when the connection was made (before its stream was split).
+///
+/// For closing the connection from outside the ECS, for example from a
+/// watchdog thread while the bot's own thread is stuck:
+/// `socket.shutdown(Shutdown::Both)` ends it for both halves and the server
+/// sees a normal disconnect. Replaced on every new connection.
+#[derive(Clone, Component, Debug)]
+pub struct ConnectionSocket(pub std::sync::Arc<socket2::Socket>);
+
 /// The client's connection to the server.
 #[derive(Component)]
 pub struct RawConnection {
