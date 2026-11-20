@@ -189,6 +189,7 @@ impl Axis {
             0 => Axis::X,
             1 => Axis::Y,
             2 => Axis::Z,
+            // network-safe: only called with rem_euclid(3) (AxisCycle)
             _ => panic!("Invalid ordinal {ordinal}"),
         }
     }
@@ -200,6 +201,7 @@ impl AxisCycle {
             0 => Self::None,
             1 => Self::Forward,
             2 => Self::Backward,
+            // network-safe: not called with network data
             _ => panic!("invalid ordinal"),
         }
     }

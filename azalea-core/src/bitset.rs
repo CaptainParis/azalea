@@ -32,10 +32,9 @@ impl BitSet {
     /// non-panicking version.
     #[inline]
     pub fn index(&self, index: usize) -> bool {
-        self.get(index).unwrap_or_else(|| {
-            let len = self.len();
-            panic!("index out of bounds: the len is {len} but the index is {index}")
-        })
+        // as java.util.BitSet.get: bits past the end are clear (a bit set
+        // from the network can be shorter than what it's indexed with)
+        self.get(index).unwrap_or(false)
     }
 
     #[inline]
@@ -51,6 +50,8 @@ impl BitSet {
     ///
     /// Panics if the range is invalid (start > end).
     pub fn clear(&mut self, range: Range<usize>) {
+        // network-safe: only voxel shapes call this, with ranges they
+        // computed, never with network data
         assert!(
             range.start <= range.end,
             "Range ends before it starts; {} must be less than or equal to {}",
@@ -76,22 +77,22 @@ impl BitSet {
             end_word_idx = self.data.len() - 1;
         }
 
-        let first_word_mask = u64::MAX.wrapping_shl(
-            from_idx
-                .try_into()
-                .expect("from_index shouldn't be larger than u32"),
-        );
+        // shifts are taken mod 64, as Java's
+        let first_word_mask = u64::MAX.wrapping_shl((from_idx % 64) as u32);
         let last_word_mask = u64::MAX.wrapping_shr((64 - (to_idx % 64)) as u32);
+        // start_word_idx and end_word_idx were checked against or clamped to
+        // the length above
         if start_word_idx == end_word_idx {
             // one word
-            self.data[start_word_idx] &= !(first_word_mask & last_word_mask);
+            self.data[start_word_idx] &= !(first_word_mask & last_word_mask); // network-safe: checked above
         } else {
             // multiple words
-            self.data[start_word_idx] &= !first_word_mask;
-            for i in (start_word_idx + 1)..end_word_idx {
-                self.data[i] = 0;
+            self.data[start_word_idx] &= !first_word_mask; // network-safe: checked above
+            // network-safe: clamped above
+            for word in &mut self.data[start_word_idx + 1..end_word_idx] {
+                *word = 0;
             }
-            self.data[end_word_idx] &= !last_word_mask;
+            self.data[end_word_idx] &= !last_word_mask; // network-safe: clamped above
         }
     }
 
@@ -103,7 +104,8 @@ impl BitSet {
             return from_index;
         }
 
-        let mut word = !self.data[u] & (u64::MAX.wrapping_shl(from_index.try_into().unwrap()));
+        // network-safe: u < data.len() (checked above)
+        let mut word = !self.data[u] & u64::MAX.wrapping_shl((from_index % 64) as u32);
 
         loop {
             if word != 0 {
@@ -113,7 +115,7 @@ impl BitSet {
             if u == self.data.len() {
                 return self.data.len() * 64;
             }
-            word = !self.data[u];
+            word = !self.data[u]; // network-safe: u < data.len() (checked above)
         }
     }
 
@@ -130,6 +132,8 @@ impl BitSet {
     /// if you need to avoid this.
     #[inline]
     pub fn set(&mut self, bit_index: usize) {
+        // network-safe: only called on bit sets we sized (voxel shapes,
+        // pathfinder), never with network indices
         self.data[bit_index / 64] |= 1u64 << (bit_index % 64);
     }
 
@@ -164,6 +168,7 @@ impl From<Vec<u8>> for BitSet {
     fn from(data: Vec<u8>) -> Self {
         let mut words = vec![0; data.len().div_ceil(8)];
         for (i, byte) in data.iter().enumerate() {
+            // network-safe: words has len.div_ceil(8) entries
             words[i / 8] |= (*byte as u64) << ((i % 8) * 8);
         }
         BitSet { data: words.into() }
@@ -218,7 +223,10 @@ impl<const N: usize> FixedBitSet<N> {
     #[inline]
     #[must_use]
     pub fn index(&self, index: usize) -> bool {
-        (self.data[index / 8] & (1u8 << (index % 8))) != 0
+        // past the end: clear
+        self.data
+            .get(index / 8)
+            .is_some_and(|byte| byte & (1u8 << (index % 8)) != 0)
     }
 
     /// Set the bit at the given index to true.
@@ -228,9 +236,10 @@ impl<const N: usize> FixedBitSet<N> {
     /// Panics if the index is out of bounds (greater than `N`).
     #[inline]
     pub fn set(&mut self, bit_index: usize) {
+        // network-safe: callers set constant flag bits below N
         assert!(bit_index < N, "Out of bounds write to FixedBitSet!");
 
-        self.data[bit_index / 8] |= 1u8 << (bit_index % 8);
+        self.data[bit_index / 8] |= 1u8 << (bit_index % 8); // network-safe: asserted above
     }
 }
 
@@ -296,7 +305,10 @@ impl<const N: usize> FastFixedBitSet<N> {
     #[inline]
     #[must_use]
     pub fn index(&self, index: usize) -> bool {
-        (self.data[index / 64] & (1u64 << (index % 64))) != 0
+        // past the end: clear
+        self.data
+            .get(index / 64)
+            .is_some_and(|word| word & (1u64 << (index % 64)) != 0)
     }
 
     /// Set the bit at the given index to true.
@@ -306,9 +318,10 @@ impl<const N: usize> FastFixedBitSet<N> {
     /// Panics if the index is out of bounds (greater than `N`).
     #[inline]
     pub fn set(&mut self, bit_index: usize) {
+        // network-safe: only the pathfinder sets these, below N
         assert!(bit_index < N, "Out of bounds write to FastFixedBitSet!");
 
-        self.data[bit_index / 64] |= 1u64 << (bit_index % 64);
+        self.data[bit_index / 64] |= 1u64 << (bit_index % 64); // network-safe: asserted above
     }
 }
 impl<const N: usize> Default for FastFixedBitSet<N> {

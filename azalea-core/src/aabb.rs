@@ -425,30 +425,14 @@ impl BlockPos {
         BlockPos::between_closed(BlockPos::from(aabb.min), BlockPos::from(aabb.max))
     }
 
+    /// Every block from `min` to `max`, both included: nothing if the range
+    /// is empty or has more than [`crate::cursor3d::Cursor3d::MAX_VOLUME`]
+    /// blocks (boxes come from server-set positions; this asserted and
+    /// could overflow before).
     pub fn between_closed(min: BlockPos, max: BlockPos) -> Vec<BlockPos> {
-        assert!(min.x <= max.x);
-        assert!(min.y <= max.y);
-        assert!(min.z <= max.z);
-
-        let length_x = max.x - min.x + 1;
-        let length_y = max.y - min.y + 1;
-        let length_z = max.z - min.z + 1;
-        let volume = length_x * length_y * length_z;
-
-        let mut result = Vec::with_capacity(volume as usize);
-        for index in 0..volume {
-            let index_x = index % length_x;
-            let remaining_after_x = index / length_x;
-            let index_y = remaining_after_x % length_y;
-            let index_z = remaining_after_x / length_y;
-            result.push(BlockPos::new(
-                min.x + index_x,
-                min.y + index_y,
-                min.z + index_z,
-            ));
-        }
-
-        result
+        crate::cursor3d::Cursor3d::new(min, max)
+            .map(|c| c.pos)
+            .collect()
     }
 }
 

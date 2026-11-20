@@ -47,6 +47,7 @@ impl Difficulty {
             1 => Difficulty::Easy,
             2 => Difficulty::Normal,
             3 => Difficulty::Hard,
+            // network-safe: id % 4
             _ => unreachable!(),
         }
     }

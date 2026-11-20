@@ -87,7 +87,9 @@ impl DecodeErrorKind {
     pub fn is_frame_error(self) -> bool {
         matches!(
             self,
-            DecodeErrorKind::Frame | DecodeErrorKind::FrameLength | DecodeErrorKind::DecompressedSize
+            DecodeErrorKind::Frame
+                | DecodeErrorKind::FrameLength
+                | DecodeErrorKind::DecompressedSize
         )
     }
 }

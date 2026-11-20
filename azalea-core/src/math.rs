@@ -14,6 +14,7 @@ pub static SIN: LazyLock<Box<[f32; 65536]>> = LazyLock::new(|| {
         .map(|i| f64::sin((i as f64) * PI * 2. / 65536.) as f32)
         .collect::<Box<[f32]>>()
         .try_into()
+        // network-safe: exactly 65536 values
         .unwrap()
 });
 
@@ -21,14 +22,14 @@ pub static SIN: LazyLock<Box<[f32; 65536]>> = LazyLock::new(|| {
 pub fn sin(x: f32) -> f32 {
     let x = x * 10430.378;
     let x = x as i32 as usize & 0xFFFF;
-    SIN[x]
+    SIN[x] // network-safe: masked to the table size
 }
 
 /// A cosine function that uses a lookup table.
 pub fn cos(x: f32) -> f32 {
     let x = x * 10430.378 + 16384.;
     let x = x as i32 as usize & 0xFFFF;
-    SIN[x]
+    SIN[x] // network-safe: masked to the table size
 }
 
 pub fn binary_search<

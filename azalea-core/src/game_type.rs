@@ -73,6 +73,8 @@ impl GameMode {
             "creative" => GameMode::Creative,
             "adventure" => GameMode::Adventure,
             "spectator" => GameMode::Spectator,
+            // network-safe: not called with network data (game modes are
+            // read by id)
             _ => panic!("Unknown game type name: {name}"),
         }
     }

@@ -778,7 +778,8 @@ impl nohash_hasher::IsEnabled for ChunkSectionBlockPos {}
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct GlobalPos {
-    // this is actually a ResourceKey in Minecraft, but i don't think it matters?
+    // this is actually a ResourceKey in Minecraft, but i don't think it
+    // matters?
     pub dimension: Identifier,
     pub pos: BlockPos,
 }
@@ -1064,13 +1065,13 @@ where
     <T as FromStr>::Err: fmt::Debug,
 {
     let parts = s.split_whitespace().collect::<Vec<_>>();
-    if parts.len() != 3 {
+    let [x, y, z] = parts.as_slice() else {
         return Err("Expected three values");
-    }
+    };
 
-    let x = parts[0].parse().map_err(|_| "Invalid X value")?;
-    let y = parts[1].parse().map_err(|_| "Invalid Y value")?;
-    let z = parts[2].parse().map_err(|_| "Invalid Z value")?;
+    let x = x.parse().map_err(|_| "Invalid X value")?;
+    let y = y.parse().map_err(|_| "Invalid Y value")?;
+    let z = z.parse().map_err(|_| "Invalid Z value")?;
 
     Ok([x, y, z])
 }

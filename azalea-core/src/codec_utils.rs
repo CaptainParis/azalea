@@ -29,8 +29,8 @@ pub fn is_true(t: &bool) -> bool {
 /// #[serde(serialize_with = "flatten_array")]
 /// ```
 pub fn flatten_array<S: Serializer, T: Serialize>(x: &Vec<T>, s: S) -> Result<S::Ok, S::Error> {
-    if x.len() == 1 {
-        x[0].serialize(s)
+    if let [one] = x.as_slice() {
+        one.serialize(s)
     } else {
         x.serialize(s)
     }
@@ -42,8 +42,7 @@ pub fn uuid<'a, S: Serializer>(
     serializer: S,
 ) -> Result<S::Ok, S::Error> {
     if let Some(uuid) = uuid.into() {
-        let arr: [u32; 4] = uuid.to_int_array();
-        let arr: [i32; 4] = [arr[0] as i32, arr[1] as i32, arr[2] as i32, arr[3] as i32];
+        let arr: [i32; 4] = uuid.to_int_array().map(|i| i as i32);
         IntArray(arr).serialize(serializer)
     } else {
         serializer.serialize_unit()
