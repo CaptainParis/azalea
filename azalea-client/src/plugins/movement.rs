@@ -80,6 +80,8 @@ impl Plugin for MovementPlugin {
                         .after(travel)
                         .after(EntityGeometryUpdateSystems),
                     send_position,
+                    // rockets tick after the local player in the client level
+                    azalea_physics::fireworks::boost_from_attached_fireworks,
                 )
                     .chain(),
             )

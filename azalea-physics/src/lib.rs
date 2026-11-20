@@ -4,6 +4,7 @@
 pub mod client_movement;
 pub mod clip;
 pub mod collision;
+pub mod fireworks;
 pub mod fluids;
 pub mod travel;
 

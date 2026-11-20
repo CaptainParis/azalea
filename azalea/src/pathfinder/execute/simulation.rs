@@ -67,6 +67,7 @@ impl Plugin for SimulationPathfinderExecutionPlugin {
                 .chain()
                 .after(PhysicsSystems)
                 .after(azalea_client::movement::send_position)
+                .after(azalea_physics::fireworks::boost_from_attached_fireworks)
                 .after(MiningSystems)
                 .after(debug_render_path_with_particles)
                 .in_set(PathfinderSystems),
