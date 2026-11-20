@@ -263,6 +263,12 @@ impl GamePacketHandler<'_> {
 
                 let new_world_name = WorldName(p.common.dimension.clone());
 
+                // a new session (or a new server behind a proxy) sends its
+                // whole tab list again
+                commands
+                    .entity(self.player)
+                    .remove::<bad_packet::TabListStale>();
+
                 if let Some(mut world_name) = world_name {
                     *world_name = new_world_name.clone();
                 } else {
@@ -500,17 +506,23 @@ impl GamePacketHandler<'_> {
         debug!("Got player info packet {p:?}");
 
         as_system::<(
+            Commands,
             Query<&mut TabList>,
             MessageWriter<AddPlayerEvent>,
             MessageWriter<UpdatePlayerEvent>,
             ResMut<TabListResource>,
+            Res<EntityUuidIndex>,
+            Query<(), With<bad_packet::MissingProfile>>,
         )>(
             self.ecs,
             |(
+                mut commands,
                 mut query,
                 mut add_player_events,
                 mut update_player_events,
                 mut tab_list_resource,
+                entity_uuid_index,
+                missing_profile,
             )| {
                 let Ok(mut tab_list) = query.get_mut(self.player) else {
                     warn!("Got player_info_update packet but our player is missing components");
@@ -531,6 +543,16 @@ impl GamePacketHandler<'_> {
                             display_name: updated_info.display_name.clone(),
                         };
                         tab_list.insert(updated_info.profile.uuid, info.clone());
+                        // a player entity that was spawned before its tab
+                        // list entry gets its profile now
+                        if let Some(e) = entity_uuid_index.get(&updated_info.profile.uuid)
+                            && missing_profile.contains(e)
+                        {
+                            commands
+                                .entity(e)
+                                .insert(GameProfileComponent(updated_info.profile.clone()))
+                                .remove::<bad_packet::MissingProfile>();
+                        }
                         add_player_events.write(AddPlayerEvent {
                             entity: self.player,
                             info,
@@ -633,7 +655,12 @@ impl GamePacketHandler<'_> {
 
         as_system::<(
             Commands,
-            Query<(&mut EntityIdIndex, Option<&WorldName>, Option<&TabList>)>,
+            Query<(
+                &mut EntityIdIndex,
+                Option<&WorldName>,
+                Option<&TabList>,
+                Has<bad_packet::TabListStale>,
+            )>,
             Query<&mut LoadedBy>,
             Query<Entity>,
             Res<Worlds>,
@@ -648,7 +675,8 @@ impl GamePacketHandler<'_> {
                 worlds,
                 mut entity_uuid_index,
             )| {
-                let Ok((mut entity_id_index, world_name, tab_list)) = query.get_mut(self.player)
+                let Ok((mut entity_id_index, world_name, tab_list, tab_list_stale)) =
+                    query.get_mut(self.player)
                 else {
                     warn!("Got add_entity packet but our player is missing components");
                     // decode error hook: our own player's components are
@@ -722,13 +750,24 @@ impl GamePacketHandler<'_> {
                 );
 
                 // add the GameProfileComponent if the uuid is in the tab list
-                if let Some(tab_list) = tab_list {
-                    // (technically this makes it possible for non-player
-                    // entities to have GameProfileComponents but the server
-                    // would have to be doing something really weird)
-                    if let Some(player_info) = tab_list.get(&p.uuid) {
-                        spawned.insert(GameProfileComponent(player_info.profile.clone()));
-                    }
+                // (technically this makes it possible for non-player entities
+                // to have GameProfileComponents but the server would have to
+                // be doing something really weird)
+                let profile = tab_list.and_then(|t| t.get(&p.uuid));
+                if let Some(player_info) = profile {
+                    spawned.insert(GameProfileComponent(player_info.profile.clone()));
+                } else if p.entity_type == EntityKind::Player {
+                    // 1.21.4 createEntityFromPacket skips a player whose
+                    // uuid isn't in the tab list ("Server attempted to add
+                    // player prior to sending player info"). A hunter keeps
+                    // it (a hidden player is worse than one without a
+                    // profile), marked, and counted; its profile is added if
+                    // the entry comes later. If our tab list is stale (a bad
+                    // tab list packet), that's why.
+                    warn!("player {} spawned without a tab list entry", p.uuid);
+                    // decode error hook: a player entity without a profile
+                    record_decode_error(DecodeErrorKind::MissingProfile);
+                    spawned.insert(bad_packet::MissingProfile { tab_list_stale });
                 }
 
                 // the bundle doesn't include the default entity metadata so we
@@ -1423,7 +1462,8 @@ impl GamePacketHandler<'_> {
             |mut query| {
                 let Ok((local_player, unknown)) = query.get_mut(self.player) else {
                     warn!("Got forget_level_chunk packet but our player is missing components");
-                    // decode error hook: our own player's components are missing
+                    // decode error hook: our own player's components are
+                    // missing
                     record_decode_error(DecodeErrorKind::HandlerState);
                     return;
                 };

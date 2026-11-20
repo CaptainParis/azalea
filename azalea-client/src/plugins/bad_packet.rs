@@ -23,6 +23,9 @@
 //!   once;
 //! - chunk and block packets: the chunk is unknown, treated as unloaded
 //!   ([`UnknownChunks`]);
+//! - tab list packets: the tab list is stale until the next login
+//!   ([`TabListStale`]), alerted the first time; a player spawned without a tab
+//!   list entry is kept, marked [`MissingProfile`];
 //! - everything with no safe repair (login, respawn, teleport, start
 //!   configuration, our own entity, registries and tags, the login state,
 //!   unknown ids): the connection is closed and an alert raised.
@@ -88,6 +91,9 @@ pub enum PacketClass {
     Entity,
     /// Chunk or block state: that chunk is unknown.
     Chunk,
+    /// The tab list (and the game profiles of players spawned from it): it's
+    /// stale until the next login.
+    TabList,
     /// No safe repair: close and reconnect, alert.
     Critical,
 }
@@ -129,8 +135,6 @@ pub fn classify_game(name: &str) -> Option<PacketClass> {
         | "player_chat"
         | "player_combat_end"
         | "player_combat_enter"
-        | "player_info_remove"
-        | "player_info_update"
         | "pong_response"
         | "recipe_book_add"
         | "recipe_book_remove"
@@ -166,6 +170,9 @@ pub fn classify_game(name: &str) -> Option<PacketClass> {
         | "update_recipes"
         | "custom_report_details"
         | "server_links" => StateFree,
+
+        // not state-free: player entities take their profile from it
+        "player_info_remove" | "player_info_update" => TabList,
 
         "container_close"
         | "container_set_content"
@@ -311,6 +318,8 @@ pub enum BadPacketAction {
     },
     /// These chunks are unknown (unloaded).
     ChunkUnknown { chunks: Vec<ChunkPos> },
+    /// The tab list is stale ([`TabListStale`]).
+    TabListStale,
     /// The connection was closed for a reconnect.
     Closed { reason: String },
 }
@@ -441,6 +450,28 @@ pub struct PlaceholderEntity {
     pub position_known: bool,
     /// Rotations, data and velocity.
     pub rest_known: bool,
+}
+
+/// Our tab list may be missing entries, or have entries the server removed:
+/// a tab list update or removal couldn't be decoded. Vanilla servers only send
+/// changes, so it stays stale until the next login (which sends the whole
+/// list again).
+#[derive(Clone, Component, Debug)]
+pub struct TabListStale {
+    pub since: Instant,
+    /// Tab list packets that couldn't be decoded since then.
+    pub drops: u32,
+}
+
+/// A player entity whose uuid wasn't in our tab list when it spawned, so it
+/// has no [`GameProfileComponent`](crate::player::GameProfileComponent).
+/// Vanilla skips such a spawn; Azalea keeps the entity. Removed when its tab
+/// list entry arrives (the profile is added then).
+#[derive(Clone, Component, Debug, Eq, PartialEq)]
+pub struct MissingProfile {
+    /// Our tab list was stale when it spawned ([`TabListStale`]), which may
+    /// be why.
+    pub tab_list_stale: bool,
 }
 
 /// Chunks of this client that are unknown because a chunk or block packet
@@ -580,6 +611,7 @@ pub(crate) fn handle_bad_packet(
         packet_id.map_or("?".to_owned(), |id| id.to_string())
     );
 
+    let tab_list_newly_stale = ecs.get::<TabListStale>(entity).is_none();
     let action = match class {
         Some(PacketClass::StateFree) => {
             // decode error hook: a state-free packet, dropped
@@ -600,6 +632,7 @@ pub(crate) fn handle_bad_packet(
                 mark_entities_stale(ecs, entity, &ids, packet_name.as_deref().unwrap_or("?"))
             }
         }
+        Some(PacketClass::TabList) => mark_tab_list_stale(ecs, entity),
         Some(PacketClass::Chunk) => {
             match chunk_positions(packet_name.as_deref().unwrap_or_default(), body) {
                 Some(chunks) => mark_chunks_unknown(ecs, entity, chunks),
@@ -622,6 +655,7 @@ pub(crate) fn handle_bad_packet(
         // a lost spawn is a hole in the model: alerted the first time, not
         // only when it repeats
         BadPacketAction::PlaceholderSpawned { .. } => Some(AlertReason::ModelGap),
+        BadPacketAction::TabListStale if tab_list_newly_stale => Some(AlertReason::ModelGap),
         BadPacketAction::EntityStale { .. } if packet_name.as_deref() == Some("add_entity") => {
             Some(AlertReason::ModelGap)
         }
@@ -1037,6 +1071,25 @@ fn clear_stale_entities_out_of_loaded_chunks(
         }
         commands.entity(entity).remove::<StaleEntity>();
     }
+}
+
+// --- tab list ---
+
+fn mark_tab_list_stale(ecs: &mut World, player: Entity) -> BadPacketAction {
+    // decode error hook: a tab list packet, the tab list is stale until the
+    // next login
+    record_decode_error(DecodeErrorKind::TabListStale);
+    if let Ok(mut e) = ecs.get_entity_mut(player) {
+        if let Some(mut stale) = e.get_mut::<TabListStale>() {
+            stale.drops += 1;
+        } else {
+            e.insert(TabListStale {
+                since: Instant::now(),
+                drops: 1,
+            });
+        }
+    }
+    BadPacketAction::TabListStale
 }
 
 // --- chunks ---

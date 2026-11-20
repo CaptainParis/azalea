@@ -7,6 +7,7 @@ mod bad_packet_entity;
 mod bad_packet_frame;
 mod bad_packet_inventory;
 mod bad_packet_state_free;
+mod bad_packet_tab_list;
 mod change_dimension_to_nether_and_back;
 mod client_disconnect;
 mod close_open_container;
