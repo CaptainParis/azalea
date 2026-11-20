@@ -13,9 +13,11 @@
 //!   In 1.21.4 `doClick` ignores negative slots other than -999, and the state
 //!   id mismatch makes `handleContainerClick` call `broadcastFullState`, which
 //!   resends the whole menu and the carried item. Retried once after 2 s; still
-//!   unknown after 5 s closes the connection. Ordinary clicks wait for the
-//!   resync ([`PendingClicks`]); reflex clicks
-//!   ([`ContainerClickEvent::reflex`]) never wait;
+//!   unknown after 5 s closes the connection. Ordinary clicks are held during
+//!   the resync ([`PendingClicks`]) and never replayed: once the inventory is
+//!   known again (or the resync failed) each is cancelled with a
+//!   [`ClickCancelledByResync`], so the caller decides again on the real state;
+//!   reflex clicks ([`ContainerClickEvent::reflex`]) never wait;
 //! - packets about other entities: the entity keeps its last good state and is
 //!   marked [`StaleEntity`] until the server removes it or its chunk unloads. A
 //!   spawn that can't be decoded spawns a [`PlaceholderEntity`] from the fields
@@ -82,7 +84,7 @@ use uuid::Uuid;
 use crate::{
     chunks::handle_receive_chunk_event,
     connection::{ConnectionSocket, RawConnection},
-    inventory::{ClientsideCloseContainerEvent, ContainerClickEvent, MenuOpenedEvent},
+    inventory::{ClientsideCloseContainerEvent, MenuOpenedEvent},
     local_player::WorldHolder,
     movement::{KnockbackData, KnockbackEvent},
     packet::game::{GamePacketHandler, SendGamePacketEvent},
@@ -432,9 +434,11 @@ pub struct InventoryUnknown {
     pub clicks_sent: u8,
 }
 
-/// Ordinary container clicks that wait for an inventory resync. They run in
-/// order once the inventory is known again, or are dropped after
-/// [`BadPacketConfig::resync_give_up`].
+/// Ordinary container clicks that came while the inventory was unknown. They
+/// were decided on a model that may be wrong, so they're never sent: when the
+/// inventory is known again (or the resync fails, or they've waited
+/// [`BadPacketConfig::resync_give_up`]) each is cancelled with a
+/// [`ClickCancelledByResync`].
 #[derive(Clone, Component, Debug, Default)]
 pub struct PendingClicks(pub Vec<PendingClick>);
 
@@ -443,6 +447,21 @@ pub struct PendingClick {
     pub at: Instant,
     pub window_id: i32,
     pub operation: ClickOperation,
+}
+
+/// An ordinary click that was held during an inventory resync and not sent:
+/// it was decided while the inventory was unknown. The caller looks at the
+/// inventory again and clicks again if it still wants to.
+#[derive(Clone, Debug, Message)]
+pub struct ClickCancelledByResync {
+    pub entity: Entity,
+    pub window_id: i32,
+    pub operation: ClickOperation,
+    /// How long it was held.
+    pub held_for: Duration,
+    /// `true` if the inventory is known again (decide on it now); `false` if
+    /// the resync failed or took too long (the connection is being closed).
+    pub resynced: bool,
 }
 
 /// An entity that keeps its last good state because a packet about it
@@ -523,6 +542,7 @@ impl Plugin for BadPacketPlugin {
         app.init_resource::<BadPacketConfig>()
             .add_message::<BadPacketEvent>()
             .add_message::<BadPacketAlert>()
+            .add_message::<ClickCancelledByResync>()
             .add_systems(
                 Update,
                 (
@@ -977,7 +997,8 @@ fn send_resync_click(ecs: &mut World, entity: Entity) {
 
 /// Called by the `container_set_content` handler after it applied the
 /// content: the full content of the container we have open makes the
-/// inventory known again, and the clicks that waited run.
+/// inventory known again, and the clicks that were held are cancelled (the
+/// caller decides again, on the real content).
 pub(crate) fn container_content_received(ecs: &mut World, entity: Entity, container_id: i32) {
     let Some(inventory) = ecs.get::<Inventory>(entity) else {
         return;
@@ -994,32 +1015,53 @@ pub(crate) fn container_content_received(ecs: &mut World, entity: Entity, contai
         unknown.clicks_sent
     );
     ecs.entity_mut(entity).remove::<InventoryUnknown>();
-    let pending = ecs
+    cancel_held_clicks(ecs, entity, true);
+}
+
+/// Cancel every held click of `entity` with a [`ClickCancelledByResync`].
+fn cancel_held_clicks(ecs: &mut World, entity: Entity, resynced: bool) {
+    let held = ecs
         .get_mut::<PendingClicks>(entity)
         .map(|mut p| std::mem::take(&mut p.0))
         .unwrap_or_default();
-    for click in pending {
-        ecs.trigger(ContainerClickEvent {
-            entity,
-            window_id: click.window_id,
-            operation: click.operation,
-            reflex: false,
-        });
+    for click in held {
+        ecs.write_message(cancelled(entity, click, resynced));
+    }
+}
+
+fn cancelled(entity: Entity, click: PendingClick, resynced: bool) -> ClickCancelledByResync {
+    debug!(
+        "click held during the inventory resync is cancelled (resynced: {resynced}): {:?}",
+        click.operation
+    );
+    ClickCancelledByResync {
+        entity,
+        window_id: click.window_id,
+        operation: click.operation,
+        held_for: click.at.elapsed(),
+        resynced,
     }
 }
 
 /// Retry the resync click once, close the connection if the inventory is
-/// still unknown after the give-up time, and drop clicks that waited too
+/// still unknown after the give-up time, and cancel clicks that were held too
 /// long.
 fn inventory_resync_timers(
     mut commands: Commands,
     config: Res<BadPacketConfig>,
     mut query: Query<(Entity, &InventoryUnknown, Option<&mut PendingClicks>)>,
+    mut cancelled_clicks: MessageWriter<ClickCancelledByResync>,
 ) {
     for (entity, unknown, pending) in &mut query {
         let elapsed = unknown.since.elapsed();
         if let Some(mut pending) = pending {
-            pending.0.retain(|c| c.at.elapsed() < config.resync_give_up);
+            let (expired, held) = std::mem::take(&mut pending.0)
+                .into_iter()
+                .partition(|c| c.at.elapsed() >= config.resync_give_up);
+            pending.0 = held;
+            for click in expired {
+                cancelled_clicks.write(cancelled(entity, click, false));
+            }
         }
         if elapsed >= config.resync_give_up {
             let clicks = unknown.clicks_sent;
@@ -1034,6 +1076,7 @@ fn resync_failed(ecs: &mut World, entity: Entity, elapsed: Duration, clicks: u8)
     if ecs.get::<InventoryUnknown>(entity).is_none() {
         return;
     }
+    cancel_held_clicks(ecs, entity, false);
     ecs.entity_mut(entity)
         .remove::<(InventoryUnknown, PendingClicks)>();
     // decode error hook: the resync didn't come
@@ -1060,15 +1103,16 @@ fn resync_failed(ecs: &mut World, entity: Entity, elapsed: Duration, clicks: u8)
     );
 }
 
-/// Queue an ordinary click that came while the inventory is unknown; it
-/// runs once the inventory is known again (reflex clicks never come here).
+/// Hold an ordinary click that came while the inventory is unknown; it's
+/// cancelled once the inventory is known again (reflex clicks never come
+/// here).
 pub(crate) fn defer_click(
     ecs: &mut World,
     entity: Entity,
     window_id: i32,
     operation: ClickOperation,
 ) {
-    debug!("click waits for the inventory resync: {operation:?}");
+    debug!("click held during the inventory resync: {operation:?}");
     let Ok(mut e) = ecs.get_entity_mut(entity) else {
         return;
     };

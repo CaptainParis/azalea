@@ -1,19 +1,20 @@
 //! Bad packet policy, inventory class: a container packet that can't be
 //! decoded makes the inventory unknown and sends the resync click (slot -1,
 //! PICKUP, button 0, a stale state id) for the container we believe is open.
-//! A reflex click (totem swap) still runs at once, an ordinary click waits
-//! for the resync, the full content clears "unknown" and keeps the carried
-//! item; with no resync the click is retried once, then the connection is
-//! closed. A bad `open_screen` resyncs the container id read from its body
-//! (or closes a menu it can't model), and a reflex for the player's
-//! inventory while a container is open closes the container first.
+//! A reflex click (totem swap) still runs at once, an ordinary click is held
+//! and, when the full content clears "unknown" (keeping the carried item),
+//! cancelled with `ClickCancelledByResync` instead of replayed; with no resync
+//! the click is retried once, then the connection is closed. A bad
+//! `open_screen` resyncs the container id read from its body (or closes a menu
+//! it can't model), and a reflex for the player's inventory while a container
+//! is open closes the container first.
 
 use std::time::Duration;
 
 use azalea_client::{
     bad_packet::{
         AlertReason, BadPacketAction, BadPacketAlert, BadPacketConfig, BadPacketEvent,
-        InventoryUnknown, PacketClass, PendingClicks,
+        ClickCancelledByResync, InventoryUnknown, PacketClass, PendingClicks,
     },
     inventory::ContainerClickEvent,
     test_utils::prelude::*,
@@ -118,7 +119,8 @@ fn bad_container_packet_resyncs_the_inventory() {
     // it carries what we believe we carry
     assert_eq!(c[0].carried_item, ItemStack::new(ItemKind::Stick, 2));
 
-    // an ordinary click waits
+    // an ordinary click is held
+    let cancelled = simulation.record_messages::<ClickCancelledByResync>();
     simulation.trigger(ContainerClickEvent::new(
         simulation.entity,
         0,
@@ -149,8 +151,8 @@ fn bad_container_packet_resyncs_the_inventory() {
     );
 
     // the server's full state (as broadcastFullState: everything and the
-    // carried item, a new state id) makes the inventory known; the waiting
-    // click runs then
+    // carried item, a new state id) makes the inventory known; the held click
+    // isn't replayed blindly, it's cancelled
     let mut full = full_inventory(7, ItemStack::new(ItemKind::Stick, 2));
     full.items.swap(36, 45);
     simulation.receive_packet(full);
@@ -158,6 +160,23 @@ fn bad_container_packet_resyncs_the_inventory() {
     assert!(!simulation.has_component::<InventoryUnknown>());
     let inv = simulation.component::<Inventory>();
     assert_eq!(inv.state_id, 7);
+    assert!(clicks(&sent).is_empty(), "the held click isn't sent");
+    assert!(simulation.component::<PendingClicks>().0.is_empty());
+    let operation = {
+        let cancelled = cancelled.lock();
+        assert_eq!(cancelled.len(), 1, "{cancelled:?}");
+        assert!(cancelled[0].resynced);
+        assert_eq!(cancelled[0].window_id, 0);
+        cancelled[0].operation.clone()
+    };
+    // the caller looks at the real content (slot 9 still has the dirt) and
+    // clicks again
+    assert_eq!(
+        simulation.component::<Inventory>().inventory_menu.slots()[9],
+        ItemStack::new(ItemKind::Dirt, 5)
+    );
+    simulation.trigger(ContainerClickEvent::new(simulation.entity, 0, operation));
+    simulation.tick();
     let c = clicks(&sent);
     assert_eq!(c.len(), 1, "{c:?}");
     assert_eq!(c[0].click_type, ClickType::Pickup);
@@ -191,9 +210,15 @@ fn inventory_resync_retries_once_then_closes() {
     let disconnects = simulation.record_disconnects();
     let before = decode_errors();
 
+    let cancelled = simulation.record_messages::<ClickCancelledByResync>();
     simulation.receive_raw_packet(bad_slot_packet());
     simulation.tick();
     assert_eq!(clicks(&sent).len(), 1);
+    simulation.trigger(ContainerClickEvent::new(
+        simulation.entity,
+        0,
+        PickupClick::Left { slot: Some(9) },
+    ));
     // a second bad container packet while unknown sends no second click
     simulation.receive_raw_packet(bad_slot_packet());
     simulation.tick();
@@ -231,6 +256,10 @@ fn inventory_resync_retries_once_then_closes() {
         alerts.iter().any(|a| a.reason == AlertReason::ResyncFailed),
         "{alerts:?}"
     );
+    // the held click was cancelled, not sent
+    let cancelled = cancelled.lock();
+    assert_eq!(cancelled.len(), 1, "{cancelled:?}");
+    assert!(!cancelled[0].resynced);
     // the second bad packet with the same id alerted too
     assert!(alerts.iter().any(|a| a.reason == AlertReason::Repeated));
 }

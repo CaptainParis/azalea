@@ -168,8 +168,9 @@ pub struct ContainerClickEvent {
     pub operation: ClickOperation,
     /// A survival reflex (for example a totem swap): it runs even while the
     /// inventory is unknown after a bad packet, and its result resyncs the
-    /// state. Ordinary clicks (`false`) wait for the resync, see
-    /// [`PendingClicks`](crate::bad_packet::PendingClicks).
+    /// state. Ordinary clicks (`false`) made while the inventory is unknown
+    /// are held and then cancelled, never sent: see
+    /// [`ClickCancelledByResync`](crate::bad_packet::ClickCancelledByResync).
     pub reflex: bool,
 }
 impl ContainerClickEvent {
@@ -207,7 +208,8 @@ pub fn handle_container_click_event(
         return;
     };
     if unknown && !container_click.reflex {
-        // waits for the inventory resync (bad packet policy)
+        // held, then cancelled when the inventory resync ends (bad packet
+        // policy): it was decided on a model that may be wrong
         let (window_id, operation) = (container_click.window_id, container_click.operation.clone());
         commands.queue(move |ecs: &mut World| {
             crate::bad_packet::defer_click(ecs, entity, window_id, operation);

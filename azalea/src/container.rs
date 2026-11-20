@@ -290,6 +290,11 @@ impl ContainerHandleRef {
 
     /// Simulate a click in the container and send the packet to perform the
     /// action.
+    ///
+    /// While the inventory is unknown after a bad packet the click isn't
+    /// sent: it's cancelled with a
+    /// [`ClickCancelledByResync`](azalea_client::bad_packet::ClickCancelledByResync)
+    /// once the resync ends, so you can decide again on the real content.
     pub fn click(&self, operation: impl Into<ClickOperation>) {
         self.client.ecs.write().trigger(ContainerClickEvent::new(
             self.client.entity,
@@ -300,7 +305,7 @@ impl ContainerHandleRef {
 
     /// Like [`Self::click`], but for a survival reflex (for example a totem
     /// swap): it runs at once even while the inventory is unknown after a bad
-    /// packet, instead of waiting for the resync.
+    /// packet, instead of being held and cancelled.
     pub fn reflex_click(&self, operation: impl Into<ClickOperation>) {
         self.client.ecs.write().trigger(ContainerClickEvent::reflex(
             self.client.entity,
