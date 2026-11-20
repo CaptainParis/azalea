@@ -775,4 +775,35 @@ mod tests {
             Some(&ItemStack::new(ItemKind::Cobblestone, 5))
         );
     }
+
+    // 1.21.4 ShulkerBoxMenu.quickMoveStack: contents go to the player inventory
+    // last slot first (the end of the hotbar)
+    #[test]
+    fn test_shift_click_from_shulker_fills_hotbar_end_first() {
+        let mut inventory = with_shulker(&[(0, ItemStack::new(ItemKind::Elytra, 1))], &[]);
+        inventory.simulate_click(
+            &ClickOperation::QuickMove(QuickMoveClick::Left { slot: 0 }),
+            &PlayerAbilities::default(),
+        );
+        let slots = inventory.menu().slots();
+        assert_eq!(slots[0], ItemStack::Empty);
+        assert_eq!(slots[62], ItemStack::new(ItemKind::Elytra, 1));
+    }
+
+    // AbstractContainerMenu.moveItemStackTo merges into a partial stack
+    #[test]
+    fn test_shift_click_into_shulker_merges() {
+        let mut inventory = with_shulker(
+            &[(5, ItemStack::new(ItemKind::Obsidian, 1))],
+            &[(62, ItemStack::new(ItemKind::Obsidian, 31))],
+        );
+        inventory.simulate_click(
+            &ClickOperation::QuickMove(QuickMoveClick::Left { slot: 62 }),
+            &PlayerAbilities::default(),
+        );
+        let slots = inventory.menu().slots();
+        assert_eq!(slots[5], ItemStack::new(ItemKind::Obsidian, 32));
+        assert_eq!(slots[62], ItemStack::Empty);
+        assert_eq!(slots[0], ItemStack::Empty);
+    }
 }

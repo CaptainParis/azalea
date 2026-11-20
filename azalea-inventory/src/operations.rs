@@ -282,6 +282,10 @@ impl Menu {
         let slot_location = self
             .location_for_slot(slot_index)
             .expect("we just checked to make sure the slot is Some above, so this shouldn't be able to error");
+        // Chest-like menus (ChestMenu, DispenserMenu, HopperMenu,
+        // ShulkerBoxMenu in 1.21.4) move contents into the player inventory
+        // last slot first, and the player inventory into the contents without
+        // a hotbar fallback.
         match slot_location {
             MenuLocation::Player(l) => match l {
                 PlayerMenuLocation::CraftResult => {
@@ -319,79 +323,58 @@ impl Menu {
             },
             MenuLocation::Generic9x1(l) => match l {
                 Generic9x1MenuLocation::Contents => {
-                    self.try_move_item_to_slots(slot_index, self.player_slots_range());
+                    self.move_item_stack_to(slot_index, self.player_slots_range(), true);
                 }
                 Generic9x1MenuLocation::Player => {
-                    self.try_move_item_to_slots_or_toggle_hotbar(
-                        slot_index,
-                        Menu::GENERIC9X1_CONTENTS_SLOTS,
-                    );
+                    self.move_item_stack_to(slot_index, Menu::GENERIC9X1_CONTENTS_SLOTS, false);
                 }
             },
             MenuLocation::Generic9x2(l) => match l {
                 Generic9x2MenuLocation::Contents => {
-                    self.try_move_item_to_slots(slot_index, self.player_slots_range());
+                    self.move_item_stack_to(slot_index, self.player_slots_range(), true);
                 }
                 Generic9x2MenuLocation::Player => {
-                    self.try_move_item_to_slots_or_toggle_hotbar(
-                        slot_index,
-                        Menu::GENERIC9X2_CONTENTS_SLOTS,
-                    );
+                    self.move_item_stack_to(slot_index, Menu::GENERIC9X2_CONTENTS_SLOTS, false);
                 }
             },
             MenuLocation::Generic9x3(l) => match l {
                 Generic9x3MenuLocation::Contents => {
-                    self.try_move_item_to_slots(slot_index, self.player_slots_range());
+                    self.move_item_stack_to(slot_index, self.player_slots_range(), true);
                 }
                 Generic9x3MenuLocation::Player => {
-                    self.try_move_item_to_slots_or_toggle_hotbar(
-                        slot_index,
-                        Menu::GENERIC9X3_CONTENTS_SLOTS,
-                    );
+                    self.move_item_stack_to(slot_index, Menu::GENERIC9X3_CONTENTS_SLOTS, false);
                 }
             },
             MenuLocation::Generic9x4(l) => match l {
                 Generic9x4MenuLocation::Contents => {
-                    self.try_move_item_to_slots(slot_index, self.player_slots_range());
+                    self.move_item_stack_to(slot_index, self.player_slots_range(), true);
                 }
                 Generic9x4MenuLocation::Player => {
-                    self.try_move_item_to_slots_or_toggle_hotbar(
-                        slot_index,
-                        Menu::GENERIC9X4_CONTENTS_SLOTS,
-                    );
+                    self.move_item_stack_to(slot_index, Menu::GENERIC9X4_CONTENTS_SLOTS, false);
                 }
             },
             MenuLocation::Generic9x5(l) => match l {
                 Generic9x5MenuLocation::Contents => {
-                    self.try_move_item_to_slots(slot_index, self.player_slots_range());
+                    self.move_item_stack_to(slot_index, self.player_slots_range(), true);
                 }
                 Generic9x5MenuLocation::Player => {
-                    self.try_move_item_to_slots_or_toggle_hotbar(
-                        slot_index,
-                        Menu::GENERIC9X5_CONTENTS_SLOTS,
-                    );
+                    self.move_item_stack_to(slot_index, Menu::GENERIC9X5_CONTENTS_SLOTS, false);
                 }
             },
             MenuLocation::Generic9x6(l) => match l {
                 Generic9x6MenuLocation::Contents => {
-                    self.try_move_item_to_slots(slot_index, self.player_slots_range());
+                    self.move_item_stack_to(slot_index, self.player_slots_range(), true);
                 }
                 Generic9x6MenuLocation::Player => {
-                    self.try_move_item_to_slots_or_toggle_hotbar(
-                        slot_index,
-                        Menu::GENERIC9X6_CONTENTS_SLOTS,
-                    );
+                    self.move_item_stack_to(slot_index, Menu::GENERIC9X6_CONTENTS_SLOTS, false);
                 }
             },
             MenuLocation::Generic3x3(l) => match l {
                 Generic3x3MenuLocation::Contents => {
-                    self.try_move_item_to_slots(slot_index, self.player_slots_range());
+                    self.move_item_stack_to(slot_index, self.player_slots_range(), true);
                 }
                 Generic3x3MenuLocation::Player => {
-                    self.try_move_item_to_slots_or_toggle_hotbar(
-                        slot_index,
-                        Menu::GENERIC3X3_CONTENTS_SLOTS,
-                    );
+                    self.move_item_stack_to(slot_index, Menu::GENERIC3X3_CONTENTS_SLOTS, false);
                 }
             },
             MenuLocation::Crafter3x3(l) => match l {
@@ -496,13 +479,10 @@ impl Menu {
             },
             MenuLocation::Hopper(l) => match l {
                 HopperMenuLocation::Player => {
-                    self.try_move_item_to_slots_or_toggle_hotbar(
-                        slot_index,
-                        Menu::HOPPER_CONTENTS_SLOTS,
-                    );
+                    self.move_item_stack_to(slot_index, Menu::HOPPER_CONTENTS_SLOTS, false);
                 }
                 _ => {
-                    self.try_move_item_to_slots(slot_index, self.player_slots_range());
+                    self.move_item_stack_to(slot_index, self.player_slots_range(), true);
                 }
             },
             MenuLocation::Lectern(l) => match l {
@@ -540,13 +520,10 @@ impl Menu {
             },
             MenuLocation::ShulkerBox(l) => match l {
                 ShulkerBoxMenuLocation::Player => {
-                    self.try_move_item_to_slots_or_toggle_hotbar(
-                        slot_index,
-                        Menu::SHULKER_BOX_CONTENTS_SLOTS,
-                    );
+                    self.move_item_stack_to(slot_index, Menu::SHULKER_BOX_CONTENTS_SLOTS, false);
                 }
                 _ => {
-                    self.try_move_item_to_slots(slot_index, self.player_slots_range());
+                    self.move_item_stack_to(slot_index, self.player_slots_range(), true);
                 }
             },
             MenuLocation::Smithing(l) => match l {
@@ -646,88 +623,84 @@ impl Menu {
         64
     }
 
-    /// Try moving an item to a set of slots in this menu.
+    /// Try moving an item to a set of slots in this menu, first to last.
     ///
-    /// Returns the updated item slot.
+    /// Returns whether the source slot is now empty.
     fn try_move_item_to_slots(
         &mut self,
         item_slot_index: usize,
         target_slot_indexes: RangeInclusive<usize>,
     ) -> bool {
-        let mut item_slot = self.slot(item_slot_index).unwrap().clone();
+        self.move_item_stack_to(item_slot_index, target_slot_indexes, false);
+        self.slot(item_slot_index).is_none_or(|s| s.is_empty())
+    }
 
-        // first see if we can stack it with another item
-        if item_slot.kind().stackable() {
-            for target_slot_index in target_slot_indexes.clone() {
-                self.move_item_to_slot_if_stackable(&mut item_slot, target_slot_index);
-                if item_slot.is_empty() {
+    /// 1.21.4 `AbstractContainerMenu.moveItemStackTo`: first merge into stacks
+    /// of the same item (up to the stack limit), then put the rest into the
+    /// first empty slot. With `reverse`, slots are tried last to first (chests
+    /// and similar menus move into the player inventory that way, so a shift
+    /// click fills the hotbar from its end first).
+    ///
+    /// Returns whether anything moved.
+    fn move_item_stack_to(
+        &mut self,
+        item_slot_index: usize,
+        target_slot_indexes: RangeInclusive<usize>,
+        reverse: bool,
+    ) -> bool {
+        let mut item = self.slot(item_slot_index).unwrap().clone();
+        let order: Vec<usize> = if reverse {
+            target_slot_indexes.rev().collect()
+        } else {
+            target_slot_indexes.collect()
+        };
+        let mut moved = false;
+
+        if item.kind().stackable() {
+            for &target in &order {
+                let ItemStack::Present(src) = &mut item else {
+                    break;
+                };
+                let Some(ItemStack::Present(dst)) = self.slot(target) else {
+                    continue;
+                };
+                if !dst.is_same_item_and_components(src) {
+                    continue;
+                }
+                // Slot.getMaxStackSize(stack)
+                let limit = self.max_stack_size(target).min(dst.kind.max_stack_size());
+                let total = dst.count + src.count;
+                let new_count = if total <= limit {
+                    src.count = 0;
+                    total
+                } else if dst.count < limit {
+                    src.count -= limit - dst.count;
+                    limit
+                } else {
+                    continue;
+                };
+                if let Some(ItemStack::Present(dst)) = self.slot_mut(target) {
+                    dst.count = new_count;
+                }
+                moved = true;
+                item.update_empty();
+            }
+        }
+
+        if let ItemStack::Present(src) = &mut item {
+            for &target in &order {
+                if self.slot(target).is_some_and(|s| s.is_empty()) && self.may_place(target, src) {
+                    let limit = self.max_stack_size(target).min(src.kind.max_stack_size());
+                    let placed = src.split(i32::min(src.count, limit) as u32);
+                    *self.slot_mut(target).unwrap() = placed.into();
+                    moved = true;
                     break;
                 }
             }
+            item.update_empty();
         }
 
-        // and if not then just try putting it in an empty slot
-        if item_slot.is_present() {
-            for target_slot_index in target_slot_indexes {
-                self.move_item_to_slot_if_empty(&mut item_slot, target_slot_index);
-                if item_slot.is_empty() {
-                    break;
-                }
-            }
-        }
-
-        let is_source_slot_now_empty = item_slot.is_empty();
-
-        *self.slot_mut(item_slot_index).unwrap() = item_slot;
-        is_source_slot_now_empty
-    }
-
-    /// Merge this item slot into the target item slot, only if the target item
-    /// slot is present and the same item.
-    fn move_item_to_slot_if_stackable(
-        &mut self,
-        item_slot: &mut ItemStack,
-        target_slot_index: usize,
-    ) {
-        let ItemStack::Present(item) = item_slot else {
-            return;
-        };
-        let target_slot = self.slot(target_slot_index).unwrap();
-        if let ItemStack::Present(target_item) = target_slot {
-            // the target slot is empty, so we can just move the item there
-            if self.may_place(target_slot_index, item)
-                && target_item.is_same_item_and_components(item)
-            {
-                let slot_item_limit = self.max_stack_size(target_slot_index);
-                let new_target_slot_data = item.split(i32::min(slot_item_limit, item.count) as u32);
-
-                // get the target slot again but mut this time so we can update
-                // it
-                let target_slot = self.slot_mut(target_slot_index).unwrap();
-                *target_slot = ItemStack::from(new_target_slot_data);
-
-                item_slot.update_empty();
-            }
-        }
-    }
-
-    fn move_item_to_slot_if_empty(
-        &mut self,
-        source_item: &mut ItemStack,
-        target_slot_index: usize,
-    ) {
-        let ItemStack::Present(source_item_data) = source_item else {
-            return;
-        };
-        let target_slot = self.slot(target_slot_index).unwrap();
-        if target_slot.is_empty() && self.may_place(target_slot_index, source_item_data) {
-            let slot_item_limit = self.max_stack_size(target_slot_index);
-            let new_target_slot_data =
-                source_item_data.split(i32::min(slot_item_limit, source_item_data.count) as u32);
-            source_item.update_empty();
-
-            let target_slot = self.slot_mut(target_slot_index).unwrap();
-            *target_slot = new_target_slot_data.into();
-        }
+        *self.slot_mut(item_slot_index).unwrap() = item;
+        moved
     }
 }
