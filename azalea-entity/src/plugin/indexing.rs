@@ -58,7 +58,13 @@ pub struct EntityIdIndex {
     /// An index of entities by their MinecraftEntityId
     entity_by_id: IntMap<MinecraftEntityId, Entity>,
     id_by_entity: HashMap<Entity, MinecraftEntityId>,
+    /// Ids the client's entity cap dropped, most recent last (at most
+    /// [`CAPPED_IDS`]): later packets about them aren't unknown entities.
+    capped: std::collections::VecDeque<MinecraftEntityId>,
 }
+
+/// How many entity-cap-dropped ids an index remembers.
+pub const CAPPED_IDS: usize = 4096;
 
 impl EntityIdIndex {
     pub fn get_by_minecraft_entity(&self, id: MinecraftEntityId) -> Option<Entity> {
@@ -87,7 +93,37 @@ impl EntityIdIndex {
         self.entity_by_id.iter().map(|(id, e)| (*id, *e))
     }
 
+    /// Remember that the entity cap dropped `id` (bounded, oldest first out).
+    pub fn mark_capped(&mut self, id: MinecraftEntityId) {
+        if self.capped.len() >= CAPPED_IDS {
+            self.capped.pop_front();
+        }
+        self.capped.push_back(id);
+    }
+
+    /// Whether the entity cap dropped `id` (and it wasn't added again).
+    pub fn was_capped(&self, id: MinecraftEntityId) -> bool {
+        self.capped.contains(&id)
+    }
+
+    /// The decode error kind for a packet about `id` that isn't in the
+    /// index: `CappedEntity` if our entity cap dropped it, else
+    /// `UnknownEntity`.
+    pub fn unknown_kind(
+        &self,
+        id: MinecraftEntityId,
+    ) -> azalea_core::decode_errors::DecodeErrorKind {
+        use azalea_core::decode_errors::DecodeErrorKind;
+        if self.was_capped(id) {
+            DecodeErrorKind::CappedEntity
+        } else {
+            DecodeErrorKind::UnknownEntity
+        }
+    }
+
     pub fn insert(&mut self, id: MinecraftEntityId, entity: Entity) {
+        // added again by the server: not capped anymore
+        self.capped.retain(|c| *c != id);
         self.entity_by_id.insert(id, entity);
         self.id_by_entity.insert(entity, id);
         trace!("Inserted {id} -> {entity:?} into a client's EntityIdIndex");

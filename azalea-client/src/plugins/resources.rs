@@ -169,6 +169,7 @@ pub fn enforce_entity_cap(ecs: &mut World) {
         for (_, id, entity) in candidates {
             if let Some(mut index) = ecs.get_mut::<EntityIdIndex>(player) {
                 index.remove_by_minecraft_entity(id);
+                index.mark_capped(id);
             }
             if let Some(mut loaded_by) = ecs.get_mut::<LoadedBy>(entity) {
                 loaded_by.remove(&player);

@@ -144,6 +144,10 @@ pub enum DecodeErrorKind {
     /// A light update for a chunk the client doesn't have was dropped (light
     /// is kept per loaded chunk, never in a side map).
     LightUnloaded,
+    /// A packet about an entity the client's entity cap dropped (the server
+    /// still tracks it): skipped quietly, counted apart from
+    /// [`DecodeErrorKind::UnknownEntity`].
+    CappedEntity,
 }
 
 impl DecodeErrorKind {
@@ -242,6 +246,7 @@ kinds! {
     ChunkCap => chunk_cap,
     EntityCap => entity_cap,
     LightUnloaded => light_unloaded,
+    CappedEntity => capped_entity,
 }
 
 fn counter(kind: DecodeErrorKind) -> &'static AtomicU64 {

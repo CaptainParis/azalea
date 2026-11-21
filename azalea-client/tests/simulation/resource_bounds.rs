@@ -286,6 +286,28 @@ fn entity_cap_drops_farthest_non_players() {
     // the player at 60 stays; the cows at 50 and 40 go
     assert_eq!(known, vec![0, 10, 12, 14]);
     assert_eq!(decode_errors().entity_cap - before, 2);
+
+    // the server still tracks the dropped cows: their updates are skipped
+    // quietly, counted as CappedEntity, not UnknownEntity
+    let (unknown0, capped0) = (
+        decode_errors().unknown_entity,
+        decode_errors().capped_entity,
+    );
+    for id in [11, 13] {
+        s.receive_packet(azalea_protocol::packets::game::ClientboundTeleportEntity {
+            id: azalea_core::entity_id::MinecraftEntityId(id),
+            change: azalea_protocol::common::movements::PositionMoveRotation {
+                pos: azalea_core::position::Vec3::new(1., 0., 0.),
+                delta: azalea_core::position::Vec3::ZERO,
+                look_direction: Default::default(),
+            },
+            relative: azalea_protocol::common::movements::RelativeMovements::all_relative(),
+            on_ground: true,
+        });
+    }
+    s.tick();
+    assert_eq!(decode_errors().unknown_entity, unknown0);
+    assert_eq!(decode_errors().capped_entity - capped0, 2);
 }
 
 fn light_packet(
