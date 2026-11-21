@@ -292,9 +292,11 @@ pub fn remove_despawned_entities_from_indexes(
                     let mut found_in_other_chunks = HashSet::new();
                     for (other_chunk, entities_in_other_chunk) in &mut world.entities_by_chunk {
                         if entities_in_other_chunk.remove(&entity) {
-                            found_in_other_chunks.insert(other_chunk);
+                            found_in_other_chunks.insert(*other_chunk);
                         }
                     }
+                    // no set left empty by the search
+                    world.entities_by_chunk.retain(|_, s| !s.is_empty());
                     if found_in_other_chunks.is_empty() {
                         warn!(
                             "Tried to remove entity {entity:?} from chunk {chunk:?} but the entity was not there or in any other chunks."
@@ -310,9 +312,11 @@ pub fn remove_despawned_entities_from_indexes(
                 let mut found_in_other_chunks = HashSet::new();
                 for (other_chunk, entities_in_other_chunk) in &mut world.entities_by_chunk {
                     if entities_in_other_chunk.remove(&entity) {
-                        found_in_other_chunks.insert(other_chunk);
+                        found_in_other_chunks.insert(*other_chunk);
                     }
                 }
+                // no set left empty by the search
+                world.entities_by_chunk.retain(|_, s| !s.is_empty());
                 if found_in_other_chunks.is_empty() {
                     warn!(
                         "Tried to remove entity {entity:?} from chunk {chunk:?} but the chunk was not found and the entity wasn't in any other chunks."
